@@ -1,3 +1,4 @@
+%%% The data for this demo can be downloaded from: http://goo.gl/ERULZA (32 Mb)
 
 % Change these lines to match your paths:
 exampleData = load('/Users/danielg/data/fatnavs_examples/reconTest/example_retroMocoData.mat');

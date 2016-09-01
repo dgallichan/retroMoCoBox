@@ -6,6 +6,15 @@
 
 Matlab toolbox for retrospective motion-correction of 3D MRI k-space data - as used for my work using 3D FatNavs to obtain the motion information.
 
+
+Used in:
+* [Retrospective correction of involuntary microscopic head movement using highly accelerated fat image navigators (3D FatNavs) at 7T](http://doi.wiley.com/10.1002/mrm.25670), _Gallichan, Marques and Gruetter_, MRM 2015
+* [Optimizing the acceleration and resolution of three-dimensional fat image navigators for high-resolution motion correction at 7T](http://doi.wiley.com/10.1002/mrm.26127), _Gallichan and Marques,_ MRM 2016
+* [Motion-Correction Enabled Ultra-High Resolution In-Vivo 7T-MRI of the Brain](http://dx.plos.org/10.1371/journal.pone.0154974), _Federau and Gallichan,_ Plos One 2016
+
+All of the work cited above is based on 3D FatNavs data from a Siemens 7T scanner - but in collaboration with the [Spinoza Center for Neuroimaging](https://www.spinozacentre.nl/) we have also demonstrated that the same code can be used to correct data collected with 3D EPI FatNavs from a Philips 7T scanner (_Fast and Flexible 3D-EPI Fat Navigators for High-Resolution Brain Imaging at 7 Tesla_ Buur et al, Proc ISMRM 2016). If you are also interested in using the code adapted for Philips scanners (currently not included in this Github), [please contact me](daniel.gallichan@epfl.ch).
+
+
 ---
 
 ### Installation
@@ -24,9 +33,9 @@ Or you can download the package and update manually as required.
 
 `run_retroMocoDemo.m`
 
-The simple demonstration code  uses a single volume of real data from our scanner to demonstrate how the measured motion parameters can be used to correct the 3D k-space. The translations correpond to a simple phase ramp in k-space, but the rotations move the sampling positions away from a simple Cartesian grid, so some form of gridding is necessary. This was implemented here using [Prof. Jeff Fessler's toolbox for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html) - which is a prerequisite for using the RetroMoCoBox. On my computer this demo runs in about 12 seconds.
+The simple demonstration code  uses a single volume of real data from our scanner to demonstrate how the measured motion parameters can be used to correct the 3D k-space. The translations correpond to a simple phase ramp in k-space, but the rotations move the sampling positions away from a simple Cartesian grid, so some form of gridding is necessary. This was implemented here using [Prof. Jeff Fessler's toolbox for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html) - which is a prerequisite for using the RetroMoCoBox. 
 
-The data for the demo can be [downloaded here]() (32 Mb).
+The data for the demo can be [downloaded here](http://goo.gl/ERULZA) (32 Mb).
 
 ---
 
