@@ -1,5 +1,5 @@
-function reconstructMP2RAGEwithFatNavs(rawDataFile,varargin)
-% function reconstructMP2RAGEwithFatNavs(rawDataFile,varargin)
+function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
+% function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 % 
 % - Tested with Matlab 2014b (and recommended because the figures look
 % nicer when working in Linux...!) and 2012a.
@@ -119,6 +119,8 @@ function reconstructMP2RAGEwithFatNavs(rawDataFile,varargin)
 % *** not freely available online, but only from the Siemens user forum.***
 % *** Consequently the FatNavs recon code must also be considered       ***
 % *** 'Siemens-sensitive' while it contains this code                   ***
+% *** I have not included this part in the Github repository - please   ***
+% *** email me if you would like it.                                    ***
 %           For reading in the Siemens raw data format - and able to handle
 %           very large datasets elegantly. 
 %           I made small changes to the code to allow handling of the
