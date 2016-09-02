@@ -43,10 +43,16 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %                           GRAPPA recon of the host data (which would be
 %                           deleted by default). 
 %
-%      'bKeepRecoInRAM' - set this to '1' to keep all the reconstructed
-%                         files (INV1, INV2 and UNI, all with and without
-%                         correction) in RAM, or default is to use a
-%                         temporary file.
+%      'bKeepReconInRAM' - set this to '1' to keep all the reconstructed
+%                          files (INV1, INV2 and UNI, all with and without
+%                          correction) in RAM, or default is to use a
+%                          temporary file.
+%
+%      'bFullParforRecon' - set this to '1' to enable parfor over the NUFFT
+%                           loop. For this to work, bKeepReconInRAM must
+%                           also be set - and depending how many CPUs you
+%                           have available on your matlabpool, you may need
+%                           to have LOADS of RAM...  But it is much faster!
 %       
 %      'coilCombineMethod' - In MP2RAGE the default method is to match what
 %                            I believe is done on the scanner - to weight
@@ -195,26 +201,38 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %        - now have option to do the MP2RAGE recon combination entirely in RAM
 %   v0.4 -   -- August 2016
 %        - changed default NUFFT oversampling from 1.375 to 1.5 (to reduce aliasing artifact)
-%   v0.5 -   -- August 2016
+%   v0.5 -   -- September 2016
 %        - updated to latest version of Philipp Ehses' mapVBVD software (from 18/9/15)
 %        - now renamed things to make it part of the 'RetroMoCoBox' and put
 %          on Github
+%        - Added the bFullParforRecon option to really speed things up if
+%          you have enough CPUs and RAM available
+%        - changed name of bKeepRecoInRAM to bKeepReconInRAM for consistency
 
 fatnavsVersion = 0.5; % put this into the HTML for reference
 
 
 %%
 
-[outRoot, tempRoot, LinParSwap, bGRAPPAinRAM, bKeepGRAPPArecon, bKeepRecoInRAM, ...
+[outRoot, tempRoot, LinParSwap, bGRAPPAinRAM, bKeepGRAPPArecon, bKeepReconInRAM, bFullParforRecon,...
     coilCombineMethod, FatNavRes_mm, swapDims_xyz, bZipNIFTIs, bKeepFatNavs] = process_options(varargin,...
-    'outRoot',[],'tempRoot',[],'LinParSwap',0,'bGRAPPAinRAM',0,'bKeepGRAPPArecon',0,'bKeepRecoInRAM',0,...
-    'coilCombineMethod','default','FatNavRes_mm',2,'swapDims_xyz',[0 0 1],'zipNIFTIs',1,'keepFatNavs',0);
+    'outRoot',[],'tempRoot',[],'LinParSwap',0,'bGRAPPAinRAM',0,'bKeepGRAPPArecon',0,'bKeepReconInRAM',0,...
+    'bFullParforRecon',0,'coilCombineMethod','default','FatNavRes_mm',2,'swapDims_xyz',[0 0 1],'zipNIFTIs',1,'keepFatNavs',0);
+
+
+%%
+
+if bFullParforRecon && ~bKeepReconInRAM
+    disp('Error - you asked for the full parfor option (bFulLParforRecon), but not to do the recon in RAM (bKeepReconInRAM)')
+    return
+end
+
 
 %% Useful for debugging and running as a script instead of a function
 
 % outRoot = []; tempRoot = []; LinParSwap = 0; bKeepGRAPPArecon = 0; coilCombineMethod = 'default';
 % FatNavRes_mm = 2; swapDims_xyz = [0 0 1]; bZipNIFTIs = 1; bKeepFatNavs = 0;
-% bGRAPPAinRAM = 1;  bKeepRecoInRAM = 0;
+% bFullParforRecon = 0; bGRAPPAinRAM = 1;  bKeepReconInRAM = 0;
 
 
 %% Make local function as inline so that it can be used in scripts
@@ -236,9 +254,12 @@ figIndex = 999; % figure to use for outputs
 MIDstr = getMIDstr(rawDataFile);
 
 
-% FatNavRes_mm = 2; % for now I assume this to be fixed, isotropic  % 
-% <-- v0.2, moved this to an input option
-FatNav_FOVxyz = [176 256 256]; % FatNav FOV (for now I assume this to be fixed)
+filterFrac = 0.05; % used when 'lowres' coil combination method is selected (not default..)
+
+FatNav_FOVxyz = [176 256 256]; % FatNav FOV 
+% (for now I assume this to be fixed - this will be slightly wrong for some
+% FatNav resolutions, but this is only used for the orientation checks, etc
+% so it doesn't matter if it is slightly off...)
 FatNav_xyz = FatNav_FOVxyz ./ FatNavRes_mm;
 
 startTime = clock;
@@ -671,37 +692,7 @@ end
 
 
 
-%% Do the retrospective motion-correction of the host sequence
-
-if ~bKeepRecoInRAM
-    tempFile = [tempDir '/tempReconData_' MIDstr '.mat'];
-    if exist(tempFile,'file')
-        delete(tempFile)
-    end
-    mOut = matfile(tempFile,'writable',true);
-end
-
-if nS==2
-    mOut.all_uniImage = zeros(Hxyz(1),Hxyz(2),Hxyz(3),'single');
-    mOut.all_uniImage_corrected = zeros(Hxyz(1),Hxyz(2),Hxyz(3),'single');
-    mOut.all_refImage = zeros(Hxyz(1),Hxyz(2),Hxyz(3),'single');
-    mOut.all_refImage_corrected = zeros(Hxyz(1),Hxyz(2),Hxyz(3),'single');
-end
-
-if strcmp(coilCombineMethod,'lowres')
-    filterFrac = 0.05;
-    mOut.all_ims_ref = zeros(Hxyz(1),Hxyz(2),Hxyz(3),1,'single'); % ref is only based on INV2 as it has more SNR
-    mOut.all_ims_ref_corrected = zeros(Hxyz(1),Hxyz(2),Hxyz(3),1,'single');
-
-    mOut.all_ims = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
-    mOut.all_ims_corrected = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
-
-else
-    mOut.all_ims = zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single');
-    mOut.all_ims_corrected = zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single');
-end
-
-
+%% Prepare for the retrospective motion-correction of the host sequence
 tStart_applyMoco = clock;
 
 timingReport_applyMoco = zeros(nc,nS); % store the time to reconstruct each volume with the NUFFT
@@ -709,184 +700,426 @@ timingReport_applyMoco = zeros(nc,nS); % store the time to reconstruct each volu
 fprintf('............\n')
 fprintf('... Performing NUFFT on each volume to apply motion correction parameters\n');
 
-%%
 
-for iC = 1:nc
-    
-    
-    mOut.thiscoil_ims = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
-    mOut.thiscoil_ims_corrected = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));      
-        
-    
-    for iS = 1:nS
-        
-        fprintf(['Reconstructing coil ' num2str(iC) ' of ' num2str(nc) ', set ' num2str(iS) '\n']);
-        
-        if useGRAPPAforHost
-            thisData = squeeze(mOutGRAPPA.grappaRecon_1DFFT(:,iC,:,:,iS));
-            % thisData = squeeze(mOutGRAPPA.dataCombined(:,:,:,2)); iC=1;iS = 1; % use this to have more brain coverage for debugging...
-            thisData = fft1s(thisData,1); % put into full 3D k-space
-        else
-            thisData = squeeze(twix_obj.image(:,iC,:,:,1,1,1,1,1,iS));
-        end
-        
-        thisData = permute(thisData,permutedims);
-        if swapDims_xyz(1)
-           thisData = thisData(end:-1:1,:,:,:);
-        end
-        if swapDims_xyz(2)
-           thisData = thisData(:,end:-1:1,:,:);
-        end
-        if swapDims_xyz(3)
-           thisData = thisData(:,:,end:-1:1,:);
-        end
-                        
-        newData = thisData;
-        
-        if any(hxyz~=Hxyz)
-            thisData(Hxyz(1),Hxyz(2),Hxyz(3)) = 0; % extend to new size
-            thisData = circshift(thisData,double([Hxyz(1)-hxyz(1) Hxyz(2)-hxyz(2) Hxyz(3)-hxyz(3)].*(1-swapDims_xyz))); 
-            % the 'double' in the above line appears necessary in certain
-            % versions of Matlab, no idea why...
-        end
-       
-        thisData = ifft3s(thisData)*prod(hxyz);
-        
-        tic 
-        gdata = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
-        % the multi-CPU (parfor) version of the NUFFT can be called with a
-        % negative value for the 'useTable' input:
-        %    gdata = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,-11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
-        % However, in my latest tests (September 2016) I found that it was
-        % actually slower for the current NUFFT parameters than the
-        % non-parallelized version, so I've disabled it again as a
-        % default...
-        timingReport_applyMoco(iC,iS) = toc;
+%%% Declare all the variables
 
-        if nS > 1
-            mOut.thiscoil_ims(:,:,:,iS) = thisData;
-            mOut.thiscoil_ims_corrected(:,:,:,iS) = gdata;
-        else
-            mOut.thiscoil_ims = thisData;
-            mOut.thiscoil_ims_corrected = gdata;
+if ~bFullParforRecon
+    
+    if ~bKeepReconInRAM
+        tempFile = [tempDir '/tempReconData_' MIDstr '.mat'];
+        if exist(tempFile,'file')
+            delete(tempFile)
         end
-        
+        mOut = matfile(tempFile,'writable',true);
     end
     
-    % create coil-combined INV1 (and INV2 if available)
-    switch coilCombineMethod
-        case 'default'
-            mOut.all_ims = mOut.all_ims + abs(mOut.thiscoil_ims).^2;
-            mOut.all_ims_corrected = mOut.all_ims_corrected + abs(mOut.thiscoil_ims_corrected).^2;
-        case 'lowres'
-            if nS==2
-                weightsImage = mOut.thiscoil_ims(:,:,:,2);
-                weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);                
-                mOut.all_ims = mOut.all_ims + bsxfun(@times,mOut.thiscoil_ims,conj(weightsImage));
-                mOut.all_ims_ref = mOut.all_ims_ref + abs(weightsImage).^2;
+    if nS==2
+        mOut.all_uniImage = zeros(Hxyz(1),Hxyz(2),Hxyz(3),'single');
+        mOut.all_uniImage_corrected = zeros(Hxyz(1),Hxyz(2),Hxyz(3),'single');
+        mOut.all_refImage = zeros(Hxyz(1),Hxyz(2),Hxyz(3),'single');
+        mOut.all_refImage_corrected = zeros(Hxyz(1),Hxyz(2),Hxyz(3),'single');
+    end
+    
+    if strcmp(coilCombineMethod,'lowres')        
+        mOut.all_ims_ref = zeros(Hxyz(1),Hxyz(2),Hxyz(3),1,'single'); % ref is only based on INV2 as it has more SNR
+        mOut.all_ims_ref_corrected = zeros(Hxyz(1),Hxyz(2),Hxyz(3),1,'single');
+        
+        mOut.all_ims = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
+        mOut.all_ims_corrected = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
+        
+    else
+        mOut.all_ims = zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single');
+        mOut.all_ims_corrected = zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single');
+    end
+    
+else % for Parfor to work you can't use the mOut structure trick (which could either be in memory or a matfile...)
+    
+    all_uniImage = zeros(Hxyz(1),Hxyz(2),Hxyz(3),'single');
+    all_uniImage_corrected = zeros(Hxyz(1),Hxyz(2),Hxyz(3),'single');
+    all_refImage = zeros(Hxyz(1),Hxyz(2),Hxyz(3),'single');
+    all_refImage_corrected = zeros(Hxyz(1),Hxyz(2),Hxyz(3),'single');
+    
+    if strcmp(coilCombineMethod,'lowres')
+        all_ims_ref = zeros(Hxyz(1),Hxyz(2),Hxyz(3),1,'single'); % ref is only based on INV2 as it has more SNR
+        all_ims_ref_corrected = zeros(Hxyz(1),Hxyz(2),Hxyz(3),1,'single');
+        
+        all_ims = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
+        all_ims_corrected = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
+    else
+        all_ims = zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single');
+        all_ims_corrected = zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single');
+        
+        all_ims_ref = []; % parfor seems to sniff around in unreachable parts of code and get annoyed if unused variables don't exist yet...
+        all_ims_ref_corrected = [];
+    end
 
-                weightsImage = mOut.thiscoil_ims_corrected(:,:,:,2);
-                weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);                
-                mOut.all_ims_corrected = mOut.all_ims_corrected + bsxfun(@times,mOut.thiscoil_ims_corrected,conj(weightsImage));
-                mOut.all_ims_ref_corrected = mOut.all_ims_ref_corrected + abs(weightsImage).^2;
-            else % nS==1
-                weightsImage = mOut.thiscoil_ims;
-                weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
-                mOut.all_ims = mOut.all_ims + mOut.thiscoil_ims.*conj(weightsImage);
-                mOut.all_ims_ref = mOut.all_ims_ref + abs(weightsImage).^2;
-                
-                weightsImage = mOut.thiscoil_ims_corrected;
-                weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
-                mOut.all_ims_corrected = mOut.all_ims_corrected + mOut.thiscoil_ims_corrected.*conj(weightsImage);
-                mOut.all_ims_ref_corrected = m_out.all_ims_ref_corrected + abs(weightsImage).^2;
+    if useGRAPPAforHost % separate the two sets of MP2RAGE to allow parfor
+        data_set1 = mOutGRAPPA.grappaRecon_1DFFT(:,:,:,:,1);
+        if nS>1
+            data_set2 = mOutGRAPPA.grappaRecon_1DFFT(:,:,:,:,2);
+        end
+    else
+        data_set1 = squeeze(twix_obj.image(:,:,:,:,1,1,1,1,1,1));
+        if nS>1
+            data_set2 = squeeze(twix_obj.image(:,:,:,:,1,1,1,1,1,2));
+        end
+    end
+    
+    
+end
+
+%% Apply the motion-correction
+
+
+if ~bFullParforRecon
+    
+    for iC = 1:nc
+        
+        
+        mOut.thiscoil_ims = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
+        mOut.thiscoil_ims_corrected = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
+        
+        
+        for iS = 1:nS
+            
+            fprintf(['Reconstructing coil ' num2str(iC) ' of ' num2str(nc) ', set ' num2str(iS) '\n']);
+            
+            if useGRAPPAforHost
+                thisData = squeeze(mOutGRAPPA.grappaRecon_1DFFT(:,iC,:,:,iS));
+                % thisData = squeeze(mOutGRAPPA.dataCombined(:,:,:,2)); iC=1;iS = 1; % use this to have more brain coverage for debugging...
+                thisData = fft1s(thisData,1); % put into full 3D k-space
+            else
+                thisData = squeeze(twix_obj.image(:,iC,:,:,1,1,1,1,1,iS));
             end
             
+            thisData = permute(thisData,permutedims);
+            if swapDims_xyz(1)
+                thisData = thisData(end:-1:1,:,:,:);
+            end
+            if swapDims_xyz(2)
+                thisData = thisData(:,end:-1:1,:,:);
+            end
+            if swapDims_xyz(3)
+                thisData = thisData(:,:,end:-1:1,:);
+            end
             
+            newData = thisData;
             
-    end
-    
-    
-    % create UNI image for MP2RAGE
-    if nS==2
+            if any(hxyz~=Hxyz)
+                thisData(Hxyz(1),Hxyz(2),Hxyz(3)) = 0; % extend to new size
+                thisData = circshift(thisData,double([Hxyz(1)-hxyz(1) Hxyz(2)-hxyz(2) Hxyz(3)-hxyz(3)].*(1-swapDims_xyz)));
+                % the 'double' in the above line appears necessary in certain
+                % versions of Matlab, no idea why...
+            end
+            
+            thisData = ifft3s(thisData)*prod(hxyz);
+            
+            tic
+            gdata = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+            % the multi-CPU (parfor) version of the NUFFT can be called with a
+            % negative value for the 'useTable' input:
+            %    gdata = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,-11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+            % However, in my latest tests (September 2016) I found that it was
+            % actually slower for the current NUFFT parameters than the
+            % non-parallelized version, so I've disabled it again as a
+            % default...
+            timingReport_applyMoco(iC,iS) = toc;
+            
+            if nS > 1
+                mOut.thiscoil_ims(:,:,:,iS) = thisData;
+                mOut.thiscoil_ims_corrected(:,:,:,iS) = gdata;
+            else
+                mOut.thiscoil_ims = thisData;
+                mOut.thiscoil_ims_corrected = gdata;
+            end
+            
+        end
         
+        % create coil-combined INV1 (and INV2 if available)
         switch coilCombineMethod
             case 'default'
-                mOut.all_uniImage = mOut.all_uniImage + ...
-                                    real(mOut.thiscoil_ims(:,:,:,2).*conj(mOut.thiscoil_ims(:,:,:,1))) .* (abs(mOut.thiscoil_ims(:,:,:,2)).^2) ./ ...
-                                    (abs(mOut.thiscoil_ims(:,:,:,1)).^2 + abs(mOut.thiscoil_ims(:,:,:,2).^2));
-                mOut.all_refImage = mOut.all_refImage + abs(mOut.thiscoil_ims(:,:,:,2)).^2;
-                                
-                mOut.all_uniImage_corrected = mOut.all_uniImage_corrected + ...
-                                              real(mOut.thiscoil_ims_corrected(:,:,:,2).*conj(mOut.thiscoil_ims_corrected(:,:,:,1))).*(abs(mOut.thiscoil_ims_corrected(:,:,:,2)).^2) ./ ...
-                                              (abs(mOut.thiscoil_ims_corrected(:,:,:,1)).^2 + abs(mOut.thiscoil_ims_corrected(:,:,:,2).^2));
-                mOut.all_refImage_corrected = mOut.all_refImage_corrected + abs(mOut.thiscoil_ims_corrected(:,:,:,2)).^2;
-                
+                mOut.all_ims = mOut.all_ims + abs(mOut.thiscoil_ims).^2;
+                mOut.all_ims_corrected = mOut.all_ims_corrected + abs(mOut.thiscoil_ims_corrected).^2;
             case 'lowres'
-                weightsImage = mOut.thiscoil_ims(:,:,:,2);
-                weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
-                mOut.all_uniImage = mOut.all_uniImage + ...
-                                    real(mOut.thiscoil_ims(:,:,:,2).*conj(mOut.thiscoil_ims(:,:,:,1))) .* (abs(weightsImage).^2) ./ ...
-                                    (abs(mOut.thiscoil_ims(:,:,:,1)).^2 + abs(mOut.thiscoil_ims(:,:,:,2).^2));
-                mOut.all_refImage = mOut.all_refImage + abs(weightsImage).^2;
+                if nS==2
+                    weightsImage = mOut.thiscoil_ims(:,:,:,2);
+                    weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
+                    mOut.all_ims = mOut.all_ims + bsxfun(@times,mOut.thiscoil_ims,conj(weightsImage));
+                    mOut.all_ims_ref = mOut.all_ims_ref + abs(weightsImage).^2;
+                    
+                    weightsImage = mOut.thiscoil_ims_corrected(:,:,:,2);
+                    weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
+                    mOut.all_ims_corrected = mOut.all_ims_corrected + bsxfun(@times,mOut.thiscoil_ims_corrected,conj(weightsImage));
+                    mOut.all_ims_ref_corrected = mOut.all_ims_ref_corrected + abs(weightsImage).^2;
+                else % nS==1
+                    weightsImage = mOut.thiscoil_ims;
+                    weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
+                    mOut.all_ims = mOut.all_ims + mOut.thiscoil_ims.*conj(weightsImage);
+                    mOut.all_ims_ref = mOut.all_ims_ref + abs(weightsImage).^2;
+                    
+                    weightsImage = mOut.thiscoil_ims_corrected;
+                    weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
+                    mOut.all_ims_corrected = mOut.all_ims_corrected + mOut.thiscoil_ims_corrected.*conj(weightsImage);
+                    mOut.all_ims_ref_corrected = mOut.all_ims_ref_corrected + abs(weightsImage).^2;
+                end
                 
-                weightsImage = mOut.thiscoil_ims_corrected(:,:,:,2);
-                weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
-                mOut.all_uniImage_corrected = mOut.all_uniImage_corrected + ...
-                                              real(mOut.thiscoil_ims_corrected(:,:,:,2).*conj(mOut.thiscoil_ims_corrected(:,:,:,1))).*(abs(weightsImage).^2) ./ ...
-                                              (abs(mOut.thiscoil_ims_corrected(:,:,:,1)).^2 + abs(mOut.thiscoil_ims_corrected(:,:,:,2).^2));
-                mOut.all_refImage_corrected = mOut.all_refImage_corrected + abs(weightsImage).^2;
                 
-        end                        
+                
+        end
+        
+        
+        % create UNI image for MP2RAGE
+        if nS==2
+            
+            switch coilCombineMethod
+                case 'default'
+                    mOut.all_uniImage = mOut.all_uniImage + ...
+                        real(mOut.thiscoil_ims(:,:,:,2).*conj(mOut.thiscoil_ims(:,:,:,1))) .* (abs(mOut.thiscoil_ims(:,:,:,2)).^2) ./ ...
+                        (abs(mOut.thiscoil_ims(:,:,:,1)).^2 + abs(mOut.thiscoil_ims(:,:,:,2).^2));
+                    mOut.all_refImage = mOut.all_refImage + abs(mOut.thiscoil_ims(:,:,:,2)).^2;
+                    
+                    mOut.all_uniImage_corrected = mOut.all_uniImage_corrected + ...
+                        real(mOut.thiscoil_ims_corrected(:,:,:,2).*conj(mOut.thiscoil_ims_corrected(:,:,:,1))).*(abs(mOut.thiscoil_ims_corrected(:,:,:,2)).^2) ./ ...
+                        (abs(mOut.thiscoil_ims_corrected(:,:,:,1)).^2 + abs(mOut.thiscoil_ims_corrected(:,:,:,2).^2));
+                    mOut.all_refImage_corrected = mOut.all_refImage_corrected + abs(mOut.thiscoil_ims_corrected(:,:,:,2)).^2;
+                    
+                case 'lowres'
+                    weightsImage = mOut.thiscoil_ims(:,:,:,2);
+                    weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
+                    mOut.all_uniImage = mOut.all_uniImage + ...
+                        real(mOut.thiscoil_ims(:,:,:,2).*conj(mOut.thiscoil_ims(:,:,:,1))) .* (abs(weightsImage).^2) ./ ...
+                        (abs(mOut.thiscoil_ims(:,:,:,1)).^2 + abs(mOut.thiscoil_ims(:,:,:,2).^2));
+                    mOut.all_refImage = mOut.all_refImage + abs(weightsImage).^2;
+                    
+                    weightsImage = mOut.thiscoil_ims_corrected(:,:,:,2);
+                    weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
+                    mOut.all_uniImage_corrected = mOut.all_uniImage_corrected + ...
+                        real(mOut.thiscoil_ims_corrected(:,:,:,2).*conj(mOut.thiscoil_ims_corrected(:,:,:,1))).*(abs(weightsImage).^2) ./ ...
+                        (abs(mOut.thiscoil_ims_corrected(:,:,:,1)).^2 + abs(mOut.thiscoil_ims_corrected(:,:,:,2).^2));
+                    mOut.all_refImage_corrected = mOut.all_refImage_corrected + abs(weightsImage).^2;
+                    
+            end
+            
+        end
+        
+        
+        
+        
+        
+    end
+    
+    switch coilCombineMethod
+        case 'default'
+            mOut.all_ims = sqrt(mOut.all_ims);
+            mOut.all_ims_corrected = sqrt(mOut.all_ims_corrected);
+        case 'lowres'
+            if nS==2
+                mOut.all_ims = bsxfun(@rdivide,abs(mOut.all_ims),sqrt(mOut.all_ims_ref));
+                mOut.all_ims_corrected = bsxfun(@rdivide,abs(mOut.all_ims_corrected),sqrt(mOut.all_ims_ref_corrected));
+            else
+                mOut.all_ims = abs(mOut.all_ims)./sqrt(mOut.all_ims_ref);
+                mOut.all_ims_corrected = abs(mOut.all_ims_corrected)./sqrt(mOut.all_ims_ref_corrected);
+            end
+            
+    end
+    
+    if nS==2
+        mOut.all_uniImage = mOut.all_uniImage./mOut.all_refImage;
+        mOut.all_uniImage_corrected = mOut.all_uniImage_corrected./mOut.all_refImage_corrected;
+        
+        sn(int16(4095*mOut.all_ims(:,:,:,1)/max(reshape(mOut.all_ims,[],1))),[outDir '/a_host_INV1'],hostVoxDim_mm)
+        sn(int16(4095*mOut.all_ims_corrected(:,:,:,1)/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/a_host_INV1_corrected'],hostVoxDim_mm)
+        
+        
+        sn( int16(4095*(mOut.all_uniImage+0.5)) ,[outDir '/a_host_uniImage'],hostVoxDim_mm)
+        sn( int16(4095*(mOut.all_uniImage_corrected+0.5)),[outDir '/a_host_uniImage_corrected'],hostVoxDim_mm)
+        sn(int16(4095*mOut.all_ims(:,:,:,2)/max(reshape(mOut.all_ims,[],1))),[outDir '/a_host_INV2'],hostVoxDim_mm)
+        sn(int16(4095*mOut.all_ims_corrected(:,:,:,2)/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/a_host_INV2_corrected'],hostVoxDim_mm)
+    else
+        % if using matfile variables you can't use index in dimensions which
+        % aren't there, even if you only put a 1 there...!
+        sn(int16(4095*mOut.all_ims/max(reshape(mOut.all_ims,[],1))),[outDir '/a_host_INV1'],hostVoxDim_mm)
+        sn(int16(4095*mOut.all_ims_corrected/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/a_host_INV1_corrected'],hostVoxDim_mm)
         
     end
     
     
-    
+else  % the much faster version with much hungrier RAM requirements:
 
-
-end
-
-switch coilCombineMethod
-    case 'default'
-        mOut.all_ims = sqrt(mOut.all_ims);
-        mOut.all_ims_corrected = sqrt(mOut.all_ims_corrected);
-    case 'lowres'
-        if nS==2
-            mOut.all_ims = bsxfun(@rdivide,abs(mOut.all_ims),sqrt(mOut.all_ims_ref));
-            mOut.all_ims_corrected = bsxfun(@rdivide,abs(mOut.all_ims_corrected),sqrt(mOut.all_ims_ref_corrected));
-        else
-            mOut.all_ims = abs(mOut.all_ims)./sqrt(mOut.all_ims_ref);
-            mOut.all_ims_corrected = abs(mOut.all_ims_corrected)./sqrt(mOut.all_ims_ref_corrected);
+    parfor iC = 1:nc
+        
+        thiscoil_ims = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
+        thiscoil_ims_corrected = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
+        
+        
+        for iS = 1:nS
+            
+            fprintf(['Reconstructing coil ' num2str(iC) ' of ' num2str(nc) ', set ' num2str(iS) '\n']);
+            
+            switch iS
+                case 1
+                    thisData = squeeze(data_set1(:,iC,:,:));
+                case 2
+                    thisData = squeeze(data_set2(:,iC,:,:));
+            end
+            thisData = fft1s(thisData,1); % put into full 3D k-space
+            
+            thisData = permute(thisData,permutedims);
+            if swapDims_xyz(1)
+                thisData = thisData(end:-1:1,:,:,:);
+            end
+            if swapDims_xyz(2)
+                thisData = thisData(:,end:-1:1,:,:);
+            end
+            if swapDims_xyz(3)
+                thisData = thisData(:,:,end:-1:1,:);
+            end
+            
+            newData = thisData;
+            
+            if any(hxyz~=Hxyz)
+                thisData(Hxyz(1),Hxyz(2),Hxyz(3)) = 0; % extend to new size
+                thisData = circshift(thisData,double([Hxyz(1)-hxyz(1) Hxyz(2)-hxyz(2) Hxyz(3)-hxyz(3)].*(1-swapDims_xyz)));
+                % the 'double' in the above line appears necessary in certain
+                % versions of Matlab, no idea why...
+            end
+            
+            thisData = ifft3s(thisData)*prod(hxyz);
+            
+            tic
+            gdata = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+            timingReport_applyMoco(iC,iS) = toc;
+            
+            if nS > 1
+                thiscoil_ims(:,:,:,iS) = thisData;
+                thiscoil_ims_corrected(:,:,:,iS) = gdata;
+            else
+                thiscoil_ims = thisData;
+                thiscoil_ims_corrected = gdata;
+            end
+            
         end
-
+        
+        % create coil-combined INV1 (and INV2 if available)
+        switch coilCombineMethod
+            case 'default'
+                all_ims = all_ims + abs(thiscoil_ims).^2;
+                all_ims_corrected = all_ims_corrected + abs(thiscoil_ims_corrected).^2;
+            case 'lowres'
+                if nS==2
+                    weightsImage = thiscoil_ims(:,:,:,2);
+                    weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
+                    all_ims = all_ims + bsxfun(@times,thiscoil_ims,conj(weightsImage));
+                    all_ims_ref = all_ims_ref + abs(weightsImage).^2;
+                    
+                    weightsImage = thiscoil_ims_corrected(:,:,:,2);
+                    weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
+                    all_ims_corrected = all_ims_corrected + bsxfun(@times,thiscoil_ims_corrected,conj(weightsImage));
+                    all_ims_ref_corrected = all_ims_ref_corrected + abs(weightsImage).^2;
+                else % nS==1
+                    weightsImage = thiscoil_ims;
+                    weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
+                    all_ims = all_ims + thiscoil_ims.*conj(weightsImage);
+                    all_ims_ref = all_ims_ref + abs(weightsImage).^2;
+                    
+                    weightsImage = thiscoil_ims_corrected;
+                    weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
+                    all_ims_corrected = all_ims_corrected + thiscoil_ims_corrected.*conj(weightsImage);
+                    all_ims_ref_corrected = all_ims_ref_corrected + abs(weightsImage).^2;
+                end
+                
+        end
+        
+        
+        % create UNI image for MP2RAGE
+        if nS==2
+            
+            switch coilCombineMethod
+                case 'default'
+                    all_uniImage = all_uniImage + ...
+                        real(thiscoil_ims(:,:,:,2).*conj(thiscoil_ims(:,:,:,1))) .* (abs(thiscoil_ims(:,:,:,2)).^2) ./ ...
+                        (abs(thiscoil_ims(:,:,:,1)).^2 + abs(thiscoil_ims(:,:,:,2).^2));
+                    all_refImage = all_refImage + abs(thiscoil_ims(:,:,:,2)).^2;
+                    
+                    all_uniImage_corrected = all_uniImage_corrected + ...
+                        real(thiscoil_ims_corrected(:,:,:,2).*conj(thiscoil_ims_corrected(:,:,:,1))).*(abs(thiscoil_ims_corrected(:,:,:,2)).^2) ./ ...
+                        (abs(thiscoil_ims_corrected(:,:,:,1)).^2 + abs(thiscoil_ims_corrected(:,:,:,2).^2));
+                    all_refImage_corrected = all_refImage_corrected + abs(thiscoil_ims_corrected(:,:,:,2)).^2;
+                    
+                case 'lowres'
+                    weightsImage = thiscoil_ims(:,:,:,2);
+                    weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
+                    all_uniImage = all_uniImage + ...
+                        real(thiscoil_ims(:,:,:,2).*conj(thiscoil_ims(:,:,:,1))) .* (abs(weightsImage).^2) ./ ...
+                        (abs(thiscoil_ims(:,:,:,1)).^2 + abs(thiscoil_ims(:,:,:,2).^2));
+                    all_refImage = all_refImage + abs(weightsImage).^2;
+                    
+                    weightsImage = thiscoil_ims_corrected(:,:,:,2);
+                    weightsImage = ifft3s(tukeyfilt3d(fft3s(weightsImage),0,filterFrac,1))*prod(hxyz);
+                    all_uniImage_corrected = all_uniImage_corrected + ...
+                        real(thiscoil_ims_corrected(:,:,:,2).*conj(thiscoil_ims_corrected(:,:,:,1))).*(abs(weightsImage).^2) ./ ...
+                        (abs(thiscoil_ims_corrected(:,:,:,1)).^2 + abs(thiscoil_ims_corrected(:,:,:,2).^2));
+                    all_refImage_corrected = all_refImage_corrected + abs(weightsImage).^2;
+            end
+            
+        end
+        
+        
+    end % parfor
+    
+    
+    switch coilCombineMethod
+        case 'default'
+            all_ims = sqrt(all_ims);
+            all_ims_corrected = sqrt(all_ims_corrected);
+        case 'lowres'
+            if nS==2
+                all_ims = bsxfun(@rdivide,abs(all_ims),sqrt(all_ims_ref));
+                all_ims_corrected = bsxfun(@rdivide,abs(all_ims_corrected),sqrt(all_ims_ref_corrected));
+            else
+                all_ims = abs(all_ims)./sqrt(all_ims_ref);
+                all_ims_corrected = abs(all_ims_corrected)./sqrt(all_ims_ref_corrected);
+            end
+    end
+    
+    
+    all_uniImage = all_uniImage./all_refImage;
+    all_uniImage_corrected = all_uniImage_corrected./all_refImage_corrected;
+    
+    sn(int16(4095*all_ims(:,:,:,1)/max(reshape(all_ims,[],1))),[outDir '/a_host_INV1'],hostVoxDim_mm)
+    sn(int16(4095*all_ims_corrected(:,:,:,1)/max(reshape(all_ims_corrected,[],1))),[outDir '/a_host_INV1_corrected'],hostVoxDim_mm)
+    
+    if nS>1
+        sn( int16(4095*(all_uniImage+0.5)) ,[outDir '/a_host_uniImage'],hostVoxDim_mm)
+        sn( int16(4095*(all_uniImage_corrected+0.5)),[outDir '/a_host_uniImage_corrected'],hostVoxDim_mm)
+        sn(int16(4095*all_ims(:,:,:,2)/max(reshape(all_ims,[],1))),[outDir '/a_host_INV2'],hostVoxDim_mm)
+        sn(int16(4095*all_ims_corrected(:,:,:,2)/max(reshape(all_ims_corrected,[],1))),[outDir '/a_host_INV2_corrected'],hostVoxDim_mm)
+    end
+    
+    mOut.all_ims = all_ims;
+    clear all_ims
+    mOut.all_ims_corrected = all_ims_corrected;
+    clear all_ims_corrected
+    mOut.all_uniImage = all_uniImage;
+    clear all_uniImage;
+    mOut.all_uniImage_corrected = all_uniImage_corrected;
+    clear all_uniImage_corrected;
+    
 end
 
-if nS==2
-    mOut.all_uniImage = mOut.all_uniImage./mOut.all_refImage;
-    mOut.all_uniImage_corrected = mOut.all_uniImage_corrected./mOut.all_refImage_corrected;
-    
-    sn(int16(4095*mOut.all_ims(:,:,:,1)/max(reshape(mOut.all_ims,[],1))),[outDir '/a_host_INV1'],hostVoxDim_mm)
-    sn(int16(4095*mOut.all_ims_corrected(:,:,:,1)/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/a_host_INV1_corrected'],hostVoxDim_mm)
 
-    
-    sn( int16(4095*(mOut.all_uniImage+0.5)) ,[outDir '/a_host_uniImage'],hostVoxDim_mm)
-    sn( int16(4095*(mOut.all_uniImage_corrected+0.5)),[outDir '/a_host_uniImage_corrected'],hostVoxDim_mm)
-    sn(int16(4095*mOut.all_ims(:,:,:,2)/max(reshape(mOut.all_ims,[],1))),[outDir '/a_host_INV2'],hostVoxDim_mm)
-    sn(int16(4095*mOut.all_ims_corrected(:,:,:,2)/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/a_host_INV2_corrected'],hostVoxDim_mm)
-else
-    % if using matfile variables you can't use index in dimensions which
-    % aren't there, even if you only put a 1 there...!
-    sn(int16(4095*mOut.all_ims/max(reshape(mOut.all_ims,[],1))),[outDir '/a_host_INV1'],hostVoxDim_mm)
-    sn(int16(4095*mOut.all_ims_corrected/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/a_host_INV1_corrected'],hostVoxDim_mm)
 
-end
+
+
+%%
+
 
 fprintf('Done\n');
 
 
 tFinish_applyMoco = clock;
 timingReport_totalTimeApplyMoco = etime(tFinish_applyMoco,tStart_applyMoco);
-avgTimeApplyMocoPerVolume = timingReport_totalTimeApplyMoco / nc / nS;
+avgTimeApplyMocoPerVolume = sum(timingReport_applyMoco(:))/ nc / nS;
 
 %% And put the reconstructed images into the html
 
@@ -1041,7 +1274,7 @@ end
 fprintf(fid,['<strong>Do 1D FFT for each ''slice'' in readout direction of host data:</strong> ' num2str(round(timingReport_hostRecon.FFTperSlice)) ' seconds.<br>\n']);    
 fprintf(fid,['<strong>Declare variables for GRAPPA recon:</strong> ' num2str(round(timingReport_hostRecon.declareVariables)) ' seconds.<br>\n']);
 fprintf(fid,['<strong>GRAPPA recon:</strong> ' num2str(round(timingReport_hostRecon.GRAPPArecon/60)) ' mins.<br>\n']);
-fprintf(fid,['<strong>Application of retrospective motion-correction: </strong>' num2str(nc) ' channels, ' num2str(nS) ' sets, each taking ' num2str(round(avgTimeApplyMocoPerVolume)) ' seconds = ' num2str(round(timingReport_totalTimeApplyMoco/60)) ' mins.<br>\n']);
+fprintf(fid,['<strong>Application of retrospective motion-correction: </strong>' num2str(nc) ' channels, ' num2str(nS) ' sets, each taking ' num2str(round(avgTimeApplyMocoPerVolume)) ' seconds (possibly parallelized) = ' num2str(round(timingReport_totalTimeApplyMoco/60)) ' mins.<br>\n']);
 
 % include version number
 fprintf(fid,['<br><br><br><em>' char(datetime) '- created with reconstructSiemensMP2RAGEwithFatNavs.m, version: ' num2str(fatnavsVersion) '</em>\n']);
@@ -1054,7 +1287,7 @@ fclose(fid);
 %% Delete the temporary files (which could be rather large...!)
  
 % clear mOut and mOutGRAPPA files
-if ~bKeepRecoInRAM
+if ~bKeepReconInRAM
     delete(mOut.Properties.Source)
 end
     
