@@ -12,7 +12,7 @@ Used in:
 * [Optimizing the acceleration and resolution of three-dimensional fat image navigators for high-resolution motion correction at 7T](http://doi.wiley.com/10.1002/mrm.26127), _Gallichan and Marques,_ MRM 2016
 * [Motion-Correction Enabled Ultra-High Resolution In-Vivo 7T-MRI of the Brain](http://dx.plos.org/10.1371/journal.pone.0154974), _Federau and Gallichan,_ Plos One 2016
 
-All of the work cited above is based on 3D FatNavs data from a Siemens 7T scanner - but in collaboration with the [Spinoza Center for Neuroimaging](https://www.spinozacentre.nl/) we have also demonstrated that the same code can be used to correct data collected with 3D EPI FatNavs from a Philips 7T scanner (_Fast and Flexible 3D-EPI Fat Navigators for High-Resolution Brain Imaging at 7 Tesla_ Buur et al, Proc ISMRM 2016). If you are also interested in using the code adapted for Philips scanners (currently not included in this Github), [please contact me](mailto:daniel.gallichan@epfl.ch).
+All of the work cited above is based on 3D FatNavs data from a Siemens 7T scanner - but in collaboration with the [Spinoza Center for Neuroimaging](https://www.spinozacentre.nl/) we have also demonstrated that the same code can be used to correct data collected with 3D EPI FatNavs from a Philips 7T scanner (_Fast and Flexible 3D-EPI Fat Navigators for High-Resolution Brain Imaging at 7 Tesla_ Buur et al, Proc ISMRM 2016). If you are also interested in using the code adapted for Philips scanners (not yet included in this Github), [please contact me](mailto:daniel.gallichan@epfl.ch).
 
 
 ---
