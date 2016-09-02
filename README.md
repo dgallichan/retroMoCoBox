@@ -51,5 +51,5 @@ I have included various open-source tools inside the toolbox - but  you will nee
 
 The full script takes rather a long time to run (one to several hours, depending on the number of CPUs you have and the size of the dataset) as it has to do the full reconstruction of the raw data (which typically also requires a GRAPPA reconstruction of the 3D dataset) and then perform the motion-correction step for each RF channel and each inversion time of the MP2RAGE scan. 
 
-The script `run_SiemensMP2RAGErecon.m` gives an example of how to call the reconstruction code on your data.
+The script `run_SiemensMP2RAGErecon.m` gives an example of how to call the reconstruction code on your data. Also, feel free to get in touch if you would like some full example datasets to test - the raw data for 32 RF channels at 1mm resolution is 4.3 Gb and for 600 um resolution is 7.9 Gb so I haven't put them online by default, but anonymized raw data can also be shared if you are interested.
 
