@@ -517,6 +517,7 @@ if Arps(2) > 1
     end
 else
     useGRAPPAforHost = 0;
+    timingReport_hostRecon = 0;
 end
 
 
