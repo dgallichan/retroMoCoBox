@@ -197,6 +197,8 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %        - changed default NUFFT oversampling from 1.375 to 1.5 (to reduce aliasing artifact)
 %   v0.5 -   -- August 2016
 %        - updated to latest version of Philipp Ehses' mapVBVD software (from 18/9/15)
+%        - now renamed things to make it part of the 'RetroMoCoBox' and put
+%          on Github
 
 fatnavsVersion = 0.5; % put this into the HTML for reference
 
@@ -751,13 +753,14 @@ for iC = 1:nc
         thisData = ifft3s(thisData)*prod(hxyz);
         
         tic 
-        if ssos(hostVoxDim_mm)>=0.6;
-            % if dataset is 'not too large' (here, >= 600 um) then use the
-            % multi-CPU version of NUFFT 
-            gdata = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,-11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
-        else
-            gdata = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
-        end
+        gdata = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+        % the multi-CPU (parfor) version of the NUFFT can be called with a
+        % negative value for the 'useTable' input:
+        %    gdata = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,-11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+        % However, in my latest tests (September 2016) I found that it was
+        % actually slower for the current NUFFT parameters than the
+        % non-parallelized version, so I've disabled it again as a
+        % default...
         timingReport_applyMoco(iC,iS) = toc;
 
         if nS > 1
