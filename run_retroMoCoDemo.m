@@ -1,7 +1,10 @@
-%%% The data for this demo can be downloaded from: http://goo.gl/ERULZA (32 Mb)
+%%% The data for this demo can be downloaded from:  
+%    1mm data: http://goo.gl/ERULZA (32 Mb)
+% 600 um data: http://goo.gl/wto1MK (86 Mb)
 
 % Change these lines to match your paths:
-exampleData = load('/Users/danielg/data/fatnavs_examples/reconTest/example_retroMocoData.mat');
+exampleData = load('/Users/danielg/data/fatnavs_examples/reconTest/example_retroMocoData.mat'); % 1mm resolution example data
+% exampleData = load('/Users/danielg/data/fatnavs_examples/reconTest/example_retroMocoData_600.mat'); % 600 um resolution example data
 addpath(genpath('~/retroMoCoBox/'))
 
 % The NUFFT uses Prof J. Fessler's toolbox
@@ -92,8 +95,11 @@ subplot1(3)
 imab(ov2.oneIm,clims)
 title('With MoCo')
 
-yrange = 122:212;
-zrange = 138:241;
+if hostVoxDim_mm(1)==1
+    yrange = 122:212; zrange = 138:241;
+else
+    yrange = 61:160 ; zrange = 163:271;
+end
 subplot1(2)
 imab(ov1.im3(yrange,zrange))
 subplot1(4)
