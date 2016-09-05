@@ -47,7 +47,7 @@ The only part of my code that is not included here is the modified version of Ph
 
 I have included various open-source tools inside the toolbox - but  you will need to separately download and install both [Prof. Jeff Fessler's toolbox for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html) (used for the NUFFT) and [SPM 12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/) (used for the co-registration of the individual FatNav images to estimate the motion parameters).
 
-The full script takes rather a long time to run (one to several hours, depending on the number of CPUs you have and the size of the dataset) as it has to do the full reconstruction of the raw data (which typically also requires a GRAPPA reconstruction of the 3D dataset) and then perform the motion-correction step for each RF channel and each inversion time of the MP2RAGE scan. 
+The full script takes rather a long time to run (from around 10 mins through to several hours, depending on the number of CPUs you have and the size of the dataset, as well as the amount of RAM you have available) as it has to do the full reconstruction of the raw data (which typically also requires a GRAPPA reconstruction of the 3D dataset) and then perform the motion-correction step for each RF channel and each inversion time of the MP2RAGE scan. 
 
 The script `run_SiemensMP2RAGErecon.m` gives an example of how to call the reconstruction code on your data. Also, feel free to get in touch if you would like some full example datasets to test - the raw data for 32 RF channels at 1mm resolution is 4.3 Gb and for 600 um resolution is 7.9 Gb so I haven't put them online by default, but anonymized raw data can also be shared if you are interested.
 
