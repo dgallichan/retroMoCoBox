@@ -208,6 +208,7 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %        - Added the bFullParforRecon option to really speed things up if
 %          you have enough CPUs and RAM available
 %        - changed name of bKeepRecoInRAM to bKeepReconInRAM for consistency
+%        - output files no longer start with 'a_host_'
 
 retroMocoBoxVersion = 0.5; % put this into the HTML for reference
 
@@ -949,19 +950,19 @@ if ~bFullParforRecon
         mOut.all_uniImage = mOut.all_uniImage./mOut.all_refImage;
         mOut.all_uniImage_corrected = mOut.all_uniImage_corrected./mOut.all_refImage_corrected;
         
-        sn(int16(4095*mOut.all_ims(:,:,:,1)/max(reshape(mOut.all_ims,[],1))),[outDir '/a_host_INV1'],hostVoxDim_mm)
-        sn(int16(4095*mOut.all_ims_corrected(:,:,:,1)/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/a_host_INV1_corrected'],hostVoxDim_mm)
+        sn(int16(4095*mOut.all_ims(:,:,:,1)/max(reshape(mOut.all_ims,[],1))),[outDir '/INV1'],hostVoxDim_mm)
+        sn(int16(4095*mOut.all_ims_corrected(:,:,:,1)/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/INV1_corrected'],hostVoxDim_mm)
         
         
-        sn( int16(4095*(mOut.all_uniImage+0.5)) ,[outDir '/a_host_uniImage'],hostVoxDim_mm)
-        sn( int16(4095*(mOut.all_uniImage_corrected+0.5)),[outDir '/a_host_uniImage_corrected'],hostVoxDim_mm)
-        sn(int16(4095*mOut.all_ims(:,:,:,2)/max(reshape(mOut.all_ims,[],1))),[outDir '/a_host_INV2'],hostVoxDim_mm)
-        sn(int16(4095*mOut.all_ims_corrected(:,:,:,2)/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/a_host_INV2_corrected'],hostVoxDim_mm)
+        sn( int16(4095*(mOut.all_uniImage+0.5)) ,[outDir '/uniImage'],hostVoxDim_mm)
+        sn( int16(4095*(mOut.all_uniImage_corrected+0.5)),[outDir '/uniImage_corrected'],hostVoxDim_mm)
+        sn(int16(4095*mOut.all_ims(:,:,:,2)/max(reshape(mOut.all_ims,[],1))),[outDir '/INV2'],hostVoxDim_mm)
+        sn(int16(4095*mOut.all_ims_corrected(:,:,:,2)/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/INV2_corrected'],hostVoxDim_mm)
     else
         % if using matfile variables you can't use index in dimensions which
         % aren't there, even if you only put a 1 there...!
-        sn(int16(4095*mOut.all_ims/max(reshape(mOut.all_ims,[],1))),[outDir '/a_host_INV1'],hostVoxDim_mm)
-        sn(int16(4095*mOut.all_ims_corrected/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/a_host_INV1_corrected'],hostVoxDim_mm)
+        sn(int16(4095*mOut.all_ims/max(reshape(mOut.all_ims,[],1))),[outDir '/INV1'],hostVoxDim_mm)
+        sn(int16(4095*mOut.all_ims_corrected/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/INV1_corrected'],hostVoxDim_mm)
         
     end
     
@@ -1108,14 +1109,14 @@ else  % the much faster version with much hungrier RAM requirements:
     all_uniImage = all_uniImage./all_refImage;
     all_uniImage_corrected = all_uniImage_corrected./all_refImage_corrected;
     
-    sn(int16(4095*all_ims(:,:,:,1)/max(reshape(all_ims,[],1))),[outDir '/a_host_INV1'],hostVoxDim_mm)
-    sn(int16(4095*all_ims_corrected(:,:,:,1)/max(reshape(all_ims_corrected,[],1))),[outDir '/a_host_INV1_corrected'],hostVoxDim_mm)
+    sn(int16(4095*all_ims(:,:,:,1)/max(reshape(all_ims,[],1))),[outDir '/INV1'],hostVoxDim_mm)
+    sn(int16(4095*all_ims_corrected(:,:,:,1)/max(reshape(all_ims_corrected,[],1))),[outDir '/INV1_corrected'],hostVoxDim_mm)
     
     if nS>1
-        sn( int16(4095*(all_uniImage+0.5)) ,[outDir '/a_host_uniImage'],hostVoxDim_mm)
-        sn( int16(4095*(all_uniImage_corrected+0.5)),[outDir '/a_host_uniImage_corrected'],hostVoxDim_mm)
-        sn(int16(4095*all_ims(:,:,:,2)/max(reshape(all_ims,[],1))),[outDir '/a_host_INV2'],hostVoxDim_mm)
-        sn(int16(4095*all_ims_corrected(:,:,:,2)/max(reshape(all_ims_corrected,[],1))),[outDir '/a_host_INV2_corrected'],hostVoxDim_mm)
+        sn( int16(4095*(all_uniImage+0.5)) ,[outDir '/uniImage'],hostVoxDim_mm)
+        sn( int16(4095*(all_uniImage_corrected+0.5)),[outDir '/uniImage_corrected'],hostVoxDim_mm)
+        sn(int16(4095*all_ims(:,:,:,2)/max(reshape(all_ims,[],1))),[outDir '/INV2'],hostVoxDim_mm)
+        sn(int16(4095*all_ims_corrected(:,:,:,2)/max(reshape(all_ims_corrected,[],1))),[outDir '/INV2_corrected'],hostVoxDim_mm)
     end
     
     mOut.all_ims = all_ims;
@@ -1149,20 +1150,20 @@ switch nS
     case 1 % again different code because matfile variables can't index dimensions which don't exist
         
         ov1 = orthoview(mOut.all_ims,'drawIms',0);
-        imab_overwrite([htmlDir '/a_host_INV1.png'],ov1.oneIm);
+        imab_overwrite([htmlDir '/INV1.png'],ov1.oneIm);
         ov1 = orthoview(mOut.all_ims_corrected,'drawIms',0);
-        imab_overwrite([htmlDir '/a_host_INV1_corrected.png'],ov1.oneIm);
+        imab_overwrite([htmlDir '/INV1_corrected.png'],ov1.oneIm);
         
         fprintf(fid,['INV1 image before correction:<br>\n']);
-        fprintf(fid,['<img src="a_host_INV1.png"><br><br>\n']);
+        fprintf(fid,['<img src="INV1.png"><br><br>\n']);
         fprintf(fid,['INV1 image after correction:<br>\n']);
-        fprintf(fid,['<img src="a_host_INV1_corrected.png"><br><br>\n']);
+        fprintf(fid,['<img src="INV1_corrected.png"><br><br>\n']);
         
         
         testMagick = system('convert -version');
         
         if testMagick==0 % can use ImageMagick to make animated GIFs...
-            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/a_host_INV1*.png ' htmlDir '/a_mov_INV1.gif'];
+            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/a_mov_INV1.gif'];
             system(processString);
             fprintf(fid,['INV1 image movie before/after correction:<br>\n']);
             fprintf(fid,['<img src="a_mov_INV1.gif"><br><br>\n']);
@@ -1171,44 +1172,44 @@ switch nS
     case 2
         
         ov1 = orthoview(mOut.all_ims(:,:,:,1),'drawIms',0);
-        imab_overwrite([htmlDir '/a_host_INV1.png'],ov1.oneIm);
+        imab_overwrite([htmlDir '/INV1.png'],ov1.oneIm);
         ov1 = orthoview(mOut.all_ims_corrected(:,:,:,1),'drawIms',0);
-        imab_overwrite([htmlDir '/a_host_INV1_corrected.png'],ov1.oneIm);
+        imab_overwrite([htmlDir '/INV1_corrected.png'],ov1.oneIm);
         
         fprintf(fid,['INV1 image before correction:<br>\n']);
-        fprintf(fid,['<img src="a_host_INV1.png"><br><br>\n']);
+        fprintf(fid,['<img src="INV1.png"><br><br>\n']);
         fprintf(fid,['INV1 image after correction:<br>\n']);
-        fprintf(fid,['<img src="a_host_INV1_corrected.png"><br><br>\n']);
+        fprintf(fid,['<img src="INV1_corrected.png"><br><br>\n']);
         
         
         testMagick = system('convert -version');
         
         if testMagick==0 % can use ImageMagick to make animated GIFs...
-            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/a_host_INV1*.png ' htmlDir '/a_mov_INV1.gif'];
+            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/a_mov_INV1.gif'];
             system(processString);
             fprintf(fid,['INV1 image movie before/after correction:<br>\n']);
             fprintf(fid,['<img src="a_mov_INV1.gif"><br><br>\n']);
         end
         
         ov1 = orthoview(mOut.all_ims(:,:,:,2),'drawIms',0);
-        imab_overwrite([htmlDir '/a_host_INV2.png'],ov1.oneIm);
+        imab_overwrite([htmlDir '/INV2.png'],ov1.oneIm);
         ov1 = orthoview(mOut.all_ims_corrected(:,:,:,2),'drawIms',0);
-        imab_overwrite([htmlDir '/a_host_INV2_corrected.png'],ov1.oneIm);
+        imab_overwrite([htmlDir '/INV2_corrected.png'],ov1.oneIm);
         ov1 = orthoview(mOut.all_uniImage,'drawIms',0);
-        imab_overwrite([htmlDir '/a_host_uniImage.png'],ov1.oneIm);
+        imab_overwrite([htmlDir '/uniImage.png'],ov1.oneIm);
         ov1 = orthoview(mOut.all_uniImage_corrected,'drawIms',0);
-        imab_overwrite([htmlDir '/a_host_uniImage_corrected.png'],ov1.oneIm);
+        imab_overwrite([htmlDir '/uniImage_corrected.png'],ov1.oneIm);
         
         fprintf(fid,['INV2 image before correction:<br>\n']);
-        fprintf(fid,['<img src="a_host_INV2.png"><br><br>\n']);
+        fprintf(fid,['<img src="INV2.png"><br><br>\n']);
         fprintf(fid,['INV2 image after correction:<br>\n']);
-        fprintf(fid,['<img src="a_host_INV2_corrected.png"><br><br>\n']);
+        fprintf(fid,['<img src="INV2_corrected.png"><br><br>\n']);
         
         
         if testMagick==0
-            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/a_host_INV2.png ' htmlDir '/a_host_INV2_corrected.png ' htmlDir '/a_mov_INV2.gif'];
+            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2.png ' htmlDir '/INV2_corrected.png ' htmlDir '/a_mov_INV2.gif'];
             system(processString);
-            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/a_host_uniImage.png ' htmlDir '/a_host_uniImage_corrected.png ' htmlDir '/a_mov_uniImage.gif'];
+            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/uniImage.png ' htmlDir '/uniImage_corrected.png ' htmlDir '/a_mov_uniImage.gif'];
             system(processString);
             fprintf(fid,['INV2 image movie before/after correction:<br>\n']);
             fprintf(fid,['<img src="a_mov_INV2.gif"><br><br>\n']);
@@ -1216,9 +1217,9 @@ switch nS
         end
         
         fprintf(fid,['UNI image before correction:<br>\n']);
-        fprintf(fid,['<img src="a_host_uniImage.png"><br><br>\n']);
+        fprintf(fid,['<img src="uniImage.png"><br><br>\n']);
         fprintf(fid,['UNI image after correction:<br>\n']);
-        fprintf(fid,['<img src="a_host_uniImage_corrected.png"><br><br>\n']);
+        fprintf(fid,['<img src="uniImage_corrected.png"><br><br>\n']);
         
         if testMagick==0
             fprintf(fid,['UNI image movie before/after correction:<br>\n']);
@@ -1234,14 +1235,14 @@ switch nS
             disp('... Found FSL, assuming that ''bet'' and ''fslmaths'' commands will work')
             disp('... Performing BET brain extraction ...')
             setenv('FSLOUTPUTTYPE','NIFTI'); % this uses more space than NIFTI_GZ, but stays compatible with SPM
-            system(['bet ' outDir '/a_host_INV2_corrected ' outDir '/a_host_INV2_corrected_bet -m -f 0.2']);
-            system(['fslmaths ' outDir '/a_host_INV2 -mul ' outDir '/a_host_INV2_corrected_bet_mask ' outDir '/a_host_INV2_bet']);
+            system(['bet ' outDir '/INV2_corrected ' outDir '/INV2_corrected_bet -m -f 0.2']);
+            system(['fslmaths ' outDir '/INV2 -mul ' outDir '/INV2_corrected_bet_mask ' outDir '/INV2_bet']);
             disp('... Done')
             
             %%% make MIPs of INV2 after BET
             
-            inv2 = rn([outDir '/a_host_INV2_bet.nii']);
-            inv2c = rn([outDir '/a_host_INV2_corrected_bet.nii']);
+            inv2 = rn([outDir '/INV2_bet.nii']);
+            inv2c = rn([outDir '/INV2_corrected_bet.nii']);
             
             ov1 = orthoview(inv2,'mip',1,'drawIms',0);
             ov2 = orthoview(inv2c,'mip',1,'drawIms',0);
@@ -1249,20 +1250,20 @@ switch nS
             im1 = abs(ov1.oneIm); im1 = im1/max(im1(:));
             im2 = abs(ov2.oneIm); im2 = im2/max(im2(:));
             
-            imab_overwrite([htmlDir '/a_host_INV2_MIP.png'],im1);
-            imab_overwrite([htmlDir '/a_host_INV2_corrected_MIP.png'],im2);
+            imab_overwrite([htmlDir '/INV2_MIP.png'],im1);
+            imab_overwrite([htmlDir '/INV2_corrected_MIP.png'],im2);
             
             if testMagick==0
-                processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/a_host_INV2_MIP.png ' htmlDir '/a_host_INV2_corrected_MIP.png ' htmlDir '/a_mov_INV2_MIP.gif'];
+                processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2_MIP.png ' htmlDir '/INV2_corrected_MIP.png ' htmlDir '/a_mov_INV2_MIP.gif'];
                 system(processString);
                 
                 fprintf(fid,['INV2 MIP movie before/after correction:<br>\n']);
                 fprintf(fid,['<img src="a_mov_INV2_MIP.gif"><br><br>\n']);
             else
                 fprintf(fid,['INV2 MIP before correction:<br>\n']);
-                fprintf(fid,['<img src="a_host_INV2_MIP.png"><br><br>\n']);
+                fprintf(fid,['<img src="INV2_MIP.png"><br><br>\n']);
                 fprintf(fid,['INV2 MIP after correction:<br>\n']);
-                fprintf(fid,['<img src="a_host_INV2_corrected_MIP.png"><br><br>\n']);
+                fprintf(fid,['<img src="INV2_corrected_MIP.png"><br><br>\n']);
             end
             
         end
