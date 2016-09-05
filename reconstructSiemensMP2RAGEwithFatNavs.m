@@ -4,6 +4,25 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 % - Tested with Matlab 2014b (and recommended because the figures look
 % nicer when working in Linux...!) and 2012a.
 %
+% Dependencies:
+%%%%%%%%%%%%%%%
+%
+%  %% Required %%:
+%
+%     SPM 12 (www.fil.ion.ucl.ac.uk/spm) 
+%           For coregistration of FatNavs ('spm_realign').
+%           This is obviously core to the concept of FatNavs for
+%           motion-correction. I have tried using alternative registration
+%           software, but SPM appears to have default parameters which work
+%           well for FatNavs - being particular sensitive to sub-voxel
+%           movements.
+%
+%     NUFFT (http://web.eecs.umich.edu/~fessler/code/index.html)
+%     from Prof. J Fessler
+%           This is used to perform the 3D gridding operation used to deal
+%           with the non-Cartesian k-space sampling after rotations have
+%           been applied.
+%
 % Usage:
 %%%%%%%%
 %
@@ -97,25 +116,6 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %                       (default).
 %
 %
-% Dependencies:
-%%%%%%%%%%%%%%%
-%
-%  %% Required %%:
-%
-%     SPM (www.fil.ion.ucl.ac.uk/spm) - tested with SPM8 (21/4/16 - now
-%     changed to SPM 12)
-%           For coregistration of FatNavs ('spm_realign').
-%           This is obviously core to the concept of FatNavs for
-%           motion-correction. I have tried using alternative registration
-%           software, but SPM appears to have default parameters which work
-%           well for FatNavs - being particular sensitive to sub-voxel
-%           movements.
-%
-%     NUFFT (http://web.eecs.umich.edu/~fessler/code/index.html)
-%     from Prof. J Fessler
-%           This is used to perform the 3D gridding operation used to deal
-%           with the non-Cartesian k-space sampling after rotations have
-%           been applied.
 %     
 %   
 % Matlab tools which are included (with 'assumed' permission, as I collected them online):
@@ -185,7 +185,7 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %
 %
 % -------------------------------------------------------------------------
-% reconstructMP2RAGEwithFatNavs.m, 
+% reconstructSiemensMP2RAGEwithFatNavs.m, 
 %   v0.1 - daniel.gallichan@epfl.ch - June 2015
 %   v0.2 -    -- February 2016 --
 %        - added option to specify resolution of FatNavs 
@@ -209,7 +209,7 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %          you have enough CPUs and RAM available
 %        - changed name of bKeepRecoInRAM to bKeepReconInRAM for consistency
 
-fatnavsVersion = 0.5; % put this into the HTML for reference
+retroMocoBoxVersion = 0.5; % put this into the HTML for reference
 
 
 %%
@@ -223,9 +223,30 @@ fatnavsVersion = 0.5; % put this into the HTML for reference
 %%
 
 if bFullParforRecon && ~bKeepReconInRAM
-    disp('Error - you asked for the full parfor option (bFulLParforRecon), but not to do the recon in RAM (bKeepReconInRAM)')
+    disp('Error - you asked for the full parfor option (bFullParforRecon), but not to do the recon in RAM (bKeepReconInRAM)')
     return
 end
+
+%% Disply pie chart of current breakdown of reconstruction time
+
+% % Here benchmarked on server allowing parpool size of 12 CPUs and 96 Gb
+% % RAM, testing 600 um data
+% 
+% t_TotalTime = 24;
+% t_ParseRaw = 86/60;
+% t_reconFatNavs = 332/60;
+% t_SPMrealign = 61/60;
+% t_GRAPPArecon = 6;
+% t_NUFFT = 8;
+% t_other = t_TotalTime - t_ParseRaw - t_reconFatNavs - t_SPMrealign - t_NUFFT;
+% 
+% figure(1001)
+% set(gcf,'Position',[    88   415   588   506])
+% clf
+% pie([t_other t_ParseRaw t_reconFatNavs t_SPMrealign t_GRAPPArecon t_NUFFT],{'Other','Parse raw data file','Reconstruct FatNavs','SPM realign FatNavs','GRAPPA recon for host','NUFFT'})
+% title({'Current breakdown of full reconstruction pipeline on 600 um data', ['total = ' num2str(t_TotalTime) ' mins, running on 12 CPUs with 96 Gb RAM'],char(datetime)})
+% fontScale(1.4)
+% export_fig('processingTimeBreakdown.png')
 
 
 %% Useful for debugging and running as a script instead of a function
@@ -1274,11 +1295,11 @@ else
 end
 fprintf(fid,['<strong>Do 1D FFT for each ''slice'' in readout direction of host data:</strong> ' num2str(round(timingReport_hostRecon.FFTperSlice)) ' seconds.<br>\n']);    
 fprintf(fid,['<strong>Declare variables for GRAPPA recon:</strong> ' num2str(round(timingReport_hostRecon.declareVariables)) ' seconds.<br>\n']);
-fprintf(fid,['<strong>GRAPPA recon:</strong> ' num2str(round(timingReport_hostRecon.GRAPPArecon/60)) ' mins.<br>\n']);
-fprintf(fid,['<strong>Application of retrospective motion-correction: </strong>' num2str(nc) ' channels, ' num2str(nS) ' sets, each taking ' num2str(round(avgTimeApplyMocoPerVolume)) ' seconds (possibly parallelized) = ' num2str(round(timingReport_totalTimeApplyMoco/60)) ' mins.<br>\n']);
+fprintf(fid,['<strong>GRAPPA recon:</strong> ' num2str(timingReport_hostRecon.GRAPPArecon/60,'%.1f') ' mins.<br>\n']);
+fprintf(fid,['<strong>Application of retrospective motion-correction: </strong>' num2str(nc) ' channels, ' num2str(nS) ' sets, each taking ' num2str(round(avgTimeApplyMocoPerVolume)) ' seconds (possibly parallelized) = ' num2str(timingReport_totalTimeApplyMoco/60,'%.1f') ' mins.<br>\n']);
 
 % include version number
-fprintf(fid,['<br><br><br><em>' char(datetime) '- created with reconstructSiemensMP2RAGEwithFatNavs.m, version: ' num2str(fatnavsVersion) '</em>\n']);
+fprintf(fid,['<br><br><br><em>' char(datetime) '- created with reconstructSiemensMP2RAGEwithFatNavs.m, version: ' num2str(retroMocoBoxVersion) '</em>\n']);
 
 
 fprintf(fid,'</body></html>\n');
