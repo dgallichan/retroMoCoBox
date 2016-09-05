@@ -209,8 +209,9 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %          you have enough CPUs and RAM available
 %        - changed name of bKeepRecoInRAM to bKeepReconInRAM for consistency
 %        - output files no longer start with 'a_host_'
+%        - fit to versioning for the whole of 'RetroMoCoBox' as 0.5.0
 
-retroMocoBoxVersion = 0.5; % put this into the HTML for reference
+retroMocoBoxVersion = '0.5.0'; % put this into the HTML for reference
 
 
 %%
@@ -1300,7 +1301,7 @@ fprintf(fid,['<strong>GRAPPA recon:</strong> ' num2str(timingReport_hostRecon.GR
 fprintf(fid,['<strong>Application of retrospective motion-correction: </strong>' num2str(nc) ' channels, ' num2str(nS) ' sets, each taking ' num2str(round(avgTimeApplyMocoPerVolume)) ' seconds (possibly parallelized) = ' num2str(timingReport_totalTimeApplyMoco/60,'%.1f') ' mins.<br>\n']);
 
 % include version number
-fprintf(fid,['<br><br><br><em>' char(datetime) '- created with reconstructSiemensMP2RAGEwithFatNavs.m, version: ' num2str(retroMocoBoxVersion) '</em>\n']);
+fprintf(fid,['<br><br><br><em>' char(datetime) '- created with reconstructSiemensMP2RAGEwithFatNavs.m, version: ' retroMocoBoxVersion '</em>\n']);
 
 
 fprintf(fid,'</body></html>\n');
