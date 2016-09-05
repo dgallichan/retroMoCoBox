@@ -19,13 +19,11 @@ All of the work cited above is based on 3D FatNavs data from a Siemens 7T scanne
 
 ### Installation
 
-You can choose to either clone the folder to allow easy updates via git:
+You can choose to either download the last 'release' (which hopefully won't contain any accidental commits which break it ;) ) or you can clone the folder to allow easy updates via git:
 
 ```
 $ git clone https://github.com/dgallichan/retroMoCoBox.git
 ```
-
-Or you can download the package and update manually as required.
 
 ---
 
