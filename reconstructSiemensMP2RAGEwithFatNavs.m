@@ -502,9 +502,9 @@ if exist(fatnavdir,'dir') % could have just kept the motion-parameters file...
     imdims = 2*[304 128];
     
     if exist([fatnavdir '/a_FatNav_ACSim_' MIDstr '.png'],'file')
-        copyfile([fatnavdir '/a_FatNav_ACSim_' MIDstr '.png'],[htmlDir '/a_ACSim.png']);
+        copyfile([fatnavdir '/a_FatNav_ACSim_' MIDstr '.png'],[htmlDir '/ACSim.png']);
         fprintf(fid,['ACS image:<br>\n']);
-        fprintf(fid,['<img src="a_ACSim.png" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
+        fprintf(fid,['<img src="ACSim.png" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
     end
     if exist([fatnavdir '/a_FatNav_MoCoPars_' MIDstr '.png'],'file')
         copyfile([fatnavdir '/a_FatNav_MoCoPars_' MIDstr '.png'],[htmlDir '/motion_parameters.png']);
@@ -512,15 +512,15 @@ if exist(fatnavdir,'dir') % could have just kept the motion-parameters file...
         fprintf(fid,['Estimated motion parameters:<br>\n']);
         fprintf(fid,['<img src="motion_parameters.png"><br><br>\n']);
     end
-    if exist([fatnavdir '/a_mov_eachFatNav.gif'],'file')
-        copyfile([fatnavdir '/a_mov_eachFatNav.gif'],[htmlDir '/a_mov_eachFatNav.gif'])
+    if exist([fatnavdir '/mov_eachFatNav.gif'],'file')
+        copyfile([fatnavdir '/mov_eachFatNav.gif'],[htmlDir '/mov_eachFatNav.gif'])
         fprintf(fid,['15 example FatNavs covering complete scan:<br>\n']);
-        fprintf(fid,['<img src="a_mov_eachFatNav.gif" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
+        fprintf(fid,['<img src="mov_eachFatNav.gif" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
     end
-    if exist([fatnavdir '/a_mov_spm_eachFatNav.gif'],'file')
-        copyfile([fatnavdir '/a_mov_spm_eachFatNav.gif'],[htmlDir '/a_mov_spm_eachFatNav.gif'])
+    if exist([fatnavdir '/mov_spm_eachFatNav.gif'],'file')
+        copyfile([fatnavdir '/mov_spm_eachFatNav.gif'],[htmlDir '/mov_spm_eachFatNav.gif'])
         fprintf(fid,['And after rigid-body registration using SPM:<br>\n']);
-        fprintf(fid,['<img src="a_mov_spm_eachFatNav.gif" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
+        fprintf(fid,['<img src="mov_spm_eachFatNav.gif" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
     end
 end
 
@@ -1164,10 +1164,10 @@ switch nS
         testMagick = system('convert -version');
         
         if testMagick==0 % can use ImageMagick to make animated GIFs...
-            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/a_mov_INV1.gif'];
+            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
             system(processString);
             fprintf(fid,['INV1 image movie before/after correction:<br>\n']);
-            fprintf(fid,['<img src="a_mov_INV1.gif"><br><br>\n']);
+            fprintf(fid,['<img src="mov_INV1.gif"><br><br>\n']);
         end
         
     case 2
@@ -1186,10 +1186,10 @@ switch nS
         testMagick = system('convert -version');
         
         if testMagick==0 % can use ImageMagick to make animated GIFs...
-            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/a_mov_INV1.gif'];
+            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
             system(processString);
             fprintf(fid,['INV1 image movie before/after correction:<br>\n']);
-            fprintf(fid,['<img src="a_mov_INV1.gif"><br><br>\n']);
+            fprintf(fid,['<img src="mov_INV1.gif"><br><br>\n']);
         end
         
         ov1 = orthoview(mOut.all_ims(:,:,:,2),'drawIms',0);
@@ -1208,12 +1208,12 @@ switch nS
         
         
         if testMagick==0
-            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2.png ' htmlDir '/INV2_corrected.png ' htmlDir '/a_mov_INV2.gif'];
+            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2.png ' htmlDir '/INV2_corrected.png ' htmlDir '/mov_INV2.gif'];
             system(processString);
-            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/uniImage.png ' htmlDir '/uniImage_corrected.png ' htmlDir '/a_mov_uniImage.gif'];
+            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/uniImage.png ' htmlDir '/uniImage_corrected.png ' htmlDir '/mov_uniImage.gif'];
             system(processString);
             fprintf(fid,['INV2 image movie before/after correction:<br>\n']);
-            fprintf(fid,['<img src="a_mov_INV2.gif"><br><br>\n']);
+            fprintf(fid,['<img src="mov_INV2.gif"><br><br>\n']);
             
         end
         
@@ -1224,7 +1224,7 @@ switch nS
         
         if testMagick==0
             fprintf(fid,['UNI image movie before/after correction:<br>\n']);
-            fprintf(fid,['<img src="a_mov_uniImage.gif"><br><br>\n']);
+            fprintf(fid,['<img src="mov_uniImage.gif"><br><br>\n']);
         end
         
         % Do skull stripping with BET to be able to see the vessels within the brain more
@@ -1255,11 +1255,11 @@ switch nS
             imab_overwrite([htmlDir '/INV2_corrected_MIP.png'],im2);
             
             if testMagick==0
-                processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2_MIP.png ' htmlDir '/INV2_corrected_MIP.png ' htmlDir '/a_mov_INV2_MIP.gif'];
+                processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2_MIP.png ' htmlDir '/INV2_corrected_MIP.png ' htmlDir '/mov_INV2_MIP.gif'];
                 system(processString);
                 
                 fprintf(fid,['INV2 MIP movie before/after correction:<br>\n']);
-                fprintf(fid,['<img src="a_mov_INV2_MIP.gif"><br><br>\n']);
+                fprintf(fid,['<img src="mov_INV2_MIP.gif"><br><br>\n']);
             else
                 fprintf(fid,['INV2 MIP before correction:<br>\n']);
                 fprintf(fid,['<img src="INV2_MIP.png"><br><br>\n']);
