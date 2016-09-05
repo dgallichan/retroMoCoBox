@@ -838,10 +838,10 @@ if ~bFullParforRecon
             thisData = ifft3s(thisData)*prod(hxyz);
             
             tic
-            gdata = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+            thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
             % the multi-CPU (parfor) version of the NUFFT can be called with a
             % negative value for the 'useTable' input:
-            %    gdata = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,-11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+            %    thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,-11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
             % However, in my latest tests (September 2016) I found that it was
             % actually slower for the current NUFFT parameters than the
             % non-parallelized version, so I've disabled it again as a
@@ -850,10 +850,10 @@ if ~bFullParforRecon
             
             if nS > 1
                 mOut.thiscoil_ims(:,:,:,iS) = thisData;
-                mOut.thiscoil_ims_corrected(:,:,:,iS) = gdata;
+                mOut.thiscoil_ims_corrected(:,:,:,iS) = thisData_corrected;
             else
                 mOut.thiscoil_ims = thisData;
-                mOut.thiscoil_ims_corrected = gdata;
+                mOut.thiscoil_ims_corrected = thisData_corrected;
             end
             
         end
@@ -1010,15 +1010,15 @@ else  % the much faster version with much hungrier RAM requirements:
             thisData = ifft3s(thisData)*prod(hxyz);
             
             tic
-            gdata = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+            thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
             timingReport_applyMoco(iC,iS) = toc;
             
             if nS > 1
                 thiscoil_ims(:,:,:,iS) = thisData;
-                thiscoil_ims_corrected(:,:,:,iS) = gdata;
+                thiscoil_ims_corrected(:,:,:,iS) = thisData_corrected;
             else
                 thiscoil_ims = thisData;
-                thiscoil_ims_corrected = gdata;
+                thiscoil_ims_corrected = thisData_corrected;
             end
             
         end
