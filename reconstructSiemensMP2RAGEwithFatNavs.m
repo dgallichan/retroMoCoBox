@@ -986,7 +986,9 @@ else  % the much faster version with much hungrier RAM requirements:
                 case 2
                     thisData = squeeze(data_set2(:,iC,:,:));
             end
-            thisData = fft1s(thisData,1); % put into full 3D k-space
+            if useGRAPPAforHost
+                thisData = fft1s(thisData,1); % put into full 3D k-space
+            end
             
             thisData = permute(thisData,permutedims);
             if swapDims_xyz(1)
@@ -1295,9 +1297,12 @@ if bGRAPPAinRAM
 else
     fprintf(fid,'<em>GRAPPA recon of host stored as temporary files on hard drive (i.e. slower)...</em><br>\n');
 end
-fprintf(fid,['<strong>Do 1D FFT for each ''slice'' in readout direction of host data:</strong> ' num2str(round(timingReport_hostRecon.FFTperSlice)) ' seconds.<br>\n']);    
-fprintf(fid,['<strong>Declare variables for GRAPPA recon:</strong> ' num2str(round(timingReport_hostRecon.declareVariables)) ' seconds.<br>\n']);
-fprintf(fid,['<strong>GRAPPA recon:</strong> ' num2str(timingReport_hostRecon.GRAPPArecon/60,'%.1f') ' mins.<br>\n']);
+if useGRAPPAforHost
+    fprintf(fid,['<strong>Do 1D FFT for each ''slice'' in readout direction of host data:</strong> ' num2str(round(timingReport_hostRecon.FFTperSlice)) ' seconds.<br>\n']);
+    fprintf(fid,['<strong>Declare variables for GRAPPA recon:</strong> ' num2str(round(timingReport_hostRecon.declareVariables)) ' seconds.<br>\n']);
+    fprintf(fid,['<strong>GRAPPA recon:</strong> ' num2str(timingReport_hostRecon.GRAPPArecon/60,'%.1f') ' mins.<br>\n']);
+end
+
 fprintf(fid,['<strong>Application of retrospective motion-correction: </strong>' num2str(nc) ' channels, ' num2str(nS) ' sets, each taking ' num2str(round(avgTimeApplyMocoPerVolume)) ' seconds (possibly parallelized) = ' num2str(timingReport_totalTimeApplyMoco/60,'%.1f') ' mins.<br>\n']);
 
 % include version number
