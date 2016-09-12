@@ -210,8 +210,12 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %        - changed name of bKeepRecoInRAM to bKeepReconInRAM for consistency
 %        - output files no longer start with 'a_host_'
 %        - fit to versioning for the whole of 'RetroMoCoBox' as 0.5.0
+%        
+%   0.5.1 -  -- September 2016
+%         - Fixed bug in handling of data acquired without GRAPPA
+%         - Fixed bug in handling of data acquired with different orientations 
 
-retroMocoBoxVersion = '0.5.0'; % put this into the HTML for reference
+retroMocoBoxVersion = '0.5.1'; % put this into the HTML for reference
 
 
 %%
@@ -472,10 +476,10 @@ fprintf(['Detected orientation: ' orientText '\n']);
 % find the right (chronological) order for the k-space lines in the raw data
 
 if LinParSwap % MP2RAGE sequence currently doesn't allow 2D GRAPPA, so this means the number of FatNavs should already match that dimension
-    alignDim = permutedims(3); 
+    alignDim = permutedims_toXYZ(3); 
     iSamp = 1:hxyz(alignDim);           
 else
-    alignDim = permutedims(2);    
+    alignDim = permutedims_toXYZ(2);    
     iSamp = twix_obj.imageWithRefscan.Lin(1:hrps(3)*nS:end);
 end
 nFatNavs = twix_obj.FatNav.dataSize(9);
