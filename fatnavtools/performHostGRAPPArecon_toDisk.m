@@ -236,6 +236,8 @@ parfor iS = 1:nread
             elseif nEco > 1
                 thisdata = reshape(thisdata,[nc npe1 nEco 2 npe2]);
                 thisdata = squeeze(thisdata(:,:,iEco,:,:));
+            else
+                thisdata = reshape(thisdata,[nc npe1 2 npe2]);
             end
             thisdata = squeeze(thisdata(:,:,1,:) + 1i*thisdata(:,:,2,:));
             thisdata = permute(thisdata,[2 3 1]);
