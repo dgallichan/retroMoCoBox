@@ -109,7 +109,9 @@ grapKernel(startx:startx+Ax-2, starty:starty+Ay-1) = 0.5;
 % (complex based on SVD weights, and magnitude from SSOS)
 % This isn't needed for the final reconstruction, but can be really
 % useful for debugging the motion-correction
-if strcmp(twix_obj.hdr.MeasYaps.asCoilSelectMeas{1}.asList{1}.sCoilElementID.tCoilID,'"32Ch_Head_7T"')
+
+if isfield(twix_obj.hdr.MeasYaps,'asCoilSelectMeas') && strcmp(twix_obj.hdr.MeasYaps.asCoilSelectMeas{1}.asList{1}.sCoilElementID.tCoilID,'"32Ch_Head_7T"')
+    % VE doesn't have 'asCoilSelectMeas', it's become sCoilSelectMeas and needs handling differently...
     disp('...............')
     disp('Detected use of 32Ch_Head_7T RF coil: therefore using predefined weights to also output a coil-combined image')
     disp('...............')
