@@ -214,9 +214,27 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %   0.5.1 -  -- September 2016
 %         - Fixed bug in handling of data acquired without GRAPPA
 %         - Fixed bug in handling of data acquired with different orientations 
+%
+%   0.6.0 -  -- February 2017
+%         - *CHANGED* handling of motion estimates - now average temporal
+%           neighbours
+%         - Add support for VD/VE data
+%
 
-retroMocoBoxVersion = '0.5.1'; % put this into the HTML for reference
 
+retroMocoBoxVersion = '0.6.0'; % put this into the HTML for reference
+
+%% Check SPM and Fessler's toolbox are on path
+
+if ~exist('spm.m','file') % could also check version, but that's more effort...
+    disp('Error - SPM (ver 12) must be on the path')
+    return
+end
+
+if ~exist('nufft_init.m','file')
+    disp('Error - Fessler toolbox must be on the path for the NUFFT')
+    return
+end
 
 %%
 
@@ -259,7 +277,7 @@ end
 
 % outRoot = []; tempRoot = []; LinParSwap = 0; bKeepGRAPPArecon = 0; coilCombineMethod = 'default';
 % FatNavRes_mm = 2; swapDims_xyz = [0 0 1]; bZipNIFTIs = 1; bKeepFatNavs = 0;
-% bFullParforRecon = 0; bGRAPPAinRAM = 1;  bKeepReconInRAM = 0;
+% bFullParforRecon = 0; bGRAPPAinRAM = 1;  bKeepReconInRAM = 1;
 
 
 %% Make local function as inline so that it can be used in scripts
@@ -327,6 +345,10 @@ fprintf(fid,['<br>\n']);
 tic
 twix_obj = mapVBVD_fatnavs(rawDataFile,'removeOS',1);
 timingReport_parseRawDataFile = toc;
+
+if length(twix_obj)>1 % on VE (and presumably VD as well) the raw data typically also has the adjcoilsens data as scan 1, so skip this
+    twix_obj = twix_obj{2};
+end
 
 if ~isfield(twix_obj,'FatNav')
     disp('Error, no FatNavs found in raw data file!')
@@ -516,13 +538,13 @@ if exist(fatnavdir,'dir') % could have just kept the motion-parameters file...
         fprintf(fid,['Estimated motion parameters:<br>\n']);
         fprintf(fid,['<img src="motion_parameters.png"><br><br>\n']);
     end
-    if exist([fatnavdir '/mov_eachFatNav.gif'],'file')
-        copyfile([fatnavdir '/mov_eachFatNav.gif'],[htmlDir '/mov_eachFatNav.gif'])
+    if exist([fatnavdir '/a_mov_eachFatNav.gif'],'file')
+        copyfile([fatnavdir '/a_mov_eachFatNav.gif'],[htmlDir '/mov_eachFatNav.gif'])
         fprintf(fid,['15 example FatNavs covering complete scan:<br>\n']);
         fprintf(fid,['<img src="mov_eachFatNav.gif" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
     end
-    if exist([fatnavdir '/mov_spm_eachFatNav.gif'],'file')
-        copyfile([fatnavdir '/mov_spm_eachFatNav.gif'],[htmlDir '/mov_spm_eachFatNav.gif'])
+    if exist([fatnavdir '/a_mov_spm_eachFatNav.gif'],'file')
+        copyfile([fatnavdir '/a_mov_spm_eachFatNav.gif'],[htmlDir '/mov_spm_eachFatNav.gif'])
         fprintf(fid,['And after rigid-body registration using SPM:<br>\n']);
         fprintf(fid,['<img src="mov_spm_eachFatNav.gif" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
     end
@@ -672,6 +694,25 @@ if exist([fatnavdir '/eachFatNav_001.nii'],'file')
     fprintf(fid,['<img src="orientationCheck_FatVolume.png"><br><br>\n']);
     fprintf(fid,['(The fat volume shown above should approximately correspond to the FOV chosen for the host sequence)<br><br><br>\n']);
 end
+
+%% FatNavs are not acquired concurrently with the MP2RAGE data, so in the 
+% case of 'brittle' motion it may be especially beneficial to average
+% neighbouring motion estimates rather than taking the one from the same TR
+% (which, in the pulse sequence, is actually closer in time to the
+% following MP2RAGE data)
+
+rotTrans = rotmat2euler(this_fitMat_mm(1:3,1:3,:));
+rotTrans(4:6,:) = squeeze(this_fitMat_mm(1:3,4,:));
+
+newRotTrans = [rotTrans(:,1) (rotTrans(:,1:end-1)+rotTrans(:,2:end))/2];
+
+this_fitMat_mm = zeros(size(this_fitMat_mm));
+this_fitMat_mm(4,4,:) = 1;
+    
+this_fitMat_mm(1:3,1:3,:) = euler2rmat(newRotTrans(1:3,:));
+this_fitMat_mm(1:3,4,:) = newRotTrans(4:6,:);
+    
+
 
 %% If GRAPPA was used in the 'slow' PE direction then the motion parameters will need to be interpolated to have values throughout k-space
 
