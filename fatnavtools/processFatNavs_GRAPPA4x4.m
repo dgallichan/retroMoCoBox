@@ -521,8 +521,11 @@ if testMagick==0 % apparently a status of '0' means that everything is good...
     
     for iiOut = 1:length(iOut)
         thisOutIm = rn([outdir '/eachFatNav_' num2str(iOut(iiOut)+(indexOfFirstNav-1),'%.3d') '.nii']);
+        if iiOut==1
+            climsMax = percentile(thisOutIm(:),99);
+        end
         ov1 = orthoview(thisOutIm,'drawIms',0);
-        imab_overwrite([outdir '/temp_mov_' num2str(iiOut,'%.3d') '.png'],ov1.oneIm,[0 800]);
+        imab_overwrite([outdir '/temp_mov_' num2str(iiOut,'%.3d') '.png'],ov1.oneIm,[0 climsMax]);
     end   
     processString = ['convert -dispose 2 -delay 10 -loop 0 ' outdir '/temp_mov_*.png ' outdir '/a_mov_eachFatNav.gif'];
     system(processString);
@@ -531,7 +534,7 @@ if testMagick==0 % apparently a status of '0' means that everything is good...
     for iiOut = 1:length(iOut)        
         thisOutIm = rn([outdir '/spm_eachFatNav_' num2str(iOut(iiOut)+(indexOfFirstNav-1),'%.3d') '.nii']);
         ov1 = orthoview(thisOutIm,'drawIms',0);
-        imab_overwrite([outdir '/temp_mov_' num2str(iiOut,'%.3d') '.png'],ov1.oneIm,[0 800]);
+        imab_overwrite([outdir '/temp_mov_' num2str(iiOut,'%.3d') '.png'],ov1.oneIm,[0 climsMax]);
     end
     processString = ['convert -dispose 2 -delay 10 -loop 0 ' outdir '/temp_mov_*.png ' outdir '/a_mov_spm_eachFatNav.gif'];
     system(processString);    
