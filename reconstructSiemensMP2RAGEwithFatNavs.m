@@ -225,7 +225,7 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %           likely to be most noticeable and put in HTML
 
 
-retroMocoBoxVersion = '0.6.0'; % put this into the HTML for reference
+retroMocoBoxVersion = '0.6.0dev'; % put this into the HTML for reference
 
 %% Check SPM and Fessler's toolbox are on path
 
