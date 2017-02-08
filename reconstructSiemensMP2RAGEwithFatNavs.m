@@ -219,6 +219,8 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %         - *CHANGED* handling of motion estimates - now average temporal
 %           neighbours
 %         - Add support for VD/VE data
+%         - *RENAMED* output 'uniImage' and 'uniImage_corrected' to 'UNI'
+%           and 'UNI_corrected' as seems to match INV1 and INV2 better
 %
 
 
@@ -1000,8 +1002,8 @@ if ~bFullParforRecon
         sn(int16(4095*mOut.all_ims_corrected(:,:,:,1)/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/INV1_corrected'],hostVoxDim_mm)
         
         
-        sn( int16(4095*(mOut.all_uniImage+0.5)) ,[outDir '/uniImage'],hostVoxDim_mm)
-        sn( int16(4095*(mOut.all_uniImage_corrected+0.5)),[outDir '/uniImage_corrected'],hostVoxDim_mm)
+        sn(int16(4095*(mOut.all_uniImage+0.5)) ,[outDir '/UNI'],hostVoxDim_mm)
+        sn(int16(4095*(mOut.all_uniImage_corrected+0.5)),[outDir '/UNI_corrected'],hostVoxDim_mm)
         sn(int16(4095*mOut.all_ims(:,:,:,2)/max(reshape(mOut.all_ims,[],1))),[outDir '/INV2'],hostVoxDim_mm)
         sn(int16(4095*mOut.all_ims_corrected(:,:,:,2)/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/INV2_corrected'],hostVoxDim_mm)
     else
@@ -1161,8 +1163,8 @@ else  % the much faster version with much hungrier RAM requirements:
     sn(int16(4095*all_ims_corrected(:,:,:,1)/max(reshape(all_ims_corrected,[],1))),[outDir '/INV1_corrected'],hostVoxDim_mm)
     
     if nS>1
-        sn( int16(4095*(all_uniImage+0.5)) ,[outDir '/uniImage'],hostVoxDim_mm)
-        sn( int16(4095*(all_uniImage_corrected+0.5)),[outDir '/uniImage_corrected'],hostVoxDim_mm)
+        sn( int16(4095*(all_uniImage+0.5)) ,[outDir '/UNI'],hostVoxDim_mm)
+        sn( int16(4095*(all_uniImage_corrected+0.5)),[outDir '/UNI_corrected'],hostVoxDim_mm)
         sn(int16(4095*all_ims(:,:,:,2)/max(reshape(all_ims,[],1))),[outDir '/INV2'],hostVoxDim_mm)
         sn(int16(4095*all_ims_corrected(:,:,:,2)/max(reshape(all_ims_corrected,[],1))),[outDir '/INV2_corrected'],hostVoxDim_mm)
     end
@@ -1244,9 +1246,9 @@ switch nS
         ov1 = orthoview(mOut.all_ims_corrected(:,:,:,2),'drawIms',0);
         imab_overwrite([htmlDir '/INV2_corrected.png'],ov1.oneIm);
         ov1 = orthoview(mOut.all_uniImage,'drawIms',0);
-        imab_overwrite([htmlDir '/uniImage.png'],ov1.oneIm);
+        imab_overwrite([htmlDir '/UNI.png'],ov1.oneIm);
         ov1 = orthoview(mOut.all_uniImage_corrected,'drawIms',0);
-        imab_overwrite([htmlDir '/uniImage_corrected.png'],ov1.oneIm);
+        imab_overwrite([htmlDir '/UNI_corrected.png'],ov1.oneIm);
         
         fprintf(fid,['INV2 image before correction:<br>\n']);
         fprintf(fid,['<img src="INV2.png"><br><br>\n']);
@@ -1257,7 +1259,7 @@ switch nS
         if testMagick==0
             processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2.png ' htmlDir '/INV2_corrected.png ' htmlDir '/mov_INV2.gif'];
             system(processString);
-            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/uniImage.png ' htmlDir '/uniImage_corrected.png ' htmlDir '/mov_uniImage.gif'];
+            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/UNI.png ' htmlDir '/UNI_corrected.png ' htmlDir '/mov_UNI.gif'];
             system(processString);
             fprintf(fid,['INV2 image movie before/after correction:<br>\n']);
             fprintf(fid,['<img src="mov_INV2.gif"><br><br>\n']);
@@ -1265,13 +1267,13 @@ switch nS
         end
         
         fprintf(fid,['UNI image before correction:<br>\n']);
-        fprintf(fid,['<img src="uniImage.png"><br><br>\n']);
+        fprintf(fid,['<img src="UNI.png"><br><br>\n']);
         fprintf(fid,['UNI image after correction:<br>\n']);
-        fprintf(fid,['<img src="uniImage_corrected.png"><br><br>\n']);
+        fprintf(fid,['<img src="UNI_corrected.png"><br><br>\n']);
         
         if testMagick==0
             fprintf(fid,['UNI image movie before/after correction:<br>\n']);
-            fprintf(fid,['<img src="mov_uniImage.gif"><br><br>\n']);
+            fprintf(fid,['<img src="mov_UNI.gif"><br><br>\n']);
         end
         
         % Do skull stripping with BET to be able to see the vessels within the brain more
