@@ -221,7 +221,8 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %         - Add support for VD/VE data
 %         - *RENAMED* output 'uniImage' and 'uniImage_corrected' to 'UNI'
 %           and 'UNI_corrected' as seems to match INV1 and INV2 better
-%
+%         - Add animated GIF with zoom of front of brain where changes are
+%           likely to be most noticeable and put in HTML
 
 
 retroMocoBoxVersion = '0.6.0'; % put this into the HTML for reference
@@ -1317,6 +1318,56 @@ switch nS
             end
             
         end
+        
+        %%% Add a zoom of the 3 images before and after correction
+        if ~isempty(testFSL) % there will be a BET mask to use for choosing the brain region
+            brainmask = rn([outDir '/INV2_corrected_bet_mask.nii']);            
+            xi = round(Hxyz(1)/2+Hxyz(1)/10);
+            yi = round(Hxyz(2)/2+Hxyz(2)/8:find(squeeze(any(any(brainmask,1),3)),1,'last'));
+            zi = round(Hxyz(3)/2:find(squeeze(any(any(brainmask,1),2)),1,'last'));            
+        else
+            xi = round(Hxyz(1)/2+Hxyz(1)/10);
+            yi = round(Hxyz(2)/2+Hxyz(2)/8: .9*Hxyz(2)); % arbitrary cut off points for zoom in y and z
+            zi = round(Hxyz(3)/2:Hxyz(3): .8*Hxyz(3)); 
+        end
+        clim1 = percentile(mOut.all_ims(:,:,:,1),97);
+        clim2 = percentile(mOut.all_ims(:,:,:,2),97);
+        clims_uni = [-.5 .5];
+        
+        fig(figIndex)
+        clf
+        set(gcf,'Position',[   246   611   982   494])
+        subplot1(1,3)
+        subplot1(1)
+        imab(squeeze(mOut.all_ims(xi,yi,zi,1)),[0 clim1])
+        subplot1(2)
+        imab(squeeze(mOut.all_ims(xi,yi,zi,2)),[0 clim2])
+        subplot1(3)
+        imab(squeeze(mOut.all_uniImage(xi,yi,zi)),clims_uni)
+        colormap(gray)
+        export_fig([htmlDir '/zoom.png'])
+        subplot1(1)
+        imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,1)),[0 clim1])
+        subplot1(2)
+        imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,2)),[0 clim2])
+        subplot1(3)
+        imab(squeeze(mOut.all_uniImage_corrected(xi,yi,zi)),clims_uni)
+        export_fig([htmlDir '/zoom_corrected.png'])
+        if testMagick==0
+            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_corrected.png ' htmlDir '/mov_zoom.gif'];
+            system(processString);
+            
+            fprintf(fid,['Sagittal zoom before/after correction:<br>\n']);
+            fprintf(fid,['<img src="mov_zoom.gif"><br><br>\n']);
+        else
+            fprintf(fid,['Sagittal zoom before correction:<br>\n']);
+            fprintf(fid,['<img src="zoom.png"><br><br>\n']);
+            fprintf(fid,['Sagittal after correction:<br>\n']);
+            fprintf(fid,['<img src="zoom_corrected.png"><br><br>\n']);
+        end
+        
+        
+        
         
 end
 
