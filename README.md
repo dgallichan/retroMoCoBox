@@ -8,7 +8,8 @@ Matlab toolbox for retrospective motion-correction of 3D MRI k-space data - as u
 
 
 Used in:
-* [Retrospective correction of involuntary microscopic head movement using highly accelerated fat image navigators (3D FatNavs) at 7T](http://doi.wiley.com/10.1002/mrm.25670), _Gallichan, Marques and Gruetter_, MRM 2015
+
+ * [Retrospective correction of involuntary microscopic head movement using highly accelerated fat image navigators (3D FatNavs) at 7T](http://doi.wiley.com/10.1002/mrm.25670), _Gallichan, Marques and Gruetter_, MRM 2015
 * [Optimizing the acceleration and resolution of three-dimensional fat image navigators for high-resolution motion correction at 7T](http://doi.wiley.com/10.1002/mrm.26127), _Gallichan and Marques,_ MRM 2016
 * [Motion-Correction Enabled Ultra-High Resolution In-Vivo 7T-MRI of the Brain](http://dx.plos.org/10.1371/journal.pone.0154974), _Federau and Gallichan,_ Plos One 2016
 
@@ -41,9 +42,9 @@ The data for the demo can be downloaded [here for the 1 mm dataset](http://goo.g
 
 `reconstructSiemensMP2RAGEwithFatNavs.m`
 
-This is the code we currently use for the complete reconstruction pipeline, starting from the raw data. The full script will probably only be useful if you already have the MP2RAGE with FatNavs pulse sequence. If you have a 7T Siemens system and are interested in obtaining a C2P version of the sequence - [please let me know](mailto:gallichand@cardiff.ac.uk). If you are interested in using it for 3T, we don't yet have it ported beyond VB17, but this can be done and we hope to have it available soon. If you don't have a 3D FatNavs sequence, perhaps some parts of the pipeline are also useful for other research. 
+This is the code we currently use for the complete reconstruction pipeline, starting from the raw data. The full script will probably only be useful if you already have the MP2RAGE with FatNavs pulse sequence. If you have a 7T Siemens system and are interested in obtaining a C2P version of the sequence - [please let me know](mailto:gallichand@cardiff.ac.uk). If you are interested in using it for 3T, it is also available for VB17 and VE11B - and hopefully some other baselines soon. If you don't have a 3D FatNavs sequence, perhaps some parts of the pipeline are also useful for other research. 
 
-The only part of my code that is not included here is the modified version of Philipp Ehses' `mapVBVD.m` code for reading the raw Siemens data into Matlab - which is freely available from the Siemens MR-IDEA online forum, but I have not included here as it appears to be 'Siemens sensitive'. If you would like this code too, please [email me](mailto:gallichand@cardiff.ac.uk).
+The only part of my code that is not included here is the FatNav-modification version of Philipp Ehses' `mapVBVD.m` code for reading the raw Siemens data into Matlab. Philipp's original code is freely available from the Siemens MR-IDEA online forum, but I have not included the FatNav-modified code here as it appears to be 'Siemens sensitive'. If you would like this code too, please [email me](mailto:gallichand@cardiff.ac.uk).
 
 I have included various open-source tools inside the toolbox - but  you will need to separately download and install both [Prof. Jeff Fessler's toolbox for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html) (used for the NUFFT) and [SPM 12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/) (used for the co-registration of the individual FatNav images to estimate the motion parameters).
 
@@ -51,3 +52,8 @@ The full script takes rather a long time to run (from around 10 mins through to 
 
 The script `run_SiemensMP2RAGErecon.m` gives an example of how to call the reconstruction code on your data. Also, feel free to get in touch if you would like some full example datasets to test - the raw data for 32 RF channels at 1mm resolution is 4.3 Gb and for 600 um resolution is 7.9 Gb so I haven't put them online by default, but anonymized raw data can also be shared if you are interested.
 
+---
+
+### Additional things to note
+
+Be aware that because the FatNavs are never acquired coincidentally with the host data, the quality of the correction they provide will depend on the kind of motion that took place. Slow smooth motion can be corrected well, as can a few instances where there was sudden motion. However, if the subject moves continuously and in a 'random' way, then the FatNav motion estimates will not correspond to the head position when the host data were acquired. I have not noticed that this causes a problem for healthy volunteers, but it could be important for scanning certain patient populations. It also means that when testing that the FatNavs are working, it is best to perform a small slow movement throughout the scan as the 'deliberate motion' to be corrected.
