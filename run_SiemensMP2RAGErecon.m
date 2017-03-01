@@ -10,16 +10,20 @@ addpath('~/matlabdownloads/spm12')
 % And Prof. J. Fessler's Matlab toolbox (http://web.eecs.umich.edu/~fessler/code/) for the NUFFT
 run('~/matlabdownloads/fessler/setup.m')
 
+% Set the resolution of the FatNavs that were used
+FatNavRes_mm = 2;
+
 %% Fastest option: if you have loads of RAM (tested with 12 CPUs and 96 Gb of RAM on both 1 mm and 600 um data)
 
-reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,'bGRAPPAinRAM',1,'bKeepReconInRAM',1,'bFullParforRecon',1);
+reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,'FatNavRes_mm',FatNavRes_mm,'bGRAPPAinRAM',1,'bKeepReconInRAM',1,'bFullParforRecon',1);
 
 %% if you have plenty of RAM:
 
-% reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,'bGRAPPAinRAM',1);
+% reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,'FatNavRes_mm',FatNavRes_mm,'bGRAPPAinRAM',1);
 
 
 %% otherwise do the slower version:
-% reconstructMP2RAGEwithFatNavs(rawDataFile,'bGRAPPAinRAM',0);
+
+% reconstructMP2RAGEwithFatNavs(rawDataFile,'FatNavRes_mm',FatNavRes_mm,'bGRAPPAinRAM',0);
 
 
