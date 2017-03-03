@@ -9,7 +9,7 @@ Matlab toolbox for retrospective motion-correction of 3D MRI k-space data - as u
 
 Used in:
 
- * [Retrospective correction of involuntary microscopic head movement using highly accelerated fat image navigators (3D FatNavs) at 7T](http://doi.wiley.com/10.1002/mrm.25670), _Gallichan, Marques and Gruetter_, MRM 2015
+* [Retrospective correction of involuntary microscopic head movement using highly accelerated fat image navigators (3D FatNavs) at 7T](http://doi.wiley.com/10.1002/mrm.25670), _Gallichan, Marques and Gruetter_, MRM 2015
 * [Optimizing the acceleration and resolution of three-dimensional fat image navigators for high-resolution motion correction at 7T](http://doi.wiley.com/10.1002/mrm.26127), _Gallichan and Marques,_ MRM 2016
 * [Motion-Correction Enabled Ultra-High Resolution In-Vivo 7T-MRI of the Brain](http://dx.plos.org/10.1371/journal.pone.0154974), _Federau and Gallichan,_ Plos One 2016
 
