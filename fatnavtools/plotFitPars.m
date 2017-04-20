@@ -54,20 +54,20 @@ RMS_rot = sqrt(mean(rotations.^2));
 if isVertical(1)==1
     set(gcf,'Pos',[              1810         498         726         480])
     subplot1(2,1,'Gap',[0 .09],'Max',[.95 1])
-    s1 = subplot1(1);
-    s2 = subplot1(2);
+    ha.s1 = subplot1(1);
+    ha.s2 = subplot1(2);
 elseif isVertical(1)==0
     %%% Horizontal:
     set(gcf,'Pos',[        1810         637        1534         341])
     subplot1(1,2,'YTickL','All','Gap',[.05 0],'Min',[0.05 .2],'Max', [1 .9])
-    s1 = subplot1(1);
-    s2 = subplot1(2);
+    ha.s1 = subplot1(1);
+    ha.s2 = subplot1(2);
 else
-    s1 = isVertical(1);
-    s2 = isVertical(2);
+    ha.s1 = isVertical(1);
+    ha.s2 = isVertical(2);
 end
 
-subplot(s1)
+subplot(ha.s1)
 set(gca,'ColorOrder',cOrder);
 plot(t,fitPars(1:3,:).',lstyle{:})
 axis([0 t(end) climsXYZ])
@@ -78,7 +78,7 @@ if isVertical(1)==0 || ~isnumeric(isVertical)
     xlabel(['Time ' timeUnits])
 end
 title(['RMS displacement: ' num2str(RMS_displacement,'%.2f') ' mm'])
-subplot(s2)
+subplot(ha.s2)
 set(gca,'ColorOrder',cOrder);
 plot(t,fitPars(4:6,:).',lstyle{:})
 axis([0 t(end) climsRTP])
