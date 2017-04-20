@@ -177,8 +177,8 @@ grapKernel(startx:startx+Ax-2, starty:starty+Ay-1) = 0.5;
 % (complex based on SVD weights, and magnitude from SSOS)
 % This isn't needed for the final reconstruction, but can be really
 % useful for debugging the motion-correction
-if strcmp(twix_obj.hdr.MeasYaps.asCoilSelectMeas{1}.asList{1}.sCoilElementID.tCoilID,'"32Ch_Head_7T"')
-    disp('...............')
+if isfield(twix_obj.hdr.MeasYaps,'asCoilSelectMeas') && strcmp(twix_obj.hdr.MeasYaps.asCoilSelectMeas{1}.asList{1}.sCoilElementID.tCoilID,'"32Ch_Head_7T"')
+    % VE doesn't have 'asCoilSelectMeas', it's become sCoilSelectMeas and needs handling differently...    disp('...............')
     disp('Detected use of 32Ch_Head_7T RF coil: therefore using predefined weights to also output a coil-combined image')
     disp('...............')
     combinePars = [-0.1049809 + -0.000000i;-0.01325038 - 0.1056198i;0.008624907 + 0.1050349i;-0.01387145 + 0.1499731i;0.009075958 - 0.2163172i;0.1473467 + 0.2160684i;0.2057536 - 0.003884733i;0.07486724 - 0.003189813i;-0.1640732 - 0.1206727i;-0.1645964 + 0.1266792i;-0.1423699 + 0.1314524i;-0.09954340 + 0.008023512i;0.2731563 + 0.1721494i;-0.2633240 - 0.2804754i;-0.2702133 + 0.05874889i;-0.07764274 + 0.05792535i;0.06793594 + 0.05160413i;-0.08903237 - 0.02729516i;0.0002752086 - 0.08664161i;-0.009266425 - 0.1078144i;-0.1005209 - 0.008859677i;0.1311229 - 0.05615813i;0.07896266 - 0.1288482i;0.02203858 - 0.06309662i;0.05616169 + 0.02123157i;-0.04540515 + 0.1785710i;-0.05066793 + 0.1244546i;0.03634416 + 0.003367372i;-0.1074157 + 0.1084992i;-0.2847729 + 0.04550047i;-0.1664367 + 0.06486133i;0.1344117 - 0.06306267i];
