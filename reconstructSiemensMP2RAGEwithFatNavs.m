@@ -17,9 +17,10 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %           well for FatNavs - being particular sensitive to sub-voxel
 %           movements.
 %
-%     NUFFT (http://web.eecs.umich.edu/~fessler/code/index.html)
-%     from Prof. J Fessler
-%           This is used to perform the 3D gridding operation used to deal
+%     Michigan Image Reconstruction Toolbox (MIRT)
+%     (http://web.eecs.umich.edu/~fessler/code/index.html)
+%     from the group of Prof. J Fessler
+%           This is used to perform the NUFFT 3D gridding operation used to deal
 %           with the non-Cartesian k-space sampling after rotations have
 %           been applied.
 %
