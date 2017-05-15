@@ -7,7 +7,7 @@ addpath(genpath('~/retroMoCoBox/'))
 % And SPM 12
 addpath('~/matlabdownloads/spm12')
 
-% And Prof. J. Fessler's Matlab toolbox (http://web.eecs.umich.edu/~fessler/code/) for the NUFFT
+% And the Michigan Image Reconstruction Toolbox (MIRT) (http://web.eecs.umich.edu/~fessler/code/) for the NUFFT
 run('~/matlabdownloads/fessler/setup.m')
 
 % Set the resolution of the FatNavs that were used
