@@ -7,7 +7,7 @@ exampleData = load('/Users/danielg/data/fatnavs_examples/reconTest/example_retro
 % exampleData = load('/Users/danielg/data/fatnavs_examples/reconTest/example_retroMocoData_600.mat'); % 600 um resolution example data
 addpath(genpath('~/retroMoCoBox/'))
 
-% The NUFFT uses Prof J. Fessler's toolbox
+% The NUFFT uses the Michigan Image Reconstruction Toolbox (MIRT)
 % (http://web.eecs.umich.edu/~fessler/code/index.html)
 run('~/matlabdownloads/fessler/setup.m')
 
