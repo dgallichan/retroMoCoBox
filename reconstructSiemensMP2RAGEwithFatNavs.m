@@ -116,6 +116,12 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %                       otherwise delete that folder when finished
 %                       (default).
 %
+%       'KeepPatientInfo' - Use '1' to keep sensitive info from raw data header  
+%                           in HTML output (default). Use '0' to anomyize completely
+%                           and use a string e.g. '0019' to insert the ID from
+%                           another database.
+%
+%
 %
 %     
 %   
@@ -216,7 +222,7 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %         - Fixed bug in handling of data acquired without GRAPPA
 %         - Fixed bug in handling of data acquired with different orientations 
 %
-%   0.6.0 -  -- February 2017
+%   0.6.0 -  -- February 2017 - new contact email: gallichand@cardiff.ac.uk
 %         - *CHANGED* handling of motion estimates - now average temporal
 %           neighbours
 %         - Add support for VD/VE data
@@ -224,9 +230,11 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %           and 'UNI_corrected' as seems to match INV1 and INV2 better
 %         - Add animated GIF with zoom of front of brain where changes are
 %           likely to be most noticeable and put in HTML
+%
+%   0.6.1 - -- May 2017
+%         - Added Torben's option to anonymize data
 
-
-retroMocoBoxVersion = '0.6.0dev'; % put this into the HTML for reference
+retroMocoBoxVersion = '0.6.1dev'; % put this into the HTML for reference
 
 %% Check SPM and Fessler's toolbox are on path
 
@@ -243,9 +251,9 @@ end
 %%
 
 [outRoot, tempRoot, LinParSwap, bGRAPPAinRAM, bKeepGRAPPArecon, bKeepReconInRAM, bFullParforRecon,...
-    coilCombineMethod, FatNavRes_mm, swapDims_xyz, bZipNIFTIs, bKeepFatNavs] = process_options(varargin,...
+    coilCombineMethod, FatNavRes_mm, swapDims_xyz, bZipNIFTIs, bKeepFatNavs,KeepPatientInfo] = process_options(varargin,...
     'outRoot',[],'tempRoot',[],'LinParSwap',0,'bGRAPPAinRAM',0,'bKeepGRAPPArecon',0,'bKeepReconInRAM',0,...
-    'bFullParforRecon',0,'coilCombineMethod','default','FatNavRes_mm',2,'swapDims_xyz',[0 0 1],'zipNIFTIs',1,'keepFatNavs',0);
+    'bFullParforRecon',0,'coilCombineMethod','default','FatNavRes_mm',2,'swapDims_xyz',[0 0 1],'zipNIFTIs',1,'keepFatNavs',0,'KeepPatientInfo',1);
 
 
 %%
@@ -359,23 +367,33 @@ if ~isfield(twix_obj,'FatNav')
     return
 end
 
-%% Put patient info into HTML
 
-% in the next line I assume that Siemens always use the same structure for
-% the 'tReferenceImage0' field - but I haven't looked for documentation to
-% support this, so it may not always extract the scan data properly...
-fprintf(fid,['<strong>Date of scan:</strong> ' local_reformatDateString(twix_obj.hdr.MeasYaps.tReferenceImage0(29:36)) '<br>\n']);
-fprintf(fid,['<strong>Patient Name:</strong> ' twix_obj.hdr.Config.PatientName '<br>\n']);
-fprintf(fid,['<strong>Patient ID:</strong> ' twix_obj.hdr.Config.PatientID '<br>\n']);
-switch twix_obj.hdr.Config.PatientSex
-    case 1
-        fprintf(fid,['<strong>Patient Sex:</strong> Female<br>\n']);
-    case 2
-        fprintf(fid,['<strong>Patient Sex:</strong> Male<br>\n']);
-    case 3
-        fprintf(fid,['<strong>Patient Sex:</strong> Other<br>\n']);
+if ischar(KeepPatientInfo)
+    fprintf(fid,['<strong>Database ID:</strong> ' KeepPatientInfo '<br>\n']);
+else
+    if KeepPatientInfo
+        %% Put patient info into HTML
+        
+        % in the next line I assume that Siemens always use the same structure for
+        % the 'tReferenceImage0' field - but I haven't looked for documentation to
+        % support this, so it may not always extract the scan data properly...
+        fprintf(fid,['<strong>Date of scan:</strong> ' local_reformatDateString(twix_obj.hdr.MeasYaps.tReferenceImage0(29:36)) '<br>\n']);
+        fprintf(fid,['<strong>Patient Name:</strong> ' twix_obj.hdr.Config.PatientName '<br>\n']);
+        fprintf(fid,['<strong>Patient ID:</strong> ' twix_obj.hdr.Config.PatientID '<br>\n']);
+        switch twix_obj.hdr.Config.PatientSex
+            case 1
+                fprintf(fid,['<strong>Patient Sex:</strong> Female<br>\n']);
+            case 2
+                fprintf(fid,['<strong>Patient Sex:</strong> Male<br>\n']);
+            case 3
+                fprintf(fid,['<strong>Patient Sex:</strong> Other<br>\n']);
+        end
+        fprintf(fid,['<strong>Patient date of birth:</strong> ' local_reformatDateString(num2str(twix_obj.hdr.Config.PatientBirthDay)) '<br>\n']);
+        
+    else
+        fprintf(fid,['<strong>Patient Info:</strong> Anonymised<br>\n']);
+    end
 end
-fprintf(fid,['<strong>Patient date of birth:</strong> ' local_reformatDateString(num2str(twix_obj.hdr.Config.PatientBirthDay)) '<br>\n']);
 
 
 %% Try to establish slice orientation - this has not been rigourously tested for all possible orientations...!
