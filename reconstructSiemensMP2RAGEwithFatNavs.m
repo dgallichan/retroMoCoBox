@@ -21,6 +21,7 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %     (http://web.eecs.umich.edu/~fessler/code/index.html)
 %     from the group of Prof. J Fessler
 %           This is used to perform the NUFFT 3D gridding operation used to deal
+
 %           with the non-Cartesian k-space sampling after rotations have
 %           been applied.
 %
@@ -233,8 +234,14 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %
 %   0.6.1 - -- May 2017
 %         - Added Torben's option to anonymize data
+%
+%   0.6.2 -   -- July 2017
+%         - Improved 'parfor' handling of data without second inversion
+%           time
+%         - Added manual discard of channels for HeadNeck_64 coil which
+%           have a lot of signal in the neck
 
-retroMocoBoxVersion = '0.6.1dev'; % put this into the HTML for reference
+retroMocoBoxVersion = '0.6.2dev'; % put this into the HTML for reference
 
 %% Check SPM and Fessler's toolbox are on path
 
@@ -512,7 +519,24 @@ fprintf(['RPS dimensions in raw data: ' num2str(hrps(1)) 'x' num2str(hrps(2)) 'x
 fprintf(['XYZ dimensions reconstructed: ' num2str(Hxyz(1)) 'x' num2str(Hxyz(2)) 'x' num2str(Hxyz(3)) '\n']);
 fprintf(['FOV - ' num2str(FOVxyz(1),'%.1f') 'x' num2str(FOVxyz(2),'%.1f') 'x' num2str(FOVxyz(3),'%.1f') 'mm\n']);
 fprintf(['Resolution: ' num2str(hostVoxDim_mm(1),'%.3f') 'x' num2str(hostVoxDim_mm(2),'%.3f') 'x' num2str(hostVoxDim_mm(3),'%.3f') 'mm\n']);
+%% Check if using HEADNECK_64 receive coil, and discard channels over the neck if this is the case (would be nice to know what Siemens does...)
 fprintf(['Detected orientation: ' orientText '\n']);
+if isfield(twix_obj.hdr.MeasYaps,'sCoilSelectMeas') ...
+        && strcmp(twix_obj.hdr.MeasYaps.sCoilSelectMeas.aRxCoilSelectData{1}.asList{1}.sCoilElementID.tCoilID,'"HeadNeck_64"')
+    iC_keep = 1:nc;
+    iC_keep([1 7 8 18 29 30 39 40 49 50]) = []; % these channels cover the neck (in one test dataset with 52 data channels from the 64-channel coil...)
+    fprintf(['\n\n****  Detected use of HeadNeck_64 RF coil **** \n'...
+                 'Using manually predefined set of channels\n'...
+                 'to reduce signal from neck area\n' ...
+                 '*********************************\n\n']);
+else
+    iC_keep = 1:nc;
+end
+
+nc_keep = length(iC_keep);
+    
+
+
 
 
 %% Check the number of FatNavs available compared to the size of the host data
@@ -843,14 +867,18 @@ else % for Parfor to work you can't use the mOut structure trick (which could ei
         all_ims_ref = []; % parfor seems to sniff around in unreachable parts of code and get annoyed if unused variables don't exist yet...
         all_ims_ref_corrected = [];
     end
-
+        data_set1 = mOutGRAPPA.grappaRecon_1DFFT(:,iC_keep,:,:,1);
     if useGRAPPAforHost % separate the two sets of MP2RAGE to allow parfor
-        data_set1 = mOutGRAPPA.grappaRecon_1DFFT(:,:,:,:,1);
+            data_set2 = mOutGRAPPA.grappaRecon_1DFFT(:,iC_keep,:,:,2);
+        else
+            data_set2 = zeros(1,nc_keep); % try to keep later parfor's happy if there is no set 2
         if nS>1
             data_set2 = mOutGRAPPA.grappaRecon_1DFFT(:,:,:,:,2);
-        end
+        data_set1 = squeeze(twix_obj.image(:,iC_keep,:,:,1,1,1,1,1,1));
     else
-        data_set1 = squeeze(twix_obj.image(:,:,:,:,1,1,1,1,1,1));
+            data_set2 = squeeze(twix_obj.image(:,iC_keep,:,:,1,1,1,1,1,2));
+        else
+            data_set2 = zeros(1,nc_keep); % try to keep later parfor's happy if there is no set 2
         if nS>1
             data_set2 = squeeze(twix_obj.image(:,:,:,:,1,1,1,1,1,2));
         end
@@ -862,7 +890,7 @@ end
 %% Apply the motion-correction
 
 
-if ~bFullParforRecon
+    for iC = 1:nc_keep
     
     for iC = 1:nc
         
@@ -871,14 +899,14 @@ if ~bFullParforRecon
         mOut.thiscoil_ims_corrected = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
         
         
-        for iS = 1:nS
+            fprintf(['Reconstructing coil ' num2str(iC) ' of ' num2str(nc_keep) ', set ' num2str(iS) '\n']);
             
             fprintf(['Reconstructing coil ' num2str(iC) ' of ' num2str(nc) ', set ' num2str(iS) '\n']);
-            
+                thisData = squeeze(mOutGRAPPA.grappaRecon_1DFFT(:,iC_keep(iC),:,:,iS));
             if useGRAPPAforHost
                 thisData = squeeze(mOutGRAPPA.grappaRecon_1DFFT(:,iC,:,:,iS));
                 % thisData = squeeze(mOutGRAPPA.dataCombined(:,:,:,2)); iC=1;iS = 1; % use this to have more brain coverage for debugging...
-                thisData = fft1s(thisData,1); % put into full 3D k-space
+                thisData = squeeze(twix_obj.image(:,iC_keep(iC),:,:,1,1,1,1,1,iS));
             else
                 thisData = squeeze(twix_obj.image(:,iC,:,:,1,1,1,1,1,iS));
             end
@@ -1035,7 +1063,7 @@ if ~bFullParforRecon
     end
     
     
-else  % the much faster version with much hungrier RAM requirements:
+    parfor iC = 1:nc_keep
 
     parfor iC = 1:nc
         
@@ -1043,7 +1071,7 @@ else  % the much faster version with much hungrier RAM requirements:
         thiscoil_ims_corrected = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
         
         
-        for iS = 1:nS
+            fprintf(['Reconstructing coil ' num2str(iC) ' of ' num2str(nc_keep) ', set ' num2str(iS) '\n']);
             
             fprintf(['Reconstructing coil ' num2str(iC) ' of ' num2str(nc) ', set ' num2str(iS) '\n']);
             
@@ -1418,7 +1446,7 @@ if useGRAPPAforHost
     fprintf(fid,['<strong>Do 1D FFT for each ''slice'' in readout direction of host data:</strong> ' num2str(round(timingReport_hostRecon.FFTperSlice)) ' seconds.<br>\n']);
     fprintf(fid,['<strong>Declare variables for GRAPPA recon:</strong> ' num2str(round(timingReport_hostRecon.declareVariables)) ' seconds.<br>\n']);
     fprintf(fid,['<strong>GRAPPA recon:</strong> ' num2str(timingReport_hostRecon.GRAPPArecon/60,'%.1f') ' mins.<br>\n']);
-end
+fprintf(fid,['<strong>Application of retrospective motion-correction: </strong>' num2str(nc_keep) ' channels, ' num2str(nS) ' sets, each taking ' num2str(round(avgTimeApplyMocoPerVolume)) ' seconds (possibly parallelized) = ' num2str(timingReport_totalTimeApplyMoco/60,'%.1f') ' mins.<br>\n']);
 
 fprintf(fid,['<strong>Application of retrospective motion-correction: </strong>' num2str(nc) ' channels, ' num2str(nS) ' sets, each taking ' num2str(round(avgTimeApplyMocoPerVolume)) ' seconds (possibly parallelized) = ' num2str(timingReport_totalTimeApplyMoco/60,'%.1f') ' mins.<br>\n']);
 
@@ -1455,6 +1483,10 @@ end
 
 if ~bKeepFatNavs
     rmdir(fatnavdir,'s')
+fprintf('*************************************************************\n')
+fprintf('***** reconstructSiemensMP2RAGEwithFatNavs.m completed! *****\n')
+fprintf('*************************************************************\n')
+fprintf(['Total reconstruction time: ' num2str(totalTime_hrs) ' hours, ' num2str(totalTime_mins) ' mins\n']);
 end
 
 
