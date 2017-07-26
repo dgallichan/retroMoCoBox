@@ -84,10 +84,10 @@ end
 
 %% For testing code without calling as function:
 
-% indexOfRefNav = 1;
+% indexOfFirstNav = 1;
 % bShowFigs = 1;
 % nVirtualCoilsFatNavs = [];
-% FatNavRes_mm = 6;
+% FatNavRes_mm = 4;
 % nSliceNeighbours = 0;
 
 %%
@@ -134,8 +134,7 @@ end
 
 dataSize = twix_obj.FatNav_refscan.dataSize;
 
-% nx = 88; ny = 128; nz = 128;  % these are hard-coded at the moment for the navigators anyway...
-switch FatNavRes_mm % in newer version of FatNav sequences, the resolution can be chosen at 2, 4 or 6 mm
+switch FatNavRes_mm % in newer version of FatNav sequences, the resolution can be chosen at 2, 4 or 6 mm - with the FOV hard-coded in the sequence itself
     case {2,4}
         nx = 176/FatNavRes_mm;
         ny = 256/FatNavRes_mm;
