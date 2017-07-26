@@ -867,20 +867,20 @@ else % for Parfor to work you can't use the mOut structure trick (which could ei
         all_ims_ref = []; % parfor seems to sniff around in unreachable parts of code and get annoyed if unused variables don't exist yet...
         all_ims_ref_corrected = [];
     end
-        data_set1 = mOutGRAPPA.grappaRecon_1DFFT(:,iC_keep,:,:,1);
+    
     if useGRAPPAforHost % separate the two sets of MP2RAGE to allow parfor
+        data_set1 = mOutGRAPPA.grappaRecon_1DFFT(:,iC_keep,:,:,1);
+        if nS>1
             data_set2 = mOutGRAPPA.grappaRecon_1DFFT(:,iC_keep,:,:,2);
         else
             data_set2 = zeros(1,nc_keep); % try to keep later parfor's happy if there is no set 2
-        if nS>1
-            data_set2 = mOutGRAPPA.grappaRecon_1DFFT(:,:,:,:,2);
-        data_set1 = squeeze(twix_obj.image(:,iC_keep,:,:,1,1,1,1,1,1));
+        end
     else
+        data_set1 = squeeze(twix_obj.image(:,iC_keep,:,:,1,1,1,1,1,1));
+        if nS>1
             data_set2 = squeeze(twix_obj.image(:,iC_keep,:,:,1,1,1,1,1,2));
         else
             data_set2 = zeros(1,nc_keep); % try to keep later parfor's happy if there is no set 2
-        if nS>1
-            data_set2 = squeeze(twix_obj.image(:,:,:,:,1,1,1,1,1,2));
         end
     end
     
@@ -889,26 +889,23 @@ end
 
 %% Apply the motion-correction
 
+if ~bFullParforRecon
 
-    for iC = 1:nc_keep
-    
-    for iC = 1:nc
-        
+    for iC = 1:nc_keep           
         
         mOut.thiscoil_ims = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
         mOut.thiscoil_ims_corrected = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
         
+        for iS = 1:nS
         
             fprintf(['Reconstructing coil ' num2str(iC) ' of ' num2str(nc_keep) ', set ' num2str(iS) '\n']);
             
-            fprintf(['Reconstructing coil ' num2str(iC) ' of ' num2str(nc) ', set ' num2str(iS) '\n']);
-                thisData = squeeze(mOutGRAPPA.grappaRecon_1DFFT(:,iC_keep(iC),:,:,iS));
             if useGRAPPAforHost
-                thisData = squeeze(mOutGRAPPA.grappaRecon_1DFFT(:,iC,:,:,iS));
+                thisData = squeeze(mOutGRAPPA.grappaRecon_1DFFT(:,iC_keep(iC),:,:,iS));
                 % thisData = squeeze(mOutGRAPPA.dataCombined(:,:,:,2)); iC=1;iS = 1; % use this to have more brain coverage for debugging...
-                thisData = squeeze(twix_obj.image(:,iC_keep(iC),:,:,1,1,1,1,1,iS));
+                thisData = fft1s(thisData,1); % put into full 3D k-space
             else
-                thisData = squeeze(twix_obj.image(:,iC,:,:,1,1,1,1,1,iS));
+                thisData = squeeze(twix_obj.image(:,iC_keep(iC),:,:,1,1,1,1,1,iS));
             end
             
             thisData = permute(thisData,permutedims);
@@ -1063,18 +1060,18 @@ end
     end
     
     
+else % the much faster version with much hungrier RAM requirements:
+    
     parfor iC = 1:nc_keep
-
-    parfor iC = 1:nc
         
         thiscoil_ims = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
         thiscoil_ims_corrected = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
+
         
+        for iS = 1:nS
         
             fprintf(['Reconstructing coil ' num2str(iC) ' of ' num2str(nc_keep) ', set ' num2str(iS) '\n']);
-            
-            fprintf(['Reconstructing coil ' num2str(iC) ' of ' num2str(nc) ', set ' num2str(iS) '\n']);
-            
+                        
             switch iS
                 case 1
                     thisData = squeeze(data_set1(:,iC,:,:));
