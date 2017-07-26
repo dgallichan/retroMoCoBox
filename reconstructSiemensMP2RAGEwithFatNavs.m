@@ -320,11 +320,17 @@ MIDstr = getMIDstr(rawDataFile);
 
 filterFrac = 0.05; % used when 'lowres' coil combination method is selected (not default..)
 
-FatNav_FOVxyz = [176 256 256]; % FatNav FOV 
-% (for now I assume this to be fixed - this will be slightly wrong for some
-% FatNav resolutions, but this is only used for the orientation checks, etc
-% so it doesn't matter if it is slightly off...)
-FatNav_xyz = FatNav_FOVxyz ./ FatNavRes_mm;
+
+switch FatNavRes_mm % in newer version of FatNav sequences, the resolution can be chosen at 2, 4 or 6 mm - with the FOV hard-coded in the sequence itself
+    % these choices should also match the corresponding code in processFatNavs_GRAPPA4x4.m
+    case {2,4}
+        FatNav_FOVxyz = [176 256 256]; % FatNav FOV         
+        FatNav_xyz = FatNav_FOVxyz ./ FatNavRes_mm;
+    case 6
+        FatNav_FOVxyz = [192 264 264]; % FatNav FOV         
+        FatNav_xyz = FatNav_FOVxyz ./ FatNavRes_mm;
+        FatNav_xyz(3) = 64; % No idea why, but the 6mm data has 64 points in the readout direction for the ACS lines instead of 44...        
+end
 
 startTime = clock;
 
@@ -1443,9 +1449,8 @@ if useGRAPPAforHost
     fprintf(fid,['<strong>Do 1D FFT for each ''slice'' in readout direction of host data:</strong> ' num2str(round(timingReport_hostRecon.FFTperSlice)) ' seconds.<br>\n']);
     fprintf(fid,['<strong>Declare variables for GRAPPA recon:</strong> ' num2str(round(timingReport_hostRecon.declareVariables)) ' seconds.<br>\n']);
     fprintf(fid,['<strong>GRAPPA recon:</strong> ' num2str(timingReport_hostRecon.GRAPPArecon/60,'%.1f') ' mins.<br>\n']);
+end
 fprintf(fid,['<strong>Application of retrospective motion-correction: </strong>' num2str(nc_keep) ' channels, ' num2str(nS) ' sets, each taking ' num2str(round(avgTimeApplyMocoPerVolume)) ' seconds (possibly parallelized) = ' num2str(timingReport_totalTimeApplyMoco/60,'%.1f') ' mins.<br>\n']);
-
-fprintf(fid,['<strong>Application of retrospective motion-correction: </strong>' num2str(nc) ' channels, ' num2str(nS) ' sets, each taking ' num2str(round(avgTimeApplyMocoPerVolume)) ' seconds (possibly parallelized) = ' num2str(timingReport_totalTimeApplyMoco/60,'%.1f') ' mins.<br>\n']);
 
 % include version number
 fprintf(fid,['<br><br><br><em>' char(datetime) '- created with reconstructSiemensMP2RAGEwithFatNavs.m, version: ' retroMocoBoxVersion '</em>\n']);
