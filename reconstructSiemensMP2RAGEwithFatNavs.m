@@ -476,6 +476,10 @@ swapDims_rps = swapDims_xyz(permutedims_toXYZ);
 % of the acquired data. To avoid wasting memory, matrices are not always
 % filled to their full size immediately.
 Hrps = [twix_obj.hdr.MeasYaps.sKSpace.lBaseResolution twix_obj.hdr.MeasYaps.sKSpace.lPhaseEncodingLines twix_obj.hdr.MeasYaps.sKSpace.lPartitions].';
+% the line above can be adapted to get the right numbers if there is also oversampling in the slice direction:
+% Hrps = [twix_obj.hdr.MeasYaps.sKSpace.lBaseResolution twix_obj.hdr.MeasYaps.sKSpace.lPhaseEncodingLines round(twix_obj.hdr.MeasYaps.sKSpace.lPartitions/(1+twix_obj.hdr.MeasYaps.sKSpace.dSliceOversamplingForDialog))].';
+% but then other code would need to be changed to handle this properly...
+% For the time-being I will recommend people not to use slice oversampling!
 Hxyz = Hrps(permutedims); % full reconstructed matrix size
 
 hrps = [twix_obj.image.NCol/2 twix_obj.image.NLin twix_obj.image.NPar].';
