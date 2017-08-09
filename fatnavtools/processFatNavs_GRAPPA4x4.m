@@ -319,6 +319,10 @@ nProcessedImages = length(dir([outdir '/eachFatNav_*.nii']));
 
 if nProcessedImages>0
     disp(['Found ' num2str(nProcessedImages) ' existing processed FatNavs and expected to find ' num2str(nT)])
+    timingReport.calculateGRAPPAweights = 0;
+    timingReport.eachFatNav = zeros(nT,1);
+    timingReport.SPMalignment = 0;
+    timingReport.allFatNavs = 0;
 end
 
 if nProcessedImages~=nT % assume images are there, but not the alignment of them
