@@ -390,7 +390,8 @@ else
         % in the next line I assume that Siemens always use the same structure for
         % the 'tReferenceImage0' field - but I haven't looked for documentation to
         % support this, so it may not always extract the scan data properly...
-        fprintf(fid,['<strong>Date of scan:</strong> ' local_reformatDateString(twix_obj.hdr.MeasYaps.tReferenceImage0(29:36)) '<br>\n']);
+        thisDateString = char(twix_obj.hdr.MeasYaps.tReferenceImage0); % some versions seem to create a char already, others not...        
+        fprintf(fid,['<strong>Date of scan:</strong> ' local_reformatDateString(thisDateString(29:36)) '<br>\n']);
         fprintf(fid,['<strong>Patient Name:</strong> ' twix_obj.hdr.Config.PatientName '<br>\n']);
         fprintf(fid,['<strong>Patient ID:</strong> ' twix_obj.hdr.Config.PatientID '<br>\n']);
         switch twix_obj.hdr.Config.PatientSex
