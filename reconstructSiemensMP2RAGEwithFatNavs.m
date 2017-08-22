@@ -240,8 +240,14 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %           time
 %         - Added manual discard of channels for HeadNeck_64 coil which
 %           have a lot of signal in the neck
+%
+%   0.6.3 - -- August 2017
+%         - Include the FatNav resolution in the HTML (and display to
+%           screen)
+%         - handle the case where 'PatientName' become 'tPatientName' for
+%           no apparent reason
 
-retroMocoBoxVersion = '0.6.2dev'; % put this into the HTML for reference
+retroMocoBoxVersion = '0.6.3dev'; % put this into the HTML for reference
 
 %% Check SPM and Fessler's toolbox are on path
 
@@ -392,7 +398,13 @@ else
         % support this, so it may not always extract the scan data properly...
         thisDateString = char(twix_obj.hdr.MeasYaps.tReferenceImage0); % some versions seem to create a char already, others not...        
         fprintf(fid,['<strong>Date of scan:</strong> ' local_reformatDateString(thisDateString(29:36)) '<br>\n']);
-        fprintf(fid,['<strong>Patient Name:</strong> ' twix_obj.hdr.Config.PatientName '<br>\n']);
+        if isfield(twix_obj.hdr.Config,'PatientName')
+            fprintf(fid,['<strong>Patient Name:</strong> ' twix_obj.hdr.Config.PatientName '<br>\n']);
+        else
+            if isfield(twix_obj.hdr.Config,'tPatientName') % why would this be different for some scanners / software versions...?!?
+                fprintf(fid,['<strong>Patient Name:</strong> ' twix_obj.hdr.Config.tPatientName '<br>\n']);
+            end
+        end
         fprintf(fid,['<strong>Patient ID:</strong> ' twix_obj.hdr.Config.PatientID '<br>\n']);
         switch twix_obj.hdr.Config.PatientSex
             case 1
@@ -517,6 +529,7 @@ fprintf(fid,['RPS dimensions in raw data: ' num2str(hrps(1)) 'x' num2str(hrps(2)
 fprintf(fid,['XYZ dimensions reconstructed: ' num2str(Hxyz(1)) 'x' num2str(Hxyz(2)) 'x' num2str(Hxyz(3)) '<br>\n']);
 fprintf(fid,['FOV - ' num2str(FOVxyz(1),'%.1f') 'x' num2str(FOVxyz(2),'%.1f') 'x' num2str(FOVxyz(3),'%.1f') 'mm<br>\n']);
 fprintf(fid,['Resolution: ' num2str(hostVoxDim_mm(1),'%.3f') 'x' num2str(hostVoxDim_mm(2),'%.3f') 'x' num2str(hostVoxDim_mm(3),'%.3f') 'mm<br>\n']);
+fprintf(fid,['Manually selected FatNav resolution: ' num2str(FatNavRes_mm) ' mm']);
 fprintf(fid,['Detected orientation: ' orientText '<br>\n']);
          
 % and to the screen:
@@ -530,6 +543,7 @@ fprintf(['RPS dimensions in raw data: ' num2str(hrps(1)) 'x' num2str(hrps(2)) 'x
 fprintf(['XYZ dimensions reconstructed: ' num2str(Hxyz(1)) 'x' num2str(Hxyz(2)) 'x' num2str(Hxyz(3)) '\n']);
 fprintf(['FOV - ' num2str(FOVxyz(1),'%.1f') 'x' num2str(FOVxyz(2),'%.1f') 'x' num2str(FOVxyz(3),'%.1f') 'mm\n']);
 fprintf(['Resolution: ' num2str(hostVoxDim_mm(1),'%.3f') 'x' num2str(hostVoxDim_mm(2),'%.3f') 'x' num2str(hostVoxDim_mm(3),'%.3f') 'mm\n']);
+fprintf(['Manually selected FatNav resolution: ' num2str(FatNavRes_mm) ' mm']);
 %% Check if using HEADNECK_64 receive coil, and discard channels over the neck if this is the case (would be nice to know what Siemens does...)
 fprintf(['Detected orientation: ' orientText '\n']);
 if isfield(twix_obj.hdr.MeasYaps,'sCoilSelectMeas') ...
