@@ -529,7 +529,7 @@ fprintf(fid,['RPS dimensions in raw data: ' num2str(hrps(1)) 'x' num2str(hrps(2)
 fprintf(fid,['XYZ dimensions reconstructed: ' num2str(Hxyz(1)) 'x' num2str(Hxyz(2)) 'x' num2str(Hxyz(3)) '<br>\n']);
 fprintf(fid,['FOV - ' num2str(FOVxyz(1),'%.1f') 'x' num2str(FOVxyz(2),'%.1f') 'x' num2str(FOVxyz(3),'%.1f') 'mm<br>\n']);
 fprintf(fid,['Resolution: ' num2str(hostVoxDim_mm(1),'%.3f') 'x' num2str(hostVoxDim_mm(2),'%.3f') 'x' num2str(hostVoxDim_mm(3),'%.3f') 'mm<br>\n']);
-fprintf(fid,['Manually selected FatNav resolution: ' num2str(FatNavRes_mm) ' mm']);
+fprintf(fid,['Manually selected FatNav resolution: ' num2str(FatNavRes_mm) ' mm<br>\n']);
 fprintf(fid,['Detected orientation: ' orientText '<br>\n']);
          
 % and to the screen:
@@ -543,7 +543,7 @@ fprintf(['RPS dimensions in raw data: ' num2str(hrps(1)) 'x' num2str(hrps(2)) 'x
 fprintf(['XYZ dimensions reconstructed: ' num2str(Hxyz(1)) 'x' num2str(Hxyz(2)) 'x' num2str(Hxyz(3)) '\n']);
 fprintf(['FOV - ' num2str(FOVxyz(1),'%.1f') 'x' num2str(FOVxyz(2),'%.1f') 'x' num2str(FOVxyz(3),'%.1f') 'mm\n']);
 fprintf(['Resolution: ' num2str(hostVoxDim_mm(1),'%.3f') 'x' num2str(hostVoxDim_mm(2),'%.3f') 'x' num2str(hostVoxDim_mm(3),'%.3f') 'mm\n']);
-fprintf(['Manually selected FatNav resolution: ' num2str(FatNavRes_mm) ' mm']);
+fprintf(['Manually selected FatNav resolution: ' num2str(FatNavRes_mm) ' mm\n']);
 %% Check if using HEADNECK_64 receive coil, and discard channels over the neck if this is the case (would be nice to know what Siemens does...)
 fprintf(['Detected orientation: ' orientText '\n']);
 if isfield(twix_obj.hdr.MeasYaps,'sCoilSelectMeas') ...
