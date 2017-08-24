@@ -303,6 +303,7 @@ end
 % outRoot = []; tempRoot = []; LinParSwap = 0; bKeepGRAPPArecon = 0; coilCombineMethod = 'default';
 % FatNavRes_mm = 2; swapDims_xyz = [0 0 1]; bZipNIFTIs = 1; bKeepFatNavs = 0;
 % bFullParforRecon = 0; bGRAPPAinRAM = 1;  bKeepReconInRAM = 1;
+% keepPatientInfo = 1;
 
 
 %% Make local function as inline so that it can be used in scripts

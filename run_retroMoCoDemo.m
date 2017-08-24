@@ -5,11 +5,11 @@
 % Change these lines to match your paths:
 exampleData = load('/Users/danielg/data/fatnavs_examples/reconTest/example_retroMocoData.mat'); % 1mm resolution example data
 % exampleData = load('/Users/danielg/data/fatnavs_examples/reconTest/example_retroMocoData_600.mat'); % 600 um resolution example data
-addpath(genpath('~/retroMoCoBox/'))
+run('~/Documents/code/retroMoCoBox/addRetroMoCoBoxToPath.m')
 
 % The NUFFT uses the Michigan Image Reconstruction Toolbox (MIRT)
 % (http://web.eecs.umich.edu/~fessler/code/index.html)
-run('~/matlabdownloads/fessler/setup.m')
+run('~/matlab/matlabdownloads/mirt/setup.m')
 
 
 %% Create the image without MoCo
