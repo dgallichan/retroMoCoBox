@@ -99,7 +99,13 @@ image_withMoco = image_withMoco / percentile(abs(image_withMoco),95);
 % Use the + and - keys on the keyboard to go back and forth between
 % corrected and uncorrected volumes
 
-SliceBrowser2(cat(4,abs(image_noMoco),abs(image_withMoco)),[0 2])
+if hostVoxDim_mm(1)==1
+    clims = [0 2];
+else
+    clims = [0 1.5];
+end
+
+SliceBrowser2(cat(4,abs(image_noMoco),abs(image_withMoco)),clims)
 
 
 %% View the result
