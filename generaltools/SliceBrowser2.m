@@ -134,10 +134,10 @@ else
 end
 
 handles.axis_equal = 1;
-handles.color_mode = 1;
-if (size(volume,4) ~= 3)
-    handles.color_mode = 0;
-end
+handles.color_mode = 0;
+% if (size(volume,4) ~= 3)
+%     handles.color_mode = 0;
+% end
 
 % set main wnd title
 set(gcf, 'Name', 'Slice Viewer')
@@ -349,12 +349,13 @@ handles.pointer3dt;
 size(handles.volume);
 value3dt = handles.volume(handles.pointer3dt(1), handles.pointer3dt(2), handles.pointer3dt(3), handles.pointer3dt(4));
 
-text_str = ['[X:' int2str(handles.pointer3dt(1)) ...
-           ', Y:' int2str(handles.pointer3dt(2)) ...
-           ', Z:' int2str(handles.pointer3dt(3)) ...
-           ', Time:' int2str(handles.pointer3dt(4)) '/' int2str(handles.vol_sz(4)) ...
-           '], value:' num2str(value3dt) ...
-           '. cLims = [' num2str(handles.clims(1)) ',' num2str(handles.clims(2)) ']'];
+text_str = [' x:' int2str(handles.pointer3dt(1)) ...
+           ', y:' int2str(handles.pointer3dt(2)) ...
+           ', z:' int2str(handles.pointer3dt(3)) ...
+           ', Volume: ' int2str(handles.pointer3dt(4)) '/' int2str(handles.vol_sz(4)) ...
+           ', Voxel value: ' num2str(value3dt,'%.3f') ...
+           '. cLims = [' num2str(handles.clims(1)) ',' num2str(handles.clims(2)) ']'...
+           '. (Press +/- to change volume)'];
 set(handles.pointer3d_info, 'String', text_str);
 guidata(hObject, handles);
 
@@ -375,11 +376,10 @@ else
 %     min_xyz = min([ min(sliceXY(:)) min(sliceYZ(:)) min(sliceXZ(:)) ]);
 %     clims = [ min_xyz max_xyz ];
 end
-sliceZY = squeeze(permute(sliceYZ, [2 1 3]));
 
 axes(handles.Subplot1);
 %colorbar;
-imagesc(sliceXY.', handles.clims);
+imagesc(permute(sliceXY,[2 1 3]), handles.clims);
 title('Slice XY');
 xlabel('X');ylabel('Y');
 set(gca,'YDir','Normal')
@@ -394,7 +394,7 @@ else
 end
 
 axes(handles.Subplot2);
-imagesc(sliceXZ.', handles.clims);
+imagesc(permute(sliceXZ,[2 1 3]), handles.clims);
 title('Slice XZ');
 xlabel('X');ylabel('Z');
 set(gca,'YDir','Normal')
@@ -409,8 +409,8 @@ else
 end
 
 axes(handles.Subplot3);
-imagesc(sliceZY, handles.clims);
-title('Slice ZY');
+imagesc(permute(sliceYZ,[2 1 3]), handles.clims);
+title('Slice YZ');
 ylabel('Z');xlabel('Y');
 set(gca,'YDir','Normal')
 line([0 size(handles.volume,2)], [handles.pointer3dt(3) handles.pointer3dt(3)]);
