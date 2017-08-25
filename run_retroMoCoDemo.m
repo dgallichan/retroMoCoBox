@@ -1,6 +1,7 @@
 %%% The data for this demo can be downloaded from:  
 %    1mm data: http://goo.gl/ERULZA (32 Mb)
 % 600 um data: http://goo.gl/wto1MK (86 Mb)
+%    1mm data (only very small motion): https://goo.gl/oEnLgQ (32 Mb)
 %
 % Note that these datasets are stripped-down versions of 'real' MP2RAGE
 % scans to save on disk space and memory requirements for this demo.
@@ -19,6 +20,7 @@
 % Change these lines to match your paths:
 exampleData = load('/Users/danielg/data/fatnavs_examples/reconTest/example_retroMocoData.mat'); % 1mm resolution example data
 % exampleData = load('/Users/danielg/data/fatnavs_examples/reconTest/example_retroMocoData_600.mat'); % 600 um resolution example data
+% exampleData = load('/Users/danielg/data/fatnavs_examples/reconTest/example_retroMocoData_1mm_smallMotion.mat'); %1mm resolution example data with very small subject motion
 run('~/Documents/code/retroMoCoBox/addRetroMoCoBoxToPath.m')
 
 % The NUFFT uses the Michigan Image Reconstruction Toolbox (MIRT)
