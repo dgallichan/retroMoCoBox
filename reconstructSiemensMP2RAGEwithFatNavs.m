@@ -1401,6 +1401,8 @@ switch nS
         end
         clim1 = percentile(mOut.all_ims(:,:,:,1),97);
         clim2 = percentile(mOut.all_ims(:,:,:,2),97);
+        clim1c = percentile(mOut.all_ims_corrected(:,:,:,1),97);
+        clim2c = percentile(mOut.all_ims_corrected(:,:,:,2),97);       
         clims_uni = [-.5 .5];
         
         fig(figIndex)
@@ -1416,9 +1418,9 @@ switch nS
         colormap(gray)
         export_fig([htmlDir '/zoom.png'])
         subplot1(1)
-        imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,1)),[0 clim1])
+        imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,1)),[0 clim1c])
         subplot1(2)
-        imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,2)),[0 clim2])
+        imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,2)),[0 clim2c])
         subplot1(3)
         imab(squeeze(mOut.all_uniImage_corrected(xi,yi,zi)),clims_uni)
         export_fig([htmlDir '/zoom_corrected.png'])
