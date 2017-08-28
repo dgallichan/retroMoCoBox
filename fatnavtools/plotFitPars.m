@@ -9,14 +9,24 @@ if nargin < 5
 end
 
 if nargin < 4 || isempty(climsRTP)
-    climsRTP = 1.5*max(abs(squash(fitPars(4:6,:))))*[-1 1];
+    maxRot = max(abs(squash(fitPars(4:6,:))));
+    if maxRot > 0
+        climsRTP = 1.5*maxRot*[-1 1];
+    else
+        climsRTP = [-1 1];
+    end    
 end
 if length(climsRTP)==1
     climsRTP = climsRTP*[-1 1];
 end
 
 if nargin < 3 || isempty(climsXYZ)
-    climsXYZ = 1.5*max(abs(squash(fitPars(1:3,:))))*[-1 1];
+    maxDisp = max(abs(squash(fitPars(1:3,:))));
+    if maxDisp > 0
+        climsXYZ = 1.5*maxDisp*[-1 1];
+    else
+        climsXYZ = [-1 1];
+    end
 end
 if length(climsXYZ)==1
     climsXYZ = climsXYZ*[-1 1];

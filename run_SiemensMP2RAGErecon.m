@@ -2,7 +2,7 @@
 rawDataFile = '/home/gallicha/temp/autoTransferTemp/tempRaw/meas_MID36_mp2rage_FN600b_FatNav_06mm.dat';
 
 % And wherever you installed the Retro-MoCo-Box
-addpath(genpath('~/retroMoCoBox/'))
+run('~/Documents/code/retroMoCoBox/addRetroMoCoBoxToPath.m')
 
 % And SPM 12
 addpath('~/matlabdownloads/spm12')

@@ -1,15 +1,31 @@
 %%% The data for this demo can be downloaded from:  
 %    1mm data: http://goo.gl/ERULZA (32 Mb)
 % 600 um data: http://goo.gl/wto1MK (86 Mb)
+%    1mm data (only very small motion): https://goo.gl/oEnLgQ (32 Mb)
+%
+% Note that these datasets are stripped-down versions of 'real' MP2RAGE
+% scans to save on disk space and memory requirements for this demo.
+% They show very poor contrast between GM and WM because they only
+% include the 'INV2' part of the two acquisitions which constitute the
+% MP2RAGE scan. The 32-channels of the RF array coil have also been
+% combined into a single 'virtual channel' using an SVD. This gives good
+% signal many places in the brain - but is also the reason for the hole in
+% the middle! 
+%
+% If you are interested in processing full example datasets,
+% please contact me (gallichand@cardiff.ac.uk) - the 1mm dataset is 4.3 Gb
+% and the 600um dataset is 9.3 Gb.
+%
 
 % Change these lines to match your paths:
 exampleData = load('/Users/danielg/data/fatnavs_examples/reconTest/example_retroMocoData.mat'); % 1mm resolution example data
 % exampleData = load('/Users/danielg/data/fatnavs_examples/reconTest/example_retroMocoData_600.mat'); % 600 um resolution example data
-addpath(genpath('~/retroMoCoBox/'))
+% exampleData = load('/Users/danielg/data/fatnavs_examples/reconTest/example_retroMocoData_1mm_smallMotion.mat'); %1mm resolution example data with very small subject motion
+run('~/Documents/code/retroMoCoBox/addRetroMoCoBoxToPath.m')
 
 % The NUFFT uses the Michigan Image Reconstruction Toolbox (MIRT)
 % (http://web.eecs.umich.edu/~fessler/code/index.html)
-run('~/matlabdownloads/fessler/setup.m')
+run('~/matlab/matlabdownloads/mirt/setup.m')
 
 
 %% Create the image without MoCo
@@ -78,6 +94,21 @@ image_withMoco = applyRetroMC_nufft(rawData,fitMats,alignDim,alignIndices,11,hos
 toc     
         
 image_withMoco = image_withMoco / percentile(abs(image_withMoco),95);
+
+
+%% Load both images in a 3D viewer
+%
+% Use the + and - keys on the keyboard to go back and forth between
+% corrected and uncorrected volumes
+
+if hostVoxDim_mm(1)==1
+    clims = [0 2];
+else
+    clims = [0 1.5];
+end
+
+SliceBrowser2(cat(4,abs(image_noMoco),abs(image_withMoco)),clims)
+
 
 %% View the result
 

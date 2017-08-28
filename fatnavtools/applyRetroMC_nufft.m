@@ -25,8 +25,9 @@ function [gdata, st, newData] = applyRetroMC_nufft(kdata_in, alignMats, alignDim
 % - 23/8/16 - Added option to change the oversampling factor as the
 %             previous default of 1.375 was indeed faster, but perhaps not
 %             the best compromise with respect to additional aliasing.
-
-% run([getmatlabpath() '/../matlabdownloads/fessler/setup.m']);
+% - 25/8/17 - Added a 'trick' option so that if cgIterations is set to -1
+%             then the NUFFT is not applied. Useful if just trying to get
+%             at the st object.
 
 if nargin < 10
     oversampFactor = 1.5;
@@ -200,9 +201,15 @@ clear crds kdata_in om
 if cgIterations==1    
     gdata = nufft_adj_single(newData(:),st);
 else
-    disp('...Using CG recon version....')
-    E = newOperator(@(x) reshape(nufft(reshape(x,Nd),st),[],1), @(x) reshape(nufft_adj_single(reshape(x,[],1),st),[],1));
-    gdata = reshape(CGbasic(E,newData(:),'maxIters',cgIterations),Nd);    
+    if cgIterations==-1
+        % trick to skip applying the nufft if we just want to get at the st
+        % object
+        gdata = [];
+    else
+        disp('...Using CG recon version....')
+        E = newOperator(@(x) reshape(nufft(reshape(x,Nd),st),[],1), @(x) reshape(nufft_adj_single(reshape(x,[],1),st),[],1));
+        gdata = reshape(CGbasic(E,newData(:),'maxIters',cgIterations),Nd);
+    end
 end
 
  
