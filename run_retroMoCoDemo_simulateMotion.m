@@ -40,15 +40,15 @@
 % -- Daniel Gallichan, gallichand@cardiff.ac.uk, August 2017
 
 %% -- SET PATHS MANUALLY IN THIS SECTION -- 
-run('~/Documents/code/retroMoCoBox/addRetroMoCoBoxToPath.m')
+run('addRetroMoCoBoxToPath.m')
 
 % The NUFFT uses the Michigan Image Reconstruction Toolbox (MIRT)
 % (http://web.eecs.umich.edu/~fessler/code/index.html)
-run('~/matlab/matlabdownloads/mirt/setup.m')
+run('../mirt/setup.m')
 
 %%% Load in an example image: 
 %%% (The Colin27 brain is good for this - downloadable from here: http://www.bic.mni.mcgill.ca/ServicesAtlases/Colin27) 
-image_original = rn('/Users/danielg/Data/externalData/mni_colin27_1998_nifti/colin27_t1_tal_lin.nii'); hostVoxDim_mm = [1 1 1]; 
+image_original = rn('../exampleData/colin27_t1_tal_lin.nii'); hostVoxDim_mm = [1 1 1]; 
 % image_original = rn('/usr/local/fsl/data/standard/MNI152_T1_2mm.nii.gz'); hostVoxDim_mm = [2 2 2];
 
 % force dimension to be even for simplicity of consitent indexing:
@@ -141,7 +141,7 @@ image_simMotion = ifft3s(image_simMotion);
 image_simMotion = image_simMotion / percentile(abs(image_simMotion),95);
 
 % Load both images in a 3D viewer:
-SliceBrowser2(cat(4,abs(image_original),abs(image_simMotion)),[0 1.5])
+SliceBrowser2(cat(4,abs(image_original),abs(image_simMotion)),[0 1.5],{'Original image','Simulated motion'})
 set(gcf,'Name','Original image (1) vs Simulated Motion (2)')
 
 
@@ -155,9 +155,8 @@ fitMats_undo(1:3,4,:) = -fitpars(1:3,:);  % swap direction of translations
 image_simMoco = applyRetroMC_nufft(kdata_simMotion,fitMats_undo,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
 image_simMoco = image_simMoco / percentile(abs(image_simMoco),95);
 
-SliceBrowser2(cat(4,abs(image_simMotion),abs(image_simMoco)),[0 1.5])
+SliceBrowser2(cat(4,abs(image_simMotion),abs(image_simMoco)),[0 1.5],{'Simulated Motion','Simulated Motion-correction'})
 set(gcf,'Name','Simulated Motion (1) vs Simulated Motion-correction (2)')
-
 
 
 %% Try doing iterative motion-correction (slow on big volumes! - only do this on a sub-sampled dataset or a low-res volume (2mm or less))
@@ -167,5 +166,5 @@ set(gcf,'Name','Simulated Motion (1) vs Simulated Motion-correction (2)')
 % image_simMocoIter = applyRetroMC_nufft(kdata_simMotion,fitMats_undo,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz,nCGIters);
 % toc
 % image_simMocoIter = image_simMocoIter / percentile(abs(image_simMocoIter),95);
-% SliceBrowser2(cat(4,abs(image_simMoco),abs(image_simMocoIter),abs(image_original)),[0 1.5])
+% SliceBrowser2(cat(4,abs(image_simMoco),abs(image_simMocoIter),abs(image_original)),[0 1.5],{'MoCo single NUFFT','MoCo iterative NUFFT','Original Image'})
 % set(gcf,'Name','Simulated Motion-correction (1) vs Iterative simulated Motion-correction (2) vs Original Image (3)')

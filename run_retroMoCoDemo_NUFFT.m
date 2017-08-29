@@ -4,9 +4,9 @@
 % real example 3D datasets.
 %
 %%% The data for this demo can be downloaded from:  
-%    1mm data: http://goo.gl/ERULZA (32 Mb)
-% 600 um data: http://goo.gl/wto1MK (86 Mb)
-%    1mm data (only very small motion): https://goo.gl/oEnLgQ (32 Mb)
+%    1mm data: http://goo.gl/ERULZA (32 MB)
+% 600 um data: http://goo.gl/wto1MK (86 MB)
+%    1mm data (only very small motion): https://goo.gl/oEnLgQ (32 MB)
 %
 % Note that these datasets are stripped-down versions of 'real' MP2RAGE
 % scans to save on disk space and memory requirements for this demo.
@@ -18,8 +18,8 @@
 % the middle! 
 %
 % If you are interested in processing full example datasets
-% please contact me (gallichand@cardiff.ac.uk) - the 1mm dataset is 4.3 Gb
-% and the 600um dataset is 9.3 Gb.
+% please contact me (gallichand@cardiff.ac.uk) - the 1mm dataset is 4.3 GB
+% and the 600um dataset is 9.3 GB.
 %
 
 % Change these lines to match your paths:

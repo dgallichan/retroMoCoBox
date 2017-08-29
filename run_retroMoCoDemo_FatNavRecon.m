@@ -7,7 +7,7 @@
 % Can be used to get a feeling for the process involved in reconstructing
 % each FatNav if you don't have any full datasets of your own to hand.
 % 
-% Example data can be downloaded from here: https://goo.gl/1qYjsc (186 Mb) 
+% Example data can be downloaded from here: https://goo.gl/1qYjsc (186 MB) 
 % 
 % Data consists of the ACS prescan (auto-calibration data, fully sampled
 % centre of k-space) along with 15 volumes of 2mm data acquired with 4x4
