@@ -129,9 +129,19 @@ handles.volume = volume;
 
 if length(varargin) > 1
     handles.clims = varargin{2};
+    if isempty(handles.clims)
+        handles.clims = [min(volume(:)) max(volume(:))];
+    end
 else
     handles.clims = [min(volume(:)) max(volume(:))];
 end
+
+if length(varargin) > 2
+    handles.volume_labels = varargin{3};
+else
+    handles.volume_labels = [];
+end
+handles.label_fontsize = 14;
 
 handles.axis_equal = 1;
 handles.color_mode = 0;
@@ -354,7 +364,7 @@ text_str = [' x:' int2str(handles.pointer3dt(1)) ...
            ', z:' int2str(handles.pointer3dt(3)) ...
            ', Volume: ' int2str(handles.pointer3dt(4)) '/' int2str(handles.vol_sz(4)) ...
            ', Voxel value: ' num2str(value3dt,'%.3f') ...
-           '. cLims = [' num2str(handles.clims(1)) ',' num2str(handles.clims(2)) ']'...
+           '. cLims = [' num2str(handles.clims(1),'%.3f') ',' num2str(handles.clims(2),'%.3f') ']'...
            '. (Press +/- to change volume)'];
 set(handles.pointer3d_info, 'String', text_str);
 guidata(hObject, handles);
@@ -392,6 +402,9 @@ if (handles.axis_equal == 1)
 else
     axis normal;
 end
+if ~isempty(handles.volume_labels)
+    text(10,size(handles.volume,2)-10,handles.volume_labels{handles.pointer3dt(4)},'color','w','fontsize',handles.label_fontsize);
+end
 
 axes(handles.Subplot2);
 imagesc(permute(sliceXZ,[2 1 3]), handles.clims);
@@ -407,6 +420,9 @@ if (handles.axis_equal == 1)
 else
     axis normal;
 end
+if ~isempty(handles.volume_labels)
+    text(10,size(handles.volume,3)-10,handles.volume_labels{handles.pointer3dt(4)},'color','w','fontsize',handles.label_fontsize);
+end
 
 axes(handles.Subplot3);
 imagesc(permute(sliceYZ,[2 1 3]), handles.clims);
@@ -421,6 +437,9 @@ if (handles.axis_equal == 1)
     axis image;
 else
     axis normal;
+end
+if ~isempty(handles.volume_labels)
+    text(10,size(handles.volume,3)-10,handles.volume_labels{handles.pointer3dt(4)},'color','w','fontsize',handles.label_fontsize);
 end
 
 function pointer3d_out = clipointer3d(pointer3d_in,vol_size)

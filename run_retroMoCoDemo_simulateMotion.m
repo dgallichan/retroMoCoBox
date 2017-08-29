@@ -37,18 +37,57 @@
 % used on real data.
 %
 %
+% Suggested ways to play around with this script:
+%
+% 1. Just run through the example as it is, and check what is
+%    happening at each stage.
+% 2. Experiment with different motion profiles:
+%      - change the 'noiseBasePars' to the other commented lines to see
+%        generalised changes with overall noise pattern
+%      - look at the differences in correction when there are only
+%        translations or only rotations (you should find that pure translations
+%        are - in this simulation setting - perfectly reversible)
+%      - explore the kinds of image artifacts that arise due to different
+%        kinds of motion - parameters are already included for
+%        swallowing-like motion and random sudden movements
+% 3. With the 'noiseBasePars' set to the *really* rough motion option, you
+%    will probably find that even the NUFFT reconstruction looks rather
+%    disappointing. This is because a complete correction requires an
+%    iterative approach, rather than a single application of the NUFFT
+%    adjoint operator. 
+%    You can explore the improvement using an iterative NUFFT by first making 
+%    sure that the volume you are working on is quite small (to keep the 
+%    computation reasonably fast). I did this by extracting only a thin
+%    slab of the full 3D example volume. Then run through the whole script
+%    as it is - and then uncomment the last cell in the file and run that.
+%    It peforms 10 conjugate-gradient iterations and should give a much
+%    improved result.
+% 4. A common concern people have regarding retrospective motion-correction
+%    is the handling of 'holes' in k-space which occur following sudden
+%    motion. This is easiest to simulate by uncommenting the lines in the
+%    cell generating the motion-parameters that will give one single large
+%    rotation. 
+%    My interpretation of the result of this is that the retrospective
+%    reconstruction is remarkably robust to such a hole in k-space. If you
+%    uncomment the lines for comparing the k-spaces you can see both the
+%    hole this creates - as well as the source of error where data overlap.
+%    In this case, the iterative reconstruction is able to improve things
+%    slightly - reducing the artifact due to the overlapping k-space - but
+%    to 'fill-in' the hole would presumably require a reconstruction that
+%    makes use of k-space symmetry, or utilizes parallel imaging.
+%
 % -- Daniel Gallichan, gallichand@cardiff.ac.uk, August 2017
 
 %% -- SET PATHS MANUALLY IN THIS SECTION -- 
-run('~/Documents/code/retroMoCoBox/addRetroMoCoBoxToPath.m')
+run('addRetroMoCoBoxToPath.m')
 
 % The NUFFT uses the Michigan Image Reconstruction Toolbox (MIRT)
 % (http://web.eecs.umich.edu/~fessler/code/index.html)
-run('~/matlab/matlabdownloads/mirt/setup.m')
+run('../mirt/setup.m')
 
 %%% Load in an example image: 
 %%% (The Colin27 brain is good for this - downloadable from here: http://www.bic.mni.mcgill.ca/ServicesAtlases/Colin27) 
-image_original = rn('/Users/danielg/Data/externalData/mni_colin27_1998_nifti/colin27_t1_tal_lin.nii'); hostVoxDim_mm = [1 1 1]; 
+image_original = rn('../exampleData/colin27_t1_tal_lin.nii'); hostVoxDim_mm = [1 1 1]; 
 % image_original = rn('/usr/local/fsl/data/standard/MNI152_T1_2mm.nii.gz'); hostVoxDim_mm = [2 2 2];
 
 % force dimension to be even for simplicity of consitent indexing:
@@ -56,7 +95,7 @@ image_original = rn('/Users/danielg/Data/externalData/mni_colin27_1998_nifti/col
 nx = 2*floor(nx/2); ny = 2*floor(ny/2); nz = 2*floor(nz/2);
 image_original = image_original(1:nx,1:ny,1:nz);
 
-% image_original = image_original(:,:,80:100); % <--- use only a subset of the data to be much faster
+% image_original = image_original(:,:,81:100); % <--- use only a subset of the data to be much faster
 
 % normalize:
 image_original = image_original / percentile(abs(image_original),95);
@@ -108,9 +147,10 @@ for iS = 1:suddenFrequency
 end
 fitpars = fitpars+suddenTrace;
 
-%%% uncoment these lines to just have one big rotation
+%%% uncomment these lines to just have one big rotation
 % fitpars = zeros(size(fitpars)); 
-% fitpars(6,1:100) = 30;
+% fitpars(6,1:100) = 15;
+%%% <-- single rotation only
 
 fitpars = bsxfun(@minus,fitpars,fitpars(:,round(nT/2)));
 
@@ -128,7 +168,7 @@ fitMats = euler2rmat(fitpars(4:6,:));
 fitMats(1:3,4,:) = fitpars(1:3,:); 
 
 % set some things for the recon function:
-alignDim = 2; alignIndices = 1:nT; Hxyz = size(rawData); kspaceCentre_xyz = round(Hxyz/2);
+alignDim = 2; alignIndices = 1:nT; Hxyz = size(rawData); kspaceCentre_xyz = floor(Hxyz/2)+1;
 
 % use the recon function just to extract the nufft 'object' st:
 [~, st] = applyRetroMC_nufft(rawData,fitMats,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz,-1);
@@ -141,7 +181,7 @@ image_simMotion = ifft3s(image_simMotion);
 image_simMotion = image_simMotion / percentile(abs(image_simMotion),95);
 
 % Load both images in a 3D viewer:
-SliceBrowser2(cat(4,abs(image_original),abs(image_simMotion)),[0 1.5])
+SliceBrowser2(cat(4,abs(image_original),abs(image_simMotion)),[0 1.5],{'Original image','Simulated motion'})
 set(gcf,'Name','Original image (1) vs Simulated Motion (2)')
 
 
@@ -155,9 +195,12 @@ fitMats_undo(1:3,4,:) = -fitpars(1:3,:);  % swap direction of translations
 image_simMoco = applyRetroMC_nufft(kdata_simMotion,fitMats_undo,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
 image_simMoco = image_simMoco / percentile(abs(image_simMoco),95);
 
-SliceBrowser2(cat(4,abs(image_simMotion),abs(image_simMoco)),[0 1.5])
+SliceBrowser2(cat(4,abs(image_simMotion),abs(image_simMoco)),[0 1.5],{'Simulated Motion','Simulated Motion-correction'})
 set(gcf,'Name','Simulated Motion (1) vs Simulated Motion-correction (2)')
 
+%%% Compare the k-spaces:
+% SliceBrowser2(log(cat(4,abs(fft3s(image_original)),abs(fft3s(image_simMotion)),abs(fft3s(image_simMoco)))+1),[],{'Original data','Simulated motion','Simulated motion-correction'})
+% set(gcf,'Name','Compare k-spaces')
 
 
 %% Try doing iterative motion-correction (slow on big volumes! - only do this on a sub-sampled dataset or a low-res volume (2mm or less))
@@ -167,5 +210,10 @@ set(gcf,'Name','Simulated Motion (1) vs Simulated Motion-correction (2)')
 % image_simMocoIter = applyRetroMC_nufft(kdata_simMotion,fitMats_undo,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz,nCGIters);
 % toc
 % image_simMocoIter = image_simMocoIter / percentile(abs(image_simMocoIter),95);
-% SliceBrowser2(cat(4,abs(image_simMoco),abs(image_simMocoIter),abs(image_original)),[0 1.5])
+% SliceBrowser2(cat(4,abs(image_simMoco),abs(image_simMocoIter),abs(image_original)),[0 1.5],{'MoCo single NUFFT','MoCo iterative NUFFT','Original Image'})
 % set(gcf,'Name','Simulated Motion-correction (1) vs Iterative simulated Motion-correction (2) vs Original Image (3)')
+% 
+% % %%% Compare the k-spaces:
+% % % SliceBrowser2(log(cat(4,abs(fft3s(image_original)),abs(fft3s(image_simMotion)),abs(fft3s(image_simMoco)),abs(fft3s(image_simMocoIter)))+1),[],{'Original data','Simulated motion','Simulated motion-correction'})
+% % % set(gcf,'Name','Compare k-spaces')
+

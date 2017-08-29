@@ -28,13 +28,22 @@ $ git clone https://github.com/dgallichan/retroMoCoBox.git
 
 ---
 
-### Demo
+### Demos
 
-`run_retroMocoDemo.m`
+#### `run_retroMocoDemo_NUFFT.m`
 
 The simple demonstration code  uses a single volume of real data from our scanner to demonstrate how the measured motion parameters can be used to correct the 3D k-space. The translations correpond to a simple phase ramp in k-space, but the rotations move the sampling positions away from a simple Cartesian grid, so some form of gridding is necessary. This was implemented here using the [Michigan Image Reconstruction Toolbox (MIRT) for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html) - which is a prerequisite for using the RetroMoCoBox. 
 
-The data for the demo can be downloaded [here for the 1 mm dataset with large motion](http://goo.gl/ERULZA) (32 Mb), [here for the 600 um dataset (medium motion)](http://goo.gl/wto1MK) (86 Mb) and [here for the 1mm dataset with small motion](https://goo.gl/oEnLgQ) (32 Mb).
+The data for the demo can be downloaded [here for the 1 mm dataset with large motion](http://goo.gl/ERULZA) (32 MB), [here for the 600 um dataset (medium motion)](http://goo.gl/wto1MK) (86 MB) and [here for the 1mm dataset with small motion](https://goo.gl/oEnLgQ) (32 MB).
+
+#### `run_retroMocoDemo_simulateMotion.m`
+
+This script starts with any example volume (I found the [original Colin27 brain](http://www.bic.mni.mcgill.ca/ServicesAtlases/Colin27) to be handy for this) and then simulates the motion artifacts caused by different motion profiles. By then attempting to apply motion-correction to this simulated data it is possible to explore how well retrospective correction can be expected to work in different motion regimes. In the case of very 'rough' motion the retrospective correction still has noticeable artifacts - which can be almost completely suppressed by using an iterative NUFFT operation instead of the single-step approach used by default. 
+
+#### `run_retroMocoDemo_FatNavRecon.m`
+
+This script loads an example of real 3D FatNavs data (15 volumes at 2mm resolution with 4x4 GRAPPA acceleration) and does the GRAPPA reconstruction. The example data [can be downloaded from here](https://goo.gl/1qYjsc) (186 MB).
+
 
 ---
 
@@ -50,7 +59,7 @@ I have included various open-source tools inside the toolbox - but you will need
 
 The full script takes rather a long time to run (from around 10 mins through to several hours, depending on the number of CPUs you have and the size of the dataset, as well as the amount of RAM you have available) as it has to do the full reconstruction of the raw data (which typically also requires a GRAPPA reconstruction of the 3D dataset) and then perform the motion-correction step for each RF channel and each inversion time of the MP2RAGE scan. 
 
-The script `run_SiemensMP2RAGErecon.m` gives an example of how to call the reconstruction code on your data. Also, feel free to get in touch if you would like some full example datasets to test - the raw data for 32 RF channels at 1mm resolution is 4.3 Gb and for 600 um resolution is 9.3 Gb so I haven't put them online by default, but anonymized raw data can also be shared if you are interested.
+The script `run_SiemensMP2RAGErecon.m` gives an example of how to call the reconstruction code on your data. Also, feel free to get in touch if you would like some full example datasets to test - the raw data for 32 RF channels at 1mm resolution is 4.3 GB and for 600 um resolution is 9.3 GB so I haven't put them online by default, but anonymized raw data can also be shared if you are interested.
 
 ---
 
