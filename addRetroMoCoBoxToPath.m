@@ -10,4 +10,6 @@ addpath([retroMoCoPath '/fatnavtools']);
 addpath([retroMoCoPath '/generaltools']);
 addpath([retroMoCoPath '/images']);
 addpath([retroMoCoPath '/niftitools']);
-addpath([retroMoCoPath '/mapVBVD_20160905']);
+if exist([retroMoCoPath '/mapVBVD_20160905'],'dir')
+    addpath([retroMoCoPath '/mapVBVD_20160905']);
+end
