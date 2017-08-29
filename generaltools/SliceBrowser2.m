@@ -133,6 +133,13 @@ else
     handles.clims = [min(volume(:)) max(volume(:))];
 end
 
+if length(varargin) > 2
+    handles.volume_labels = varargin{3};
+else
+    handles.volume_labels = [];
+end
+handles.label_fontsize = 14;
+
 handles.axis_equal = 1;
 handles.color_mode = 0;
 % if (size(volume,4) ~= 3)
@@ -392,6 +399,9 @@ if (handles.axis_equal == 1)
 else
     axis normal;
 end
+if ~isempty(handles.volume_labels)
+    text(10,size(handles.volume,2)-10,handles.volume_labels{handles.pointer3dt(4)},'color','w','fontsize',handles.label_fontsize);
+end
 
 axes(handles.Subplot2);
 imagesc(permute(sliceXZ,[2 1 3]), handles.clims);
@@ -407,6 +417,9 @@ if (handles.axis_equal == 1)
 else
     axis normal;
 end
+if ~isempty(handles.volume_labels)
+    text(10,size(handles.volume,3)-10,handles.volume_labels{handles.pointer3dt(4)},'color','w','fontsize',handles.label_fontsize);
+end
 
 axes(handles.Subplot3);
 imagesc(permute(sliceYZ,[2 1 3]), handles.clims);
@@ -421,6 +434,9 @@ if (handles.axis_equal == 1)
     axis image;
 else
     axis normal;
+end
+if ~isempty(handles.volume_labels)
+    text(10,size(handles.volume,3)-10,handles.volume_labels{handles.pointer3dt(4)},'color','w','fontsize',handles.label_fontsize);
 end
 
 function pointer3d_out = clipointer3d(pointer3d_in,vol_size)
