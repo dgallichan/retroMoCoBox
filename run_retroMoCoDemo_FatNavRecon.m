@@ -15,7 +15,7 @@
 
 run('addRetroMoCoBoxToPath.m')
 
-load ../exampleFatNavdata_15fatnavs.mat
+load ../exampleData/exampleFatNavdata_15fatnavs.mat
 
 %%
 
@@ -25,7 +25,7 @@ Ax = 4; Ay = 4; % Hard-coded for a 'known' navigator...
 nc_orig = 32;
 
 % apply shift due to fat offset frequency (this assumes BW of 1950 Hz, and a fat/water shift of 3.5ppm)
-offsetsXYZ = [0 0 (twix_obj.hdr.MeasYaps.sTXSPEC.asNucleusInfo{1,1}.lFrequency*3.5e-6/1950)]; 
+offsetsXYZ = [0 0 298*3.5/1950]; 
 
 nT = 15;
 
@@ -34,6 +34,7 @@ dataSize = size(ACSdata);
 nx = 176/FatNavRes_mm;
 ny = 256/FatNavRes_mm;
 nz = 256/FatNavRes_mm;
+nc = size(ACSdata,2);
 
 ACSdata = squeeze(ACSdata);         
 ACSdata = permute(ACSdata,[4 3 1 2]);
@@ -51,7 +52,7 @@ ACSdata = ACSdata(:,:,end:-1:1,:);
 ACSims = ifft2s(ACSdata);
 ACSim = ssos(ACSims);
 
-ovACS = orthoview(ACSim,1);
+ovACS = orthoview(ACSim);
 set(gcf,'Name','Low-res image from the ACS calibration scan')
 
 ACSdata = zeroCrop(ACSdata); % after making an image at full resolution, drop back to just where the data really is
@@ -80,7 +81,7 @@ zMax = nz; % don't need to go outside the brain... would save time to detect the
 
 tic
 disp('... Calculating GRAPPA weights ....')
-parfor iZ = 1:zMax
+for iZ = 1:zMax
     
     thisACS = squeeze(ACSdata(:,:,iZ,:));
     all_grapW(:,:,iZ) = GrappaCalib3D_arb(thisACS,grapKernel,0,1);
@@ -139,10 +140,11 @@ for iT = 1 % can go up to 15 with this example data, but might take a while...
         grapK = bsxfun(@times,grapK,f2);
         
         grapIms = ifft2s(grapK);
-        grapIm = ssos(grapIms(:,:,iC_keep))*nx*ny*nz;
+        grapIm = ssos(grapIms)*nx*ny*nz;
         full_GRAPPArecons(:,:,iZ) = int16(4095*grapIm/20); % use 20 as first signal to clip...
         
     end
+    
     fatnav_volumes(:,:,:,iT) = full_GRAPPArecons;
         
       
@@ -151,7 +153,7 @@ for iT = 1 % can go up to 15 with this example data, but might take a while...
    
     figure(1)
     clf
-    set(gcf,'Position',[       650     1   941   984]);    
+    set(gcf,'Position',[ 500   172   858   926]);    
     subplot1(2,3); 
     subplot1(1); imab(ov1.im1); subplot1(2); imab(ov1.im2); subplot1(3); imab(ov1.im3);
     subplot1(4); imab(ov2.im1); subplot1(5); imab(ov2.im2); subplot1(6); imab(ov2.im3);
