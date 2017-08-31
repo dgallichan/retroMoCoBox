@@ -166,7 +166,7 @@ fitpars(4,:) = fitpars(4,:) + swallowMagnitude(2)*swallowTrace;
 suddenTrace = zeros(size(fitpars));
 for iS = 1:suddenFrequency
     iT_sudden = ceil(rand*nT);
-    suddenTrace(:,iT_sudden:end) = suddenTrace(:,iT_sudden:end) + [suddenMagnitude(1)*((2*rand(3,1))-1); suddenMagnitude(2)*((2*rand(3,1))-1)];
+    suddenTrace(:,iT_sudden:end) = bsxfun(@plus,suddenTrace(:,iT_sudden:end),[suddenMagnitude(1)*((2*rand(3,1))-1); suddenMagnitude(2)*((2*rand(3,1))-1)]);
 end
 fitpars = fitpars+suddenTrace;
 
