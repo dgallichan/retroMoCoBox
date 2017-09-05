@@ -1,7 +1,7 @@
 function out = orthoview(vol,varargin)
 % function orthoview(vol,...)
 
-[cvox voxdim clims useColorbar useMip useTitles drawIms interpFact useNewFig] = process_options(varargin,'centre',round(size(vol)/2),'voxdim',[],'clims',[],'colorbar',0,'mip',0,'useTitles',1,'drawIms',1,'interpFact',1,'useNewFig',1);
+[cvox voxdim clims useColorbar useMip useTitles drawIms interpFact useNewFig] = process_options(varargin,'centre',[],'voxdim',[],'clims',[],'colorbar',0,'mip',0,'useTitles',1,'drawIms',1,'interpFact',1,'useNewFig',1);
 
 if ~any(isreal(vol(:)))
     vol = abs(vol);
@@ -13,6 +13,9 @@ if size(vol,4) > 1
     vol = vol(:,:,:,1);
 end
 
+if isempty(cvox)
+   cvox = round(size(vol)/2);
+end
 
 if ~isempty(voxdim)
   vdims = abs(voxdim);
