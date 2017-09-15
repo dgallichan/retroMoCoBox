@@ -244,10 +244,13 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %   0.6.3 - -- August 2017
 %         - Include the FatNav resolution in the HTML (and display to
 %           screen)
-%         - handle the case where 'PatientName' become 'tPatientName' for
+%         - handle the case where 'PatientName' becomes 'tPatientName' for
 %           no apparent reason
+%
+%   0.6.4 - -- Sep 2017
+%         - Automatically set FatNavRes_mm based on field strength (7T - 2mm, 3T - 4mm)         
 
-retroMocoBoxVersion = '0.6.3dev'; % put this into the HTML for reference
+retroMocoBoxVersion = '0.6.4dev'; % put this into the HTML for reference
 
 %% Check SPM and Fessler's toolbox are on path
 
@@ -266,7 +269,7 @@ end
 [outRoot, tempRoot, LinParSwap, bGRAPPAinRAM, bKeepGRAPPArecon, bKeepReconInRAM, bFullParforRecon,...
     coilCombineMethod, FatNavRes_mm, swapDims_xyz, bZipNIFTIs, bKeepFatNavs,KeepPatientInfo] = process_options(varargin,...
     'outRoot',[],'tempRoot',[],'LinParSwap',0,'bGRAPPAinRAM',0,'bKeepGRAPPArecon',0,'bKeepReconInRAM',0,...
-    'bFullParforRecon',0,'coilCombineMethod','default','FatNavRes_mm',2,'swapDims_xyz',[0 0 1],'zipNIFTIs',1,'keepFatNavs',0,'KeepPatientInfo',1);
+    'bFullParforRecon',0,'coilCombineMethod','default','FatNavRes_mm',[],'swapDims_xyz',[0 0 1],'zipNIFTIs',1,'keepFatNavs',0,'KeepPatientInfo',1);
 
 
 %%
@@ -301,13 +304,14 @@ end
 %% Useful for debugging and running as a script instead of a function
 
 % outRoot = []; tempRoot = []; LinParSwap = 0; bKeepGRAPPArecon = 0; coilCombineMethod = 'default';
-% FatNavRes_mm = 2; swapDims_xyz = [0 0 1]; bZipNIFTIs = 1; bKeepFatNavs = 0;
+% FatNavRes_mm = []; swapDims_xyz = [0 0 1]; bZipNIFTIs = 1; bKeepFatNavs = 0;
 % bFullParforRecon = 0; bGRAPPAinRAM = 1;  bKeepReconInRAM = 1;
-% keepPatientInfo = 1;
+% KeepPatientInfo = 1;
 
 
-%% Make local function as inline so that it can be used in scripts
+%%           
 
+%%% Make local function as inline so that it can be used in scripts
 local_reformatDateString = @(dateString) [dateString(7:8) '/' dateString(5:6) '/' dateString(1:4)];
 
 %%
@@ -324,20 +328,7 @@ figIndex = 999; % figure to use for outputs
 
 MIDstr = getMIDstr(rawDataFile);
 
-
 filterFrac = 0.05; % used when 'lowres' coil combination method is selected (not default..)
-
-
-switch FatNavRes_mm % in newer version of FatNav sequences, the resolution can be chosen at 2, 4 or 6 mm - with the FOV hard-coded in the sequence itself
-    % these choices should also match the corresponding code in processFatNavs_GRAPPA4x4.m
-    case {2,4}
-        FatNav_FOVxyz = [176 256 256]; % FatNav FOV         
-        FatNav_xyz = FatNav_FOVxyz ./ FatNavRes_mm;
-    case 6
-        FatNav_FOVxyz = [192 264 264]; % FatNav FOV         
-        FatNav_xyz = FatNav_FOVxyz ./ FatNavRes_mm;
-        FatNav_xyz(3) = 64; % No idea why, but the 6mm data has 64 points in the readout direction for the ACS lines instead of 44...        
-end
 
 startTime = clock;
 
@@ -386,6 +377,40 @@ if ~isfield(twix_obj,'FatNav')
     disp('Error, no FatNavs found in raw data file!')
     return
 end
+
+%%
+
+if isempty(FatNavRes_mm)
+    manualFatNavRes = 0;
+    nominalB0 = round(twix_obj.hdr.MeasYaps.sProtConsistencyInfo.flNominalB0);
+    switch nominalB0
+        case 3
+            FatNavRes_mm = 4;
+        case 7
+            FatNavRes_mm = 2;
+        otherwise
+            disp(['Error - unexpected field strength of ' nominalB0 'T ...!'])
+            return
+    end
+else
+    manualFatNavRes = 1;
+end
+
+switch FatNavRes_mm % in newer version of FatNav sequences, the resolution can be chosen at 2, 4 or 6 mm - with the FOV hard-coded in the sequence itself
+    % these choices should also match the corresponding code in processFatNavs_GRAPPA4x4.m
+    case {2,4}
+        FatNav_FOVxyz = [176 256 256]; % FatNav FOV         
+        FatNav_xyz = FatNav_FOVxyz ./ FatNavRes_mm;
+    case 6
+        FatNav_FOVxyz = [192 264 264]; % FatNav FOV         
+        FatNav_xyz = FatNav_FOVxyz ./ FatNavRes_mm;
+        FatNav_xyz(3) = 64; % No idea why, but the 6mm data has 64 points in the readout direction for the ACS lines instead of 44...        
+end
+
+
+
+%%
+
 
 
 if ischar(KeepPatientInfo)
@@ -519,34 +544,43 @@ nc = twix_obj.image.NCha;
 nS = twix_obj.image.NSet; % for MP2RAGE this will be 2...
 
 
-% and put stuff into html report
+% and put stuff into html report and the screen
 if nS == 2
     fprintf(fid,['<h4>Host MP2RAGE ']);
-else
-    fprintf(fid,['<h4>Host MPRAGE ']);
-end
-fprintf(fid,['sequence</h4>\n']);
-fprintf(fid,['RPS dimensions in raw data: ' num2str(hrps(1)) 'x' num2str(hrps(2)) 'x' num2str(hrps(3)) '<br>\n']);
-fprintf(fid,['XYZ dimensions reconstructed: ' num2str(Hxyz(1)) 'x' num2str(Hxyz(2)) 'x' num2str(Hxyz(3)) '<br>\n']);
-fprintf(fid,['FOV - ' num2str(FOVxyz(1),'%.1f') 'x' num2str(FOVxyz(2),'%.1f') 'x' num2str(FOVxyz(3),'%.1f') 'mm<br>\n']);
-fprintf(fid,['Resolution: ' num2str(hostVoxDim_mm(1),'%.3f') 'x' num2str(hostVoxDim_mm(2),'%.3f') 'x' num2str(hostVoxDim_mm(3),'%.3f') 'mm<br>\n']);
-fprintf(fid,['Manually selected FatNav resolution: ' num2str(FatNavRes_mm) ' mm<br>\n']);
-fprintf(fid,['Detected orientation: ' orientText '<br>\n']);
-         
-% and to the screen:
-if nS == 2
     fprintf(['\n\n\nHost MP2RAGE ']);
 else
+    fprintf(fid,['<h4>Host MPRAGE ']);
     fprintf(['\n\n\nHost MPRAGE ']);
 end
+fprintf(fid,['sequence</h4>\n']);
 fprintf(['sequence\n']);
+
+fprintf(fid,['RPS dimensions in raw data: ' num2str(hrps(1)) 'x' num2str(hrps(2)) 'x' num2str(hrps(3)) '<br>\n']);
 fprintf(['RPS dimensions in raw data: ' num2str(hrps(1)) 'x' num2str(hrps(2)) 'x' num2str(hrps(3)) '\n']);
+fprintf(fid,['XYZ dimensions reconstructed: ' num2str(Hxyz(1)) 'x' num2str(Hxyz(2)) 'x' num2str(Hxyz(3)) '<br>\n']);
 fprintf(['XYZ dimensions reconstructed: ' num2str(Hxyz(1)) 'x' num2str(Hxyz(2)) 'x' num2str(Hxyz(3)) '\n']);
+fprintf(fid,['FOV - ' num2str(FOVxyz(1),'%.1f') 'x' num2str(FOVxyz(2),'%.1f') 'x' num2str(FOVxyz(3),'%.1f') 'mm<br>\n']);
 fprintf(['FOV - ' num2str(FOVxyz(1),'%.1f') 'x' num2str(FOVxyz(2),'%.1f') 'x' num2str(FOVxyz(3),'%.1f') 'mm\n']);
+fprintf(fid,['Resolution: ' num2str(hostVoxDim_mm(1),'%.3f') 'x' num2str(hostVoxDim_mm(2),'%.3f') 'x' num2str(hostVoxDim_mm(3),'%.3f') 'mm<br>\n']);
 fprintf(['Resolution: ' num2str(hostVoxDim_mm(1),'%.3f') 'x' num2str(hostVoxDim_mm(2),'%.3f') 'x' num2str(hostVoxDim_mm(3),'%.3f') 'mm\n']);
-fprintf(['Manually selected FatNav resolution: ' num2str(FatNavRes_mm) ' mm\n']);
-%% Check if using HEADNECK_64 receive coil, and discard channels over the neck if this is the case (would be nice to know what Siemens does...)
+if manualFatNavRes
+    fprintf(fid,['Manually selected FatNav resolution: ' num2str(FatNavRes_mm) ' mm<br>\n']);
+    fprintf(['Manually selected FatNav resolution: ' num2str(FatNavRes_mm) ' mm\n']);
+else
+    fprintf(fid,['Assumed FatNav resolution (based on field strength): ' num2str(FatNavRes_mm) ' mm<br>\n']);
+    fprintf(['Assumed FatNav resolution (based on field strength): ' num2str(FatNavRes_mm) ' mm\n']);
+end
+fprintf(fid,['Detected orientation: ' orientText '<br>\n']);
 fprintf(['Detected orientation: ' orientText '\n']);
+if isfield(twix_obj.hdr.MeasYaps,'sCoilSelectMeas')
+    fprintf(['Coil used: ' char(twix_obj.hdr.MeasYaps.sCoilSelectMeas.aRxCoilSelectData{1}.asList{1}.sCoilElementID.tCoilID) ', with ' num2str(nc) ' channels active\n']);
+    fprintf(fid,['Coil used: ' char(twix_obj.hdr.MeasYaps.sCoilSelectMeas.aRxCoilSelectData{1}.asList{1}.sCoilElementID.tCoilID) ', with ' num2str(nc) ' channels active<br>\n']);
+else
+    fprintf(['Coil used: ' char(twix_obj.hdr.MeasYaps.asCoilSelectMeas{1}.asList{1}.sCoilElementID.tCoilID) ', with ' num2str(nc) ' channels active\n']);
+    fprintf(fid,['Coil used: ' char(twix_obj.hdr.MeasYaps.asCoilSelectMeas{1}.asList{1}.sCoilElementID.tCoilID) ', with ' num2str(nc) ' channels active<br>\n']);
+end
+
+%% Check if using HEADNECK_64 receive coil, and discard channels over the neck if this is the case (would be nice to know what Siemens does...)
 if isfield(twix_obj.hdr.MeasYaps,'sCoilSelectMeas') ...
         && strcmp(twix_obj.hdr.MeasYaps.sCoilSelectMeas.aRxCoilSelectData{1}.asList{1}.sCoilElementID.tCoilID,'"HeadNeck_64"')
     iC_keep = 1:nc;
@@ -555,6 +589,10 @@ if isfield(twix_obj.hdr.MeasYaps,'sCoilSelectMeas') ...
                  'Using manually predefined set of channels\n'...
                  'to reduce signal from neck area\n' ...
                  '*********************************\n\n']);
+    fprintf(fid,['<br><br>\n\n****  Detected use of HeadNeck_64 RF coil **** <br>\n'...
+                 'Using manually predefined set of channels<br>\n'...
+                 'to reduce signal from neck area<br>\n' ...
+                 '*********************************<br><br>\n\n']);    
 else
     iC_keep = 1:nc;
 end
