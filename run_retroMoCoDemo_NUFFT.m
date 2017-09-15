@@ -149,5 +149,5 @@ colormap(gray)
 fitpars_trans = squeeze(fitMats(1:3,4,:));
 fitpars_rot = rotmat2euler(fitMats(1:3,1:3,:));
 
-plotFitPars(cat(1,fitpars_trans,fitpars_rot))
+plotFitPars(cat(1,fitpars_trans,fitpars_rot));
 

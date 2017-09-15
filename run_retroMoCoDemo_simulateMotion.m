@@ -41,6 +41,7 @@
 %
 % 1. Just run through the example as it is, and check what is
 %    happening at each stage.
+%
 % 2. Experiment with different motion profiles:
 %      - change the 'noiseBasePars' to the other commented lines to see
 %        generalised changes with overall noise pattern
@@ -50,6 +51,7 @@
 %      - explore the kinds of image artifacts that arise due to different
 %        kinds of motion - parameters are already included for
 %        swallowing-like motion and random sudden movements
+%
 % 3. With the 'noiseBasePars' set to the *really* rough motion option, you
 %    will probably find that even the NUFFT reconstruction looks rather
 %    disappointing. This is because a complete correction requires an
@@ -59,9 +61,10 @@
 %    sure that the volume you are working on is quite small (to keep the 
 %    computation reasonably fast). I did this by extracting only a thin
 %    slab of the full 3D example volume. Then run through the whole script
-%    as it is - and then uncomment the last cell in the file and run that.
-%    It peforms 10 conjugate-gradient iterations and should give a much
-%    improved result.
+%    as it is - and then uncomment the iterative recon cell in this file 
+%    and run that. It peforms 10 conjugate-gradient iterations and should 
+%    give a much improved result.
+%
 % 4. A common concern people have regarding retrospective motion-correction
 %    is the handling of 'holes' in k-space which occur following sudden
 %    motion. This is easiest to simulate by uncommenting the lines in the
@@ -76,6 +79,25 @@
 %    to 'fill-in' the hole would presumably require a reconstruction that
 %    makes use of k-space symmetry, or utilizes parallel imaging.
 %
+% 5. The single-step NUFFT adjoint operation can be improved if 'density
+%    compensation' is properly accounted for. When rotations have occurred in
+%    k-space and then been undone, the overlapping can be compensated for
+%    by scaling down and sparser sampled regions should be scaled down.
+%    Uncomment the density compensation cell to experiment with this.
+%    You should find that the single rotation tested in example 4 above can
+%    be well-compensated by simple density compensation. However, if you go
+%    back to the rough noise example, you will find that the density
+%    compensation does not work properly. This is presumably because
+%    calculating the 'real' density compensation function that should be
+%    used is a difficult problem in itself.
+%    In my experience of real data, applying density compensation in this
+%    way rarely makes a noticeably difference to the image - and in cases
+%    where there is residual image artifact following the NUFFT adjoint
+%    operation it is typically very difficult to estimate a reliable
+%    density compensation function. For this reason density compensation is
+%    currently omitted from the retroMoCoBox pipelines.
+%
+
 % -- Daniel Gallichan, gallichand@cardiff.ac.uk, August 2017
 
 %% -- SET PATHS MANUALLY IN THIS SECTION -- 
@@ -122,7 +144,8 @@ suddenMagnitude = [3 3]; % first is translations, second is rotations
 
 
 % general background noise movement:
-fitpars = maxDisp*(perlinNoise1D(nT,noiseBasePars).'-.5);
+fitpars = zeros(6,nT);
+fitpars(1,:) = maxDisp*(perlinNoise1D(nT,noiseBasePars).'-.5);
 fitpars(2,:) = maxDisp*(perlinNoise1D(nT,noiseBasePars).'-.5);
 fitpars(3,:) = maxDisp*(perlinNoise1D(nT,noiseBasePars).'-.5);
 
@@ -143,7 +166,7 @@ fitpars(4,:) = fitpars(4,:) + swallowMagnitude(2)*swallowTrace;
 suddenTrace = zeros(size(fitpars));
 for iS = 1:suddenFrequency
     iT_sudden = ceil(rand*nT);
-    suddenTrace(:,iT_sudden:end) = suddenTrace(:,iT_sudden:end) + [suddenMagnitude(1)*((2*rand(3,1))-1); suddenMagnitude(2)*((2*rand(3,1))-1)];
+    suddenTrace(:,iT_sudden:end) = bsxfun(@plus,suddenTrace(:,iT_sudden:end),[suddenMagnitude(1)*((2*rand(3,1))-1); suddenMagnitude(2)*((2*rand(3,1))-1)]);
 end
 fitpars = fitpars+suddenTrace;
 
@@ -198,7 +221,7 @@ image_simMoco = image_simMoco / percentile(abs(image_simMoco),95);
 SliceBrowser2(cat(4,abs(image_simMotion),abs(image_simMoco)),[0 1.5],{'Simulated Motion','Simulated Motion-correction'})
 set(gcf,'Name','Simulated Motion (1) vs Simulated Motion-correction (2)')
 
-%%% Compare the k-spaces:
+% %%% Compare the k-spaces:
 % SliceBrowser2(log(cat(4,abs(fft3s(image_original)),abs(fft3s(image_simMotion)),abs(fft3s(image_simMoco)))+1),[],{'Original data','Simulated motion','Simulated motion-correction'})
 % set(gcf,'Name','Compare k-spaces')
 
@@ -211,9 +234,32 @@ set(gcf,'Name','Simulated Motion (1) vs Simulated Motion-correction (2)')
 % toc
 % image_simMocoIter = image_simMocoIter / percentile(abs(image_simMocoIter),95);
 % SliceBrowser2(cat(4,abs(image_simMoco),abs(image_simMocoIter),abs(image_original)),[0 1.5],{'MoCo single NUFFT','MoCo iterative NUFFT','Original Image'})
-% set(gcf,'Name','Simulated Motion-correction (1) vs Iterative simulated Motion-correction (2) vs Original Image (3)')
+% set(gcf,'Name','Simulated Motion-correction (1) vs Simulated Motion-correction + DC (2) vs Iterative simulated Motion-correction (3) vs Original Image (4)')
 % 
 % % %%% Compare the k-spaces:
-% % % SliceBrowser2(log(cat(4,abs(fft3s(image_original)),abs(fft3s(image_simMotion)),abs(fft3s(image_simMoco)),abs(fft3s(image_simMocoIter)))+1),[],{'Original data','Simulated motion','Simulated motion-correction'})
-% % % set(gcf,'Name','Compare k-spaces')
+% % SliceBrowser2(log(cat(4,abs(fft3s(image_simMoco)),abs(fft3s(image_simMocoIter)),abs(fft3s(image_original)))+1),[],{'MoCo single NUFFT','MoCo iterative NUFFT','Original Image'})
+% % set(gcf,'Name','Compare k-spaces')
 
+
+%% Experiment with density-compensation functions
+
+% %%% approximate the density compensation required by correcting a fake
+% %%% k-space consisting only of ones
+% testDC = fft3s(applyRetroMC_nufft(ones(size(kdata_simMotion)),fitMats_undo,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz));
+% testDC = 1./(abs(testDC)/nx/ny/nz);
+% testDC(testDC>10) = 10; % threshold the density compensation - the level for this is arbitrary...
+% image_simMocoDC = ifft3s( fft3s(image_simMoco).*testDC );
+% image_simMocoDC = image_simMocoDC / percentile(abs(image_simMocoDC),95);
+% 
+% SliceBrowser2(cat(4,abs(image_simMoco),abs(image_simMocoDC)),[0 1.5],{'Simulated Motion-correction','Simulated Motion-correction + DC'})
+% set(gcf,'Name','Simulated Motion-correction (1) vs Simulated Motion-correction + DC (2)')
+% 
+% %%% Compare the k-spaces:
+% SliceBrowser2(log(cat(4,abs(fft3s(image_original)),abs(fft3s(image_simMotion)),abs(fft3s(image_simMoco)),abs(fft3s(image_simMocoDC)))+1),[],{'Original data','Simulated motion','Simulated motion-correction','Simulated motion-correction + DC'})
+% set(gcf,'Name','Compare k-spaces')
+% 
+% % % %%% Comparison with iterative recon as well:
+% % % SliceBrowser2(cat(4,abs(image_simMoco),abs(image_simMocoDC),abs(image_simMocoIter),abs(image_original)),[0 1.5],{'MoCo single NUFFT','MoCo single NUFFT + DC','MoCo iterative NUFFT','Original Image'})
+% % % set(gcf,'Name','Simulated Motion-correction (1) vs Simulated Motion-correction + DC (2) vs Iterative simulated Motion-correction (3) vs Original Image (4)')
+% % % SliceBrowser2(log(cat(4,abs(fft3s(image_simMoco)),abs(fft3s(image_simMocoDC)),abs(fft3s(image_simMocoIter)),abs(fft3s(image_original)))+1),[],{'MoCo single NUFFT','MoCo single NUFFT + DC','MoCo iterative NUFFT','Original Image'})
+% % % set(gcf,'Name','Compare k-spaces')
