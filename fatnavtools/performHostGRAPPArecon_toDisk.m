@@ -1,6 +1,6 @@
-function [timingReport] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,iRepToRecon, nSliceNeighbours)
+function [timingReport, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,iRepToRecon, nSliceNeighbours)
 %
-% function [timingReport] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,iRepToRecon, nSliceNeighbours)
+% function [timingReport, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,iRepToRecon, nSliceNeighbours)
 %
 % Applies GRAPPA to the host data, which here is assumed to have acceleration in
 % the first phase-encoding direction only (as is the current limitation of
@@ -13,10 +13,14 @@ function [timingReport] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,iRepToR
 % is created for each virtual 'slice' in that direction - massively reducing RAM requirements
 % (but significantly slower!).
 %
+% The _toDisk.m variation is supposed to be parfor capable, but still
+% writes files to disk
 %
 % -------
 % daniel.gallichan@epfl.ch, March 2016
 %
+% Update Jan 2018, gallichand@cardiff.ac.uk 
+% -- clean up for actual integration into retroMoCoBox pipeline
 
 
 if nargin < 4
@@ -87,7 +91,8 @@ if length(tempFiles)~=nread % Check if we can assume they already exist...
     disp('..............')
     disp('... Taking the raw data file, doing a 1D-FFT and then resaving a new file per ''slice''')
     tic
-    for iPE2 = 1:npe2;
+    for iPE2 = 1:npe2
+        
         iPE1 = 1:npe1;
         iSet = 1:nSet;
         iEco = 1:nEco;
@@ -190,23 +195,25 @@ disp('...............')
 disp('Declaring temporary variables to store GRAPPA recon')
 tic
 
-tempName_grappaRecon_1DFFT = [tempDir '/tempGRAPPAReconData_' MIDstr '_grappaRecon_1DFFT'];
-tempName_reconSoS =          [tempDir '/tempGRAPPAReconData_' MIDstr '_reconSoS'];
-tempFiles = dir([tempName_grappaRecon_1DFFT '*.mat']);
+tempNameRoots.grappaRecon_1DFFT = [tempDir '/tempGRAPPAReconData_' MIDstr '_grappaRecon_1DFFT'];
+tempNameRoots.reconSoS =          [tempDir '/tempGRAPPAReconData_' MIDstr '_reconSoS'];
+tempFiles = dir([tempNameRoots.grappaRecon_1DFFT '*.mat']);
 if ~isempty(tempFiles)
-    delete([tempname_grappaRecon_1DFFT '*.mat']);
+    delete([tempNameRoots.grappaRecon_1DFFT '*.mat']);
 end
-tempFiles = dir([tempName_reconSoS '*.mat']);
+tempFiles = dir([tempNameRoots.reconSoS '*.mat']);
 if ~isempty(tempFiles)
-    delete([tempName_reconSoS '*.mat']);
+    delete([tempNameRoots.reconSoS '*.mat']);
 end
 
 if ~isempty(combinePars)
-    tempName_dataCombined =  [tempDir '/tempGRAPPAReconData_' MIDstr '_dataCombined'];
-    tempFiles = dir([tempName_dataCombined '*.mat']);
+    tempNameRoots.dataCombined = [tempDir '/tempGRAPPAReconData_' MIDstr '_dataCombined'];
+    tempFiles = dir([tempNameRoots.dataCombined '*.mat']);
     if ~isempty(tempFiles)
-        delete([tempName_dataCombined '*.mat']);
+        delete([tempNameRoots.dataCombined '*.mat']);
     end
+else
+    tempNameRoots.dataCombined = [];
 end
 
 
@@ -297,16 +304,16 @@ parfor iS = 1:nread
                 end
 %                 dataCombined(iS,:,:,iSet) = reshape(thisCombination,[1 npe1 npe2]);
                 
-                parsave([tempName_dataCombined '_' num2str(iS) '_' num2str(iEco) '_' num2str(iSet) '.mat'],thisCombination);
+                parsave([tempNameRoots.dataCombined '_' num2str(iS) '_' num2str(iEco) '_' num2str(iSet) '.mat'],thisCombination);
             end
             
             thisImage = ssos(ifft2s(thisGrapRecon));
             %                 mOutGRAPPA.reconSoS(iS,:,:,iSet) = reshape(thisImage,[1 npe1 npe2]);
             %                 mOutGRAPPA.grappaRecon_1DFFT(iS,:,:,:,iSet) = reshape(permute(thisGrapRecon,[3 1 2]),[1 nc npe1 npe2]);
             outData = reshape(thisImage,[1 npe1 npe2]);
-            parsave([tempName_reconSoS '_' num2str(iS) '_' num2str(iEco) '_' num2str(iSet) '.mat'],outData);
+            parsave([tempNameRoots.reconSoS '_' num2str(iS) '_' num2str(iEco) '_' num2str(iSet) '.mat'],outData);
             outData = reshape(permute(thisGrapRecon,[3 1 2]),[1 nc npe1 npe2]);
-            parsave([tempName_grappaRecon_1DFFT '_' num2str(iS) '_' num2str(iEco) '_' num2str(iSet) '.mat'],outData);
+            parsave([tempNameRoots.grappaRecon_1DFFT '_' num2str(iS) '_' num2str(iEco) '_' num2str(iSet) '.mat'],outData);
             
         end % iEco loop
         
