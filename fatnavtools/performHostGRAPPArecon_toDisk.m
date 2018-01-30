@@ -342,11 +342,11 @@ for iS = 1:nread
     end
 end
 delete([tempNameRoots.reconSoS '*.mat']);
-save(tempNameRoots.reconSoS,'reconSoS','-v7.2');
+save(tempNameRoots.reconSoS,'reconSoS','-v7.3');
 
 if ~isempty(combinePars)
     delete([tempNameRoots.dataCombined '*.mat']);
-    save(tempNameRoots.dataCombined,'dataCombined','-v7.2');
+    save(tempNameRoots.dataCombined,'dataCombined','-v7.3');
 end
 
 
