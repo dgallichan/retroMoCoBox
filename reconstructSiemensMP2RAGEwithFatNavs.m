@@ -672,7 +672,11 @@ if Arps(2) > 1
         mOutGRAPPA.grappaRecon_1DFFT = grappaRecon_1DFFT; clear grappaRecon_1DFFT;
         timingReport_hostRecon = mOutGRAPPA.timingReport;
     else
-        [mOutGRAPPA, timingReport_hostRecon] = performHostGRAPPArecon(twix_obj,tempDir);
+%         [mOutGRAPPA, timingReport_hostRecon] =
+%         performHostGRAPPArecon(twix_obj,tempDir); % the original low-RAM
+%         alternative code needs verifying as the output ends up corrupted
+%         (in at least some cases)
+        [timingReport_hostRecon, tempFileRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir);    
     end
 else
     useGRAPPAforHost = 0;
@@ -965,7 +969,15 @@ if ~bFullParforRecon
             fprintf(['Reconstructing coil ' num2str(iC) ' of ' num2str(nc_keep) ', set ' num2str(iS) '\n']);
             
             if useGRAPPAforHost
-                thisData = squeeze(mOutGRAPPA.grappaRecon_1DFFT(:,iC_keep(iC),:,:,iS));
+                if bGRAPPAinRAM 
+                    thisData = squeeze(mOutGRAPPA.grappaRecon_1DFFT(:,iC_keep(iC),:,:,iS));
+                else
+                    thisData = zeros(hrps);
+                    for iReadSlice = 1:hrps(1) % virtual 'slices' in the readout direction
+                        tempData = load([tempFileRoots.grappaRecon_1DFFT '_' num2str(iReadSlice) '_1_' num2str(iS) '.mat']);
+                        thisData(iReadSlice,:,:) = tempData.outData;
+                    end
+                end
                 % thisData = squeeze(mOutGRAPPA.dataCombined(:,:,:,2)); iC=1;iS = 1; % use this to have more brain coverage for debugging...
                 thisData = fft1s(thisData,1); % put into full 3D k-space
             else
@@ -1533,7 +1545,15 @@ if bKeepGRAPPArecon
     end
 else
     if ~bGRAPPAinRAM
-        delete(mOutGRAPPA.Properties.Source)
+        if ~isempty(tempNameRoots.grappaRecon_1DFFT)
+            delete([tempNameRoots.grappaRecon_1DFFT '*.mat']);
+        end
+        if ~isempty(tempNameRoots.reconSoS)
+            delete([tempNameRoots.reconSoS '*.mat']);
+        end
+        if ~isempty(tempNameRoots.dataCombined)
+            delete([tempNameRoots.dataCombined '*.mat']);
+        end
     end
 end
 rmdir(tempDir)
@@ -1545,11 +1565,13 @@ end
 
 if ~bKeepFatNavs
     rmdir(fatnavdir,'s')
+end
+    
 fprintf('*************************************************************\n')
 fprintf('***** reconstructSiemensMP2RAGEwithFatNavs.m completed! *****\n')
 fprintf('*************************************************************\n')
 fprintf(['Total reconstruction time: ' num2str(totalTime_hrs) ' hours, ' num2str(totalTime_mins) ' mins\n']);
-end
+
 
 
 end
