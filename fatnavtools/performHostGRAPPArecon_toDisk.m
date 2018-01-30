@@ -323,6 +323,32 @@ end % iS for 'slices' in readout direction
 
 
 
+% recompile the reconSoS and dataCombined into a single file as these should be small in total
+reconSoS = zeros(nread,npe1,npe2,nSet,nEco);
+dataCombined = zeros(nread,npe1,npe2,nSet,nEco,'complex');
+for iS = 1:nread   
+    for iSet = 1:nSet        
+        for iEco = 1:nEco
+            
+            thisData = load([tempNameRoots.reconSoS '_' num2str(iS) '_' num2str(iEco) '_' num2str(iSet) '.mat']);
+            reconSoS(iS,:,:,iSet,iEco) = thisData.outData;
+            
+            if ~isempty(combinePars)
+                thisData = load([tempNameRoots.grappaRecon_1DFFT '_' num2str(iS) '_' num2str(iEco) '_' num2str(iSet) '.mat']);
+                dataCombined(iS,:,:,iSet,iEco) = thisData.outData;
+            end
+            
+        end
+    end
+end
+delete([tempNameRoots.reconSoS '*.mat']);
+save(tempNameRoots.reconSoS,'reconSoS','-v7.2');
+
+if ~isempty(combinePars)
+    delete([tempNameRoots.dataCombined '*.mat']);
+    save(tempNameRoots.dataCombined,'dataCombined','-v7.2');
+end
+
 
 fprintf('\n');
 disp('Done')
