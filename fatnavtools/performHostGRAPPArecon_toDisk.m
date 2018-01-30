@@ -325,7 +325,9 @@ end % iS for 'slices' in readout direction
 
 %% recompile the reconSoS and dataCombined into a single file as these should be small in total
 reconSoS = zeros(nread,npe1,npe2,nSet,nEco,'single');
-dataCombined = complex(zeros(nread,npe1,npe2,nSet,nEco,'single'));
+if ~isempty(combinePars)
+    dataCombined = complex(zeros(nread,npe1,npe2,nSet,nEco,'single'));
+end
 for iS = 1:nread   
     for iSet = 1:nSet        
         for iEco = 1:nEco
