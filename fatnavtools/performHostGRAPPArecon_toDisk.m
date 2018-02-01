@@ -263,7 +263,7 @@ parfor iS = 1:nread
                 
                 for this_iS = iS-nSliceNeighbours:iS+nSliceNeighbours
                     if this_iS > 1 && this_iS <= nread
-                        thisACSdataFull = squeeze(ACSdata(iS,:,:,:,1,1,1,iEco,1,iSet));
+                        thisACSdataFull = squeeze(ACSdata(this_iS,:,:,:,1,1,1,iEco,1,iSet));
                         thisACSdataFull = permute(thisACSdataFull,[2 3 1]);
                         thisACSdata = thisACSdataFull([1:nACS1]-floor(nACS1/2)+floor(nACSmeas1/2),iPE2,:);
                         [~, this_src, this_targ] = GrappaCalib3D_arb(thisACSdata,grapKernel,0,0);
