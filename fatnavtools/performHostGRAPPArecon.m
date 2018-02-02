@@ -1,5 +1,12 @@
 function [mOutGRAPPA, timingReport] = performHostGRAPPArecon(twix_obj,tempDir)
 %
+%%%%%%%%%%%%%%%%% -- Jan 2018, gallichand@cardiff.ac.uk - this function
+%%%%%%%%%%%%%%%%% should now be obselete, as it is replaced by the _RAMonly
+%%%%%%%%%%%%%%%%% or the _toDisk variants, which include newer options.
+%%%%%%%%%%%%%%%%%
+%
+%
+%
 % function [mOutGRAPPA, timingReport] = performHostGRAPPArecon(twix_obj,tempDir)
 %
 % Applies GRAPPA to the host data, which here is assumed to have acceleration in
@@ -14,6 +21,7 @@ function [mOutGRAPPA, timingReport] = performHostGRAPPArecon(twix_obj,tempDir)
 %
 % -------
 % daniel.gallichan@epfl.ch, June 2015
+%
 
 
 if nargin < 2
