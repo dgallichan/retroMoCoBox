@@ -676,7 +676,7 @@ if Arps(2) > 1
 %         performHostGRAPPArecon(twix_obj,tempDir); % the original low-RAM
 %         alternative code needs verifying as the output ends up corrupted
 %         (in at least some cases)
-        [timingReport_hostRecon, tempFileRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir);    
+        [timingReport_hostRecon, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir);    
     end
 else
     useGRAPPAforHost = 0;
@@ -742,7 +742,15 @@ asymFactor = asymData_left./asymData_right;
 iAsymCoil = find(asymFactor==max(asymFactor),1);
 
 if useGRAPPAforHost
-    hostExampleVolume = squeeze(mOutGRAPPA.grappaRecon_1DFFT(:,iAsymCoil,:,:,nS));
+    if bGRAPPAinRAM 
+        hostExampleVolume = squeeze(mOutGRAPPA.grappaRecon_1DFFT(:,iAsymCoil,:,:,nS));
+    else
+        hostExampleVolume = zeros(hrps.');
+        for iReadSlice = 1:hrps(1) % virtual 'slices' in the readout direction            
+            tempData = load([tempNameRoots.grappaRecon_1DFFT '_' num2str(iReadSlice) '_1_' num2str(nS) '.mat']);
+            hostExampleVolume(iReadSlice,:,:) = reshape(tempData.outData(1,iAsymCoil,:,:),[1 hrps(2) hrps(3)]);
+        end
+    end   
     hostExampleVolume = ifft1s(ifft1s(hostExampleVolume,2),3);
 else
     hostExampleVolume = squeeze(twix_obj.image(:,iAsymCoil,:,:,1,1,1,1,1,end));
@@ -972,10 +980,10 @@ if ~bFullParforRecon
                 if bGRAPPAinRAM 
                     thisData = squeeze(mOutGRAPPA.grappaRecon_1DFFT(:,iC_keep(iC),:,:,iS));
                 else
-                    thisData = zeros(hrps);
+                    thisData = zeros(hrps.');
                     for iReadSlice = 1:hrps(1) % virtual 'slices' in the readout direction
-                        tempData = load([tempFileRoots.grappaRecon_1DFFT '_' num2str(iReadSlice) '_1_' num2str(iS) '.mat']);
-                        thisData(iReadSlice,:,:) = tempData.outData;
+                        tempData = load([tempNameRoots.grappaRecon_1DFFT '_' num2str(iReadSlice) '_1_' num2str(iS) '.mat']);
+                        thisData(iReadSlice,:,:) = reshape(tempData.outData(1,iC_keep(iC),:,:),[1 hrps(2) hrps(3)]);
                     end
                 end
                 % thisData = squeeze(mOutGRAPPA.dataCombined(:,:,:,2)); iC=1;iS = 1; % use this to have more brain coverage for debugging...
@@ -1535,15 +1543,16 @@ fclose(fid);
 %% Delete the temporary files (which could be rather large...!)
  
 % clear mOut and mOutGRAPPA files
-if ~bKeepReconInRAM
-    delete(mOut.Properties.Source)
-end
+
     
 if bKeepGRAPPArecon
     if bGRAPPAinRAM
         save([outDir '/GRAPPArecons_beforeMoco.mat'],'mOutGRAPPA','-v7.3');
     end
 else
+    if ~bKeepReconInRAM
+        delete(mOut.Properties.Source)
+    end    
     if ~bGRAPPAinRAM
         if ~isempty(tempNameRoots.grappaRecon_1DFFT)
             delete([tempNameRoots.grappaRecon_1DFFT '*.mat']);
@@ -1555,8 +1564,8 @@ else
             delete([tempNameRoots.dataCombined '*.mat']);
         end
     end
+    rmdir(tempDir)
 end
-rmdir(tempDir)
 
 if bZipNIFTIs
     gzip([outDir '/*.nii']);
