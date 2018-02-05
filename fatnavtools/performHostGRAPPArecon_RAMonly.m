@@ -1,15 +1,16 @@
-function [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_obj, iRepToRecon, nSliceNeighbours)
+function [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_obj, counterStruct, nSliceNeighbours)
 %
-% function [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_obj)
+% function [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_obj, counterStruct, nSliceNeighbours))
 %
 % Applies GRAPPA to the host data, which here is assumed to have acceleration in
 % the first phase-encoding direction only (as is the current limitation of
 % the MP2RAGE Siemens code).
 %
-% This version attempts to loop over 'Echoes' and 'Sets'. Note that if there
-% are multiple 'Repetitions' then only the repetition specified by
-% 'iRepToRecon' will be reconstructed - and it is assumed that there is
-% separate ACS data available for each repetition.
+% This version attempts to loop over 'Echoes' and 'Sets'. 
+%
+% If you want to use other counters (currently only 'Repetitions' or 'Averages') then 
+% specify which to reconstruct with counterStruct.iRep or
+% counterStruct.iAve. It is assumed that there is separate ACS data available for each repetition.
 %
 %
 % -------
@@ -23,6 +24,13 @@ function [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_o
 %                     motion-correction. As it's RAM only the mOutGRAPPA
 %                     structure is also only constructed at the end, as then 
 %                     it becomes compatible with parfor...
+%
+% 5/2/18 - gallichand@cardiff.ac.uk
+%        - Introduce the 'counterStruct' to attempt to handle repetitions
+%          and averages as simply as possible. NB: Should now handle
+%          'averages' properly - but not 'repetitions' as the counters in
+%          the FatNav recon will then clash. This is fixable, but not yet
+%          implemented...
    
 
 if nargin < 3
@@ -31,7 +39,15 @@ if nargin < 3
 end
 
 if nargin < 2
-    iRepToRecon = 1;
+    counterStruct.iRep = 1;
+    counterStruct.iAve = 1;
+else
+    if ~isfield(counterStruct,'iRep')
+        counterStruct.iRep = 1;
+    end
+    if ~isfield(counterStruct,'iAve')
+        counterStruct.iAve = 1;
+    end
 end
 
 
@@ -51,10 +67,15 @@ nc = twix_obj.image.dataSize(2);
 nSet = twix_obj.image.dataSize(10);
 nEco = twix_obj.image.NEco;
 
+nAve = twix_obj.image.NAve;
 nRep = twix_obj.image.NRep;
 
-if iRepToRecon > nRep
-    disp(['Error, tried to recon repetition ' num2str(iRepToRecon) ', but only found ' num2str(nRep) ' repetitions in data']);
+if counterStruct.iAve > nAve
+    disp(['Error, tried to recon average ' num2str(counterStruct.iAve) ', but only found ' num2str(nAve) ' averages in data']);
+    return
+end
+if counterStruct.iRep > nRep
+    disp(['Error, tried to recon repetition ' num2str(counterStruct.iRep) ', but only found ' num2str(nRep) ' repetitions in data']);
     return
 end
 
@@ -72,7 +93,7 @@ centerLin1 = twix_obj.image.centerLin(1);
 tic
 disp('..............')
 disp('... Loading the raw data file into RAM and doing a 1D-FFT')
-allData = twix_obj.image(:,:,:,:,:,:,:,:,iRepToRecon,:);
+allData = twix_obj.image(:,:,:,:,:,counterStruct.iAve,:,:,counterStruct.iRep,:);
 timingReport.FFTperSlice = toc;
 allData = ifft1s(allData,1);
 
@@ -83,7 +104,7 @@ disp('..............')
 %% Now do GRAPPA on each of those slices
 
 
-ACSdata = twix_obj.refscan(:,:,:,:,:,:,:,:,iRepToRecon,:);
+ACSdata = twix_obj.refscan(:,:,:,:,:,counterStruct.iAve,:,:,counterStruct.iRep,:);
 ACSdata = ifft1s(ACSdata);
 
 %%% Define GRAPPA kernel

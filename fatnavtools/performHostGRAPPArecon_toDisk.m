@@ -1,6 +1,6 @@
-function [timingReport, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,iRepToRecon, nSliceNeighbours)
+function [timingReport, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,counterStruct, nSliceNeighbours)
 %
-% function [timingReport, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,iRepToRecon, nSliceNeighbours)
+% function [timingReport, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,counterStruct, nSliceNeighbours)
 %
 % Applies GRAPPA to the host data, which here is assumed to have acceleration in
 % the first phase-encoding direction only (as is the current limitation of
@@ -21,6 +21,12 @@ function [timingReport, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,
 %
 % Update Jan 2018, gallichand@cardiff.ac.uk 
 % -- clean up for actual integration into retroMoCoBox pipeline
+%
+% -- Feb 2018 - Adapt to handle 'averages' and 'repetitions'
+%    - not that it isn't straightforward to keep track of filenames of the
+%    temporary files to make sure nothing bad happens if you run this
+%    simultaneously on multiple averages or repetitions - probably best if
+%    they each have a separate 'tempDir'
 
 
 if nargin < 4
@@ -29,7 +35,15 @@ if nargin < 4
 end
 
 if nargin < 3
-    iRepToRecon = 1;
+    counterStruct.iRep = 1;
+    counterStruct.iAve = 1;
+else
+    if ~isfield(counterStruct,'iRep')
+        counterStruct.iRep = 1;
+    end
+    if ~isfield(counterStruct,'iAve')
+        counterStruct.iAve = 1;
+    end
 end
 
 
@@ -43,12 +57,18 @@ nc = twix_obj.image.dataSize(2);
 nSet = twix_obj.image.dataSize(10);
 nEco = twix_obj.image.NEco;
 
+nAve = twix_obj.image.NAve;
 nRep = twix_obj.image.NRep;
 
-if iRepToRecon > nRep
-    disp(['Error, tried to recon repetition ' num2str(iRepToRecon) ', but only found ' num2str(nRep) ' repetitions in data']);
+if counterStruct.iAve > nAve
+    disp(['Error, tried to recon average ' num2str(counterStruct.iAve) ', but only found ' num2str(nAve) ' averages in data']);
     return
 end
+if counterStruct.iRep > nRep
+    disp(['Error, tried to recon repetition ' num2str(counterStruct.iRep) ', but only found ' num2str(nRep) ' repetitions in data']);
+    return
+end
+
 
 nACSmeas1 = twix_obj.refscan.dataSize(3);
 nACSmeas2 = twix_obj.refscan.dataSize(4);
@@ -97,7 +117,7 @@ if length(tempFiles)~=nread % Check if we can assume they already exist...
         iSet = 1:nSet;
         iEco = 1:nEco;
         
-        thisdata = twix_obj.image(:,:,iPE1,iPE2,1,1,1,iEco,iRepToRecon,iSet);
+        thisdata = twix_obj.image(:,:,iPE1,iPE2,1,counterStruct.iAve,1,iEco,counterStruct.iRep,iSet);
         thisdata = ifft1s(thisdata,1);
         
         for iS = 1:nread
@@ -150,7 +170,7 @@ end
 %% Now do GRAPPA on each of those slices
 
 
-ACSdata = twix_obj.refscan(:,:,:,:,:,:,:,:,iRepToRecon,:);
+ACSdata = twix_obj.refscan(:,:,:,:,:,counterStruct.iAve,:,:,counterStruct.iRep,:);
 ACSdata = ifft1s(ACSdata);
 
 %%% Define GRAPPA kernel

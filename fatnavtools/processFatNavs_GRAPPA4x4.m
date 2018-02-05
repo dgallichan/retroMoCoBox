@@ -1,5 +1,5 @@
-function [ACSims, timingReport] = processFatNavs_GRAPPA4x4(twix_obj, outRoot, varargin)
-% function [ACSims, timingReport] = processFatNavs_GRAPPA4x4(twix_obj, outRoot, varargin)
+function [ACSims, timingReport, fatnavdir] = processFatNavs_GRAPPA4x4(twix_obj, outRoot, varargin)
+% function [ACSims, timingReport, fatnavdir] = processFatNavs_GRAPPA4x4(twix_obj, outRoot, varargin)
 %
 % Process the FatNavs contained within the file specified by the 'twix_obj'
 % (loaded in using 'mapVBVD_fatnavs.m') - using the folder 'outRoot' for
@@ -39,6 +39,10 @@ function [ACSims, timingReport] = processFatNavs_GRAPPA4x4(twix_obj, outRoot, va
 %                       down-weight the nose based on knowledge of
 %                       locations of coil sensitivities for 32ch coil
 %
+%   'iAve'       - Which 'average' to reconstruct
+%
+%   'appendString' - String which gets appended to the output foldername
+%
 %  ------------
 %  daniel.gallichan@epfl.ch, June 2015
 %
@@ -70,7 +74,13 @@ function [ACSims, timingReport] = processFatNavs_GRAPPA4x4(twix_obj, outRoot, va
 %  21/4/16 - danielg - switch to parfor version of spm_realign
 %                    - switch to SPM12
 %                    - nosefix now default to off, as SPM12 allows wrap option
-
+%
+%  5/1/18 - gallichand@cardiff.ac.uk (danielg)
+%         - returns the 'fatnavdir' folder
+%         - incorporate 'average' counter to reconstruct only those FatNavs
+%         -  NB: really the sequence itself needs updating on the scanner
+%            so that the counters are incremented properly... Probably this
+%            feature won't be used enough to make that worthwhile though...
 
 if (~isfield(twix_obj,'FatNav') || ~isfield(twix_obj,'FatNav_refscan'))
     disp('Error: input twix_obj doesn''t seem to contain FatNav data...')
@@ -78,9 +88,9 @@ if (~isfield(twix_obj,'FatNav') || ~isfield(twix_obj,'FatNav_refscan'))
 end
 
 
-[indexOfFirstNav, bShowFigs, nVirtualCoilsFatNavs, FatNavRes_mm, nSliceNeighbours, bApplyNoseFix] = ...
+[indexOfFirstNav, bShowFigs, nVirtualCoilsFatNavs, FatNavRes_mm, nSliceNeighbours, bApplyNoseFix, iAve, appendString] = ...
     process_options(varargin,'indexOfFirstNav',1,'showFigs',1,'nVirtualCoilsFatNavs',[],...
-                    'FatNavRes_mm',2,'nSliceNeighbours',0,'bApplyNoseFix',0);
+                    'FatNavRes_mm',2,'nSliceNeighbours',0,'bApplyNoseFix',0, 'iAve', 1, 'appendString', '');
 
 %% For testing code without calling as function:
 
@@ -111,7 +121,7 @@ twix_obj.FatNav.flagRemoveOS = 1;
 % apply shift due to fat offset frequency (this assumes BW of 1950 Hz, and a fat/water shift of 3.5ppm)
 offsetsXYZ = [0 0 (twix_obj.hdr.MeasYaps.sTXSPEC.asNucleusInfo{1,1}.lFrequency*3.5e-6/1950)]; 
 
-nT = twix_obj.FatNav.dataSize(9);
+nT = twix_obj.FatNav.dataSize(9)/twix_obj.FatNav.NAve;
 
 
 %%
@@ -123,10 +133,10 @@ if outRoot(1)=='~'  % SPM seems to have a 'thing' about the tilde...
     outRoot = [getenv('HOME') outRoot(2:end)];
 end
 
-outdir = [outRoot '/fatnavs_' MIDstr];
+fatnavdir = [outRoot '/fatnavs_' MIDstr appendString];
 
-if ~exist(outdir,'dir')
-    mkdir(outdir);
+if ~exist(fatnavdir,'dir')
+    mkdir(fatnavdir);
 end
 
 
@@ -236,7 +246,7 @@ ACSims = ifft2s(ACSdata);
 ACSim = ssos(ACSims);
 
 ovACS = orthoview(ACSim,'drawIms',0);
-imab_overwrite([outdir '/a_FatNav_ACSim_' MIDstr '.png'],ovACS.oneIm);
+imab_overwrite([fatnavdir '/a_FatNav_ACSim_' MIDstr '.png'],ovACS.oneIm);
 
 ACSdata = zeroCrop(ACSdata); % after making an image at full resolution, drop back to just where the data really is
 
@@ -270,7 +280,7 @@ if FatNavRes_mm==2 && bApplyNoseFix
         sigDistMask(sigDist<(150*norm(ACSims(:)))) = 1;
         
         ov1 = orthoview(ssos(1-sigDistMask),'mip',1,'drawIms',0);
-        imab_overwrite([outdir '/a_noseRemovalMask_mip.png'],ov1.oneIm);
+        imab_overwrite([fatnavdir '/a_noseRemovalMask_mip.png'],ov1.oneIm);
         
     else
         iC_keep = 1:nc;
@@ -306,7 +316,7 @@ end
     
 %% Check if FatNavs have already been processed, and use them instead if they have
 
-if exist([outRoot '/motion_parameters_spm_' MIDstr '.mat'],'file');
+if exist([outRoot '/motion_parameters_spm_' MIDstr appendString '.mat'],'file');
     disp(['Existing estimated motion-parameters found - using them instead of recalculating...'])
     timingReport.calculateGRAPPAweights = 0;
     timingReport.eachFatNav = zeros(nT,1);
@@ -315,7 +325,7 @@ if exist([outRoot '/motion_parameters_spm_' MIDstr '.mat'],'file');
     return
 end
 
-nProcessedImages = length(dir([outdir '/eachFatNav_*.nii']));
+nProcessedImages = length(dir([fatnavdir '/eachFatNav_*.nii']));
 
 if nProcessedImages>0
     disp(['Found ' num2str(nProcessedImages) ' existing processed FatNavs and expected to find ' num2str(nT)])
@@ -391,7 +401,7 @@ if nProcessedImages~=nT % assume images are there, but not the alignment of them
         
         full_GRAPPArecons = int16(zeros(nx,ny,nz));
         
-        fatnavdata = twix_obj.FatNav(:,:,:,:,1,1,1,1,iT);
+        fatnavdata = twix_obj.FatNav(:,:,:,:,1,iAve,1,1,iT+(iAve-1)*nT);
         if nc~=nc_orig
             % do coil compression
             fatnavdata = permute(ifft1s(fatnavdata,1),[1 3 4 2]);
@@ -440,7 +450,7 @@ if nProcessedImages~=nT % assume images are there, but not the alignment of them
         timingEachFatNav(iT) = toc;
         
         
-        sn(full_GRAPPArecons,[outdir '/eachFatNav_' num2str(iT,'%.3d') '.nii'],FatNavRes_mm*[1 1 1]);
+        sn(full_GRAPPArecons,[fatnavdir '/eachFatNav_' num2str(iT,'%.3d') '.nii'],FatNavRes_mm*[1 1 1]);
         
         if bShowFigs
             fig(figIndex)
@@ -473,7 +483,7 @@ else
 end
 
 for iV = 1:nT
-    V(iV) = spm_vol_nifti([outdir '/eachFatNav_' num2str(iiV(iV),'%.3d') '.nii']);
+    V(iV) = spm_vol_nifti([fatnavdir '/eachFatNav_' num2str(iiV(iV),'%.3d') '.nii']);
 end
 
 
@@ -498,14 +508,14 @@ fitpars_cent = MPos_cent.pars(1:6,:);
 % fitpars_cent(1:3,:) = fitpars_cent(1:3,:)*FatNavRes_mm; % put into mm <-- now already in mm
 fitpars_cent(4:6,:) = fitpars_cent(4:6,:)*180/pi;
 
-save([outRoot '/motion_parameters_spm_' MIDstr '.mat'],'MPos','fitpars','MPos_cent','fitpars_cent');
+save([outRoot '/motion_parameters_spm_' MIDstr appendString '.mat'],'MPos','fitpars','MPos_cent','fitpars_cent');
             
      
 %%
 
 fig(figIndex);
 plotFitPars(fitpars_cent);
-export_fig([outdir '/a_FatNav_MoCoPars_' MIDstr '.png'])
+export_fig([fatnavdir '/a_FatNav_MoCoPars_' MIDstr '.png'])
 
 
 %% make gif movies of before and after alignment (requires ImageMagick to make the GIF)
@@ -523,25 +533,25 @@ if testMagick==0 % apparently a status of '0' means that everything is good...
     spm_reslice(VfromPos(iOut),struct('mask',false,'mean',false,'interp',5,'which',2,'wrap',[0 0 0],'prefix','spm_'));
     
     for iiOut = 1:length(iOut)
-        thisOutIm = rn([outdir '/eachFatNav_' num2str(iOut(iiOut)+(indexOfFirstNav-1),'%.3d') '.nii']);
+        thisOutIm = rn([fatnavdir '/eachFatNav_' num2str(iOut(iiOut)+(indexOfFirstNav-1),'%.3d') '.nii']);
         if iiOut==1
             climsMax = percentile(thisOutIm(:),99);
         end
         ov1 = orthoview(thisOutIm,'drawIms',0);
-        imab_overwrite([outdir '/temp_mov_' num2str(iiOut,'%.3d') '.png'],ov1.oneIm,[0 climsMax]);
+        imab_overwrite([fatnavdir '/temp_mov_' num2str(iiOut,'%.3d') '.png'],ov1.oneIm,[0 climsMax]);
     end   
-    processString = ['convert -dispose 2 -delay 10 -loop 0 ' outdir '/temp_mov_*.png ' outdir '/a_mov_eachFatNav.gif'];
+    processString = ['convert -dispose 2 -delay 10 -loop 0 ' fatnavdir '/temp_mov_*.png ' fatnavdir '/a_mov_eachFatNav.gif'];
     system(processString);
-    delete([outdir '/temp_mov_*.png'])
+    delete([fatnavdir '/temp_mov_*.png'])
     
     for iiOut = 1:length(iOut)        
-        thisOutIm = rn([outdir '/spm_eachFatNav_' num2str(iOut(iiOut)+(indexOfFirstNav-1),'%.3d') '.nii']);
+        thisOutIm = rn([fatnavdir '/spm_eachFatNav_' num2str(iOut(iiOut)+(indexOfFirstNav-1),'%.3d') '.nii']);
         ov1 = orthoview(thisOutIm,'drawIms',0);
-        imab_overwrite([outdir '/temp_mov_' num2str(iiOut,'%.3d') '.png'],ov1.oneIm,[0 climsMax]);
+        imab_overwrite([fatnavdir '/temp_mov_' num2str(iiOut,'%.3d') '.png'],ov1.oneIm,[0 climsMax]);
     end
-    processString = ['convert -dispose 2 -delay 10 -loop 0 ' outdir '/temp_mov_*.png ' outdir '/a_mov_spm_eachFatNav.gif'];
+    processString = ['convert -dispose 2 -delay 10 -loop 0 ' fatnavdir '/temp_mov_*.png ' fatnavdir '/a_mov_spm_eachFatNav.gif'];
     system(processString);    
-    delete([outdir '/temp_mov_*.png'])
+    delete([fatnavdir '/temp_mov_*.png'])
     
 else
     disp('...............')
