@@ -42,7 +42,7 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %      'tempRoot' - location for creating temporary files - can be many Gb.
 %                   Default is to use the same location as 'outRoot'.
 %
-%      'LinParSwap' - set this to '1' to indicate that the 'LIN/PAR swap'
+%      'bLinParSwap' - set this to '1' to indicate that the 'LIN/PAR swap'
 %                     option was chosen in the MP2RAGE sequence. This
 %                     alters which direction in k-space the FatNavs
 %                     correspond to.
@@ -106,14 +106,14 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %                        sets, but not all...  Check the orientation
 %                        checker feature in the HTML!
 %
-%       'zipNIFTIs' - Use '1' to apply gzip at the end to all the NIFTI
+%       'bZipNIFTIs' - Use '1' to apply gzip at the end to all the NIFTI
 %                     files (default), otherwise just leave them uncompressed.
 %
-%       'keepFatNavs' - Use '1' to keep all the reconstructed FatNavs,
+%       'bKeepFatNavs' - Use '1' to keep all the reconstructed FatNavs,
 %                       otherwise delete that folder when finished
 %                       (default).
 %
-%       'KeepPatientInfo' - Use '1' to keep sensitive info from raw data header  
+%       'bKeepPatientInfo' - Use '1' to keep sensitive info from raw data header  
 %                           in HTML output (default). Use '0' to anomyize completely
 %                           and use a string e.g. '0019' to insert the ID from
 %                           another database.
@@ -254,6 +254,9 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %           FatNavs properly beyond the first volume of the host. This
 %           feature probably won't be used enough to make that worthwhile
 %           though...
+%         - WARNING - I took this opportunity to cleanup the names of some
+%           of the input options (always putting a 'b' for boolean in front
+%           of logical options) so please check your calling code!
 %
 
 reconPars.retroMocoBoxVersion = '0.7.0dev'; % put this into the HTML for reference
