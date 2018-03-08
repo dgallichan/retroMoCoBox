@@ -120,10 +120,16 @@ end
 % in the next line I assume that Siemens always use the same structure for
 % the 'tReferenceImage0' field - but I haven't looked for documentation to
 % support this, so it may not always extract the scan date properly...
-iDot = strfind(char(twix_obj.hdr.MeasYaps.tReferenceImage0),'.'); % some versions seem to create a char already, others not...
-thisDateString = char(twix_obj.hdr.MeasYaps.tReferenceImage0);
-fprintf(fid,['<strong>Date of scan:</strong> ' local_reformatDateString(thisDateString(iDot(end)+(1:8))) '<br>\n']);
-  
+if exist(twix_obj.hdr.MeasYaps,'tReferenceImage0') % some files apparently might not even have this field...
+    iDot = strfind(char(twix_obj.hdr.MeasYaps.tReferenceImage0),'.'); % some versions seem to create a char already, others not...
+    thisDateString = char(twix_obj.hdr.MeasYaps.tReferenceImage0);
+    if strcmp(thisDateString(iDot(end)+(1:6)),'300000') % it seems sometimes this 300000 is present, then the year is only two digits...
+        fprintf(fid,['<strong>Date of scan:</strong> ' local_reformatDateString(['20' thisDateString(iDot(end)+6+(1:6))]) '<br>\n']);
+    else
+        fprintf(fid,['<strong>Date of scan:</strong> ' local_reformatDateString(thisDateString(iDot(end)+(1:8))) '<br>\n']);
+    end
+end
+
 if ischar(reconPars.bKeepPatientInfo)
     fprintf(fid,['<strong>Database ID:</strong> ' reconPars.bKeepPatientInfo '<br>\n']);
 else
