@@ -15,6 +15,7 @@ function [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon2D_RAMonly(twix
 %
 % -------
 % gallichand@cardiff.ac.uk - update from the 1D version
+% March 2018
    
 
 if nargin < 3
@@ -86,7 +87,11 @@ ACSdata = twix_obj.refscan(:,:,:,:,:,counterStruct.iAve,:,:,counterStruct.iRep,:
 ACSdata = ifft1s(ACSdata);
 
 %%% Define GRAPPA kernel
-gx = 2; gy = 2; % size of GRAPPA kernel - this is something that might need to be tuned for particular acceleration factors...
+if Ay == 1
+    gx = 3; gy = 2;
+else
+    gx = 2; gy = 2; % size of GRAPPA kernel - this is something that might need to be tuned for particular acceleration factors...
+end
 Ax = twix_obj.hdr.MeasYaps.sPat.lAccelFactPE;
 Ay = twix_obj.hdr.MeasYaps.sPat.lAccelFact3D;
 grapKernel = zeros(gx + (gx-1)*(Ax-1), gy + (gy-1) * (Ay-1));
