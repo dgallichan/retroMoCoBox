@@ -86,14 +86,14 @@ disp('..............')
 ACSdata = twix_obj.refscan(:,:,:,:,:,counterStruct.iAve,:,:,counterStruct.iRep,:);
 ACSdata = ifft1s(ACSdata);
 
+Ax = twix_obj.hdr.MeasYaps.sPat.lAccelFactPE;
+Ay = twix_obj.hdr.MeasYaps.sPat.lAccelFact3D;
 %%% Define GRAPPA kernel
 if Ay == 1
     gx = 3; gy = 2;
 else
     gx = 2; gy = 2; % size of GRAPPA kernel - this is something that might need to be tuned for particular acceleration factors...
 end
-Ax = twix_obj.hdr.MeasYaps.sPat.lAccelFactPE;
-Ay = twix_obj.hdr.MeasYaps.sPat.lAccelFact3D;
 grapKernel = zeros(gx + (gx-1)*(Ax-1), gy + (gy-1) * (Ay-1));
 
 % source points are marked with 1
