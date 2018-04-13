@@ -29,7 +29,7 @@
 % there is still quite a lot of residual ringing artifact. This residual
 % ringing can be reduced considerably by an iterative version of the
 % reconstruction - but this is *much* slower, so should only be attempted
-% on a reasonable small test volume (easiest to achieve by uncommenting the
+% on a reasonably small test volume (easiest to achieve by uncommenting the
 % line in the next cell which will extract just a thin slab in the z
 % direction). The iterative reconstruction massively reduces the ringing
 % artifact, but still leaves a small textural artifact. It is an ongoing
