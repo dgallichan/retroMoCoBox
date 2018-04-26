@@ -355,9 +355,9 @@ for iS = 1:nread
             thisData = load([tempNameRoots.reconSoS '_' num2str(iS) '_' num2str(iEco) '_' num2str(iSet) '.mat']);
             reconSoS(iS,:,:,iSet,iEco) = thisData.outData;
             
-            if ~isempty(combinePars)
-                thisData = load([tempNameRoots.grappaRecon_1DFFT '_' num2str(iS) '_' num2str(iEco) '_' num2str(iSet) '.mat']);
-                dataCombined(iS,:,:,iSet,iEco) = thisData.outData;
+           if ~isempty(combinePars)
+                thisData = load([tempNameRoots.dataCombined '_' num2str(iS) '_' num2str(iEco) '_' num2str(iSet) '.mat']);
+                dataCombined(iS,:,:,iSet,iEco) = thisData.thisCombination;
             end
             
         end

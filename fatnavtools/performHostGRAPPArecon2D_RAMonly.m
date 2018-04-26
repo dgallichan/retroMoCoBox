@@ -90,7 +90,7 @@ Ax = twix_obj.hdr.MeasYaps.sPat.lAccelFactPE;
 Ay = twix_obj.hdr.MeasYaps.sPat.lAccelFact3D;
 %%% Define GRAPPA kernel
 if Ay == 1
-    gx = 3; gy = 2;
+    gx = 4; gy = 3;
 else
     gx = 2; gy = 2; % size of GRAPPA kernel - this is something that might need to be tuned for particular acceleration factors...
 end
@@ -208,9 +208,11 @@ parfor iS = 1:nread
             % WARNING - I don't know if the following line will be correct for all
             % possible image resolution/matrix sizes, so possibly safer to leave this to the
             % separate image recon part...
-%             thisGrapRecon([1:nACSmeas1]-floor(nACSmeas1/2)+centerLin1-1,:,:) = thisACSdataFull;
-            thisGrapRecon([1:nACSmeas1]-floor(nACSmeas1/2)+centerLin1-1,[1:nACSmeas2]-floor(nACSmeas2/2)+centerPar1-1,:) = thisACSdataFull;
-
+            if Ay==1
+                thisGrapRecon([1:nACSmeas1]-floor(nACSmeas1/2)+centerLin1-1,:,:) = thisACSdataFull;
+            else
+                thisGrapRecon([1:nACSmeas1]-floor(nACSmeas1/2)+centerLin1-1,[1:nACSmeas2]-floor(nACSmeas2/2)+centerPar1-1,:) = thisACSdataFull;
+            end
             
             if ~isempty(combinePars)
                 thisCombination = complex(zeros(npe1,npe2,'single'));
