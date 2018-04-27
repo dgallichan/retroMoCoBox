@@ -648,7 +648,7 @@ end
 % (also need to spawn clean-up and finishing jobs which wait for this to
 % finish)
 
-RETROMOCOBOX_PATH = moCoBoxPath;
+RETROMOCOBOX_PATH = retroMoCoPath;
 mirtpath = fileparts(which('nufft.m'));
 MIRT_PATH = [mirtpath '/../'];
 SPM_PATH = fileparts(which('spm.m')); 
