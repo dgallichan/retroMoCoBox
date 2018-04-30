@@ -6,9 +6,9 @@ run([RETROMOCOBOX_PATH '/addRetroMoCoBoxToPath.m']);
 run([MIRT_PATH '/setup.m']);
 addpath(SPM_PATH);
 
-if nEco <= 10
-    parpool(nEco);
-end
+% if nEco <= 10
+%     parpool(nEco); % this line fails on the cluster for some reason...!
+% end
 
 thiscoil_ims = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nEco,'single')); % assume this *will* fit in RAM - ends up at 1.2 GB for 336x336x192x7
 thiscoil_ims_corrected = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nEco,'single')); % two copies required if we want to keep uncorrected as well...!

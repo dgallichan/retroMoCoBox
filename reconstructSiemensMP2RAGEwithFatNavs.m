@@ -330,6 +330,7 @@ end
 
 if ~isfield(twix_obj,'FatNav')
     disp('Error, no FatNavs found in raw data file!')
+    twix_obj % this displays the fields of the twix_obj that are present for comparison/debugging
     return
 end
 
