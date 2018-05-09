@@ -670,8 +670,8 @@ fprintf(fid,'#!/bin/bash\n');
 fprintf(fid,['#SBATCH --array 1-' num2str(nc) '\n']);
 fprintf(fid,'#SBATCH -p cubric-default\n');
 fprintf(fid,'#SBATCH --job-name=GREreconHelper\n');
-fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconHelperArray.out\n']);
-fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconHelperArray.err\n']);
+fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconHelperArray_%j.out\n']);
+fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconHelperArray_%j.err\n']);
 if nEco <= 10
     fprintf(fid,['#SBATCH --ntasks ' num2str(nEco) '\n']); % only 7 echoes, so parfor only needs 7 threads
 else
@@ -683,26 +683,30 @@ fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
 fprintf(fid,['matlab -nodesktop -nosplash -r "cluster_runMultiEchoGRE_eachCoil(''' tempNameRoots.allReconPars ''',${SLURM_ARRAY_TASK_ID});exit;"\n']);
 fclose(fid);
 
+disp('Launching batch job array for applying the motion correction...')
 [status, sbatch_out] = system(['sbatch ' tempNameRoots.clusterScript]); 
 jobnumber = sbatch_out(21:end); % after the text 'Submitted batch job ..'
+disp('Done.')
 
 fid = fopen(tempNameRoots.clusterScriptRecombine,'w');
 fprintf(fid,'#!/bin/bash\n');
 fprintf(fid,['#SBATCH --dependency=afterok:' jobnumber]); % wait for the array above to finish before starting the recombine
 fprintf(fid,'#SBATCH -p cubric-default\n');
 fprintf(fid,'#SBATCH --job-name=GREreconRecombine\n');
-fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconRecombine.out\n']);
-fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconRecombine.err\n']);
+fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconRecombine_%j.out\n']);
+fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconRecombine_%j.err\n']);
 fprintf(fid,'#SBATCH --ntasks 10\n');
 fprintf(fid,'#SBATCH --mem-per-cpu=32000M\n'); % this one also exceeded memory limit when set to 16000
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
 fprintf(fid,['matlab -nodesktop -nosplash -r "reconParsFile = ''' tempNameRoots.allReconPars ''';cluster_combineCoils;exit;"\n']);
 fclose(fid);
 
+disp('Launching batch job array for applying the motion correction...')
 [status, sbatch_out] = system(['sbatch ' tempNameRoots.clusterScriptRecombine]); 
 jobnumber2 = sbatch_out(21:end); % after the text 'Submitted batch job ..'
+disp('Done.')
 
-save(tempNameRoots.cleanupFiles,'tStart_applyMoco','htmlDir','startTime','timingReport_FatNavs','nc_keep','nEco','retroMocoBoxVersion',...
+save(tempNameRoots.cleanupFiles,'htmlDir','startTime','timingReport_FatNavs','nc_keep','nEco', ...
     'reconPars','tempNameRoots','tempDir','outDir','nFatNavs','fatnavdir','RETROMOCOBOX_PATH','MIRT_PATH','SPM_PATH');
 fclose(fidHTML); % HTML needs closing and will be reopened in cleanup
 
@@ -711,16 +715,17 @@ fprintf(fid,'#!/bin/bash\n');
 fprintf(fid,['#SBATCH --dependency=afterok:' jobnumber2]); % wait for the recombine to finish before starting the cleanup
 fprintf(fid,'#SBATCH -p cubric-default\n');
 fprintf(fid,'#SBATCH --job-name=GREreconCleanup\n');
-fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconCleanup.out\n']);
-fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconCleanup.err\n']);
+fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconCleanup_%j.out\n']);
+fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconCleanup_%j.err\n']);
 fprintf(fid,'#SBATCH --ntasks 1\n');
 fprintf(fid,'#SBATCH --mem-per-cpu=8000M\n');
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
 fprintf(fid,['matlab -nodesktop -nosplash -r "cleanupFile = ''' tempNameRoots.cleanupFiles ''';cluster_cleanup;exit;"\n']);
 fclose(fid);
 
+disp('Launching batch job array for applying the motion correction...')
 [status, sbatch_out] = system(['sbatch ' tempNameRoots.clusterScriptCleanup]); 
-
+disp('Done.')
 
 
 

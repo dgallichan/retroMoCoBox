@@ -11,9 +11,6 @@ addpath(SPM_PATH);
 fidHTML = fopen([htmlDir '/index.html'],'a');
 
 
-tFinish_applyMoco = clock;
-timingReport_totalTimeApplyMoco = etime(tFinish_applyMoco,tStart_applyMoco);
-
 %% And put the reconstructed images into the html
 
 all_ims = rn([outDir '/GRE.nii']);
@@ -56,10 +53,10 @@ fprintf(fidHTML,['<h4>Total reconstruction time: ' num2str(totalTime_hrs) ' hour
 fprintf(fidHTML,['<strong>Calculate GRAPPA weights for FatNavs: </strong>' num2str(round(timingReport_FatNavs.calculateGRAPPAweights)) ' seconds.<br>\n']);
 fprintf(fidHTML,['<strong>Reconstruct FatNavs: </strong>' num2str(nFatNavs) 'x ' num2str(round(mean(timingReport_FatNavs.eachFatNav))) ' seconds. Total time (possibly parallelized!): = ' num2str(round(timingReport_FatNavs.allFatNavs)) ' seconds. <br>\n']);
 fprintf(fidHTML,['<strong>Align FatNavs using SPM: </strong>' num2str(round(timingReport_FatNavs.SPMalignment)) ' seconds.<br>\n']);
-fprintf(fidHTML,['<strong>Application of retrospective motion-correction: </strong>' num2str(round(timingReport_totalTimeApplyMoco/60)) ' minutes\n']);
+% fprintf(fidHTML,['<strong>Application of retrospective motion-correction: </strong>' num2str(round(timingReport_totalTimeApplyMoco/60)) ' minutes\n']); % <--- not passed through currently in cluster mode
 
 % include version number
-fprintf(fidHTML,['<br><br><br><em>' char(datetime) '- created with reconstructSiemensGREwithFatNavs.m, version: ' retroMocoBoxVersion '</em>\n']);
+fprintf(fidHTML,['<br><br><br><em>' char(datetime) '- created with reconstructSiemensGREwithFatNavs.m, version: ' reconPars.retroMocoBoxVersion '</em>\n']);
 
 
 fprintf(fidHTML,'</body></html>\n');
