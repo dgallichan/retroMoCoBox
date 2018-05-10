@@ -680,7 +680,7 @@ end
 fprintf(fid,'#SBATCH --mem-per-cpu=32000M\n'); % MaxRSS showed requiring ~30 GB RAM for 336x336x192x7 data - I don't know why it still needs so much...
 %%%% I even tried switching around the parfor loop in cluster_runMultieEchoGRE_eachcoil to try to get the RAM usage down - I'm not sure if this is a bug in this version of MATLAB...
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
-fprintf(fid,['matlab -nodesktop -nosplash -r "cluster_runMultiEchoGRE_eachCoil(''' tempNameRoots.allReconPars ''',${SLURM_ARRAY_TASK_ID});exit;"\n']);
+fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "cluster_runMultiEchoGRE_eachCoil(''' tempNameRoots.allReconPars ''',${SLURM_ARRAY_TASK_ID});exit;"\n']);
 fclose(fid);
 
 disp('Launching batch job array for applying the motion correction...')
@@ -698,7 +698,7 @@ fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconRecombine_%%j.err\n']);
 fprintf(fid,'#SBATCH --ntasks 10\n');
 fprintf(fid,'#SBATCH --mem-per-cpu=32000M\n'); % this one also exceeded memory limit when set to 16000
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
-fprintf(fid,['matlab -nodesktop -nosplash -r "reconParsFile = ''' tempNameRoots.allReconPars ''';cluster_combineCoils;exit;"\n']);
+fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "reconParsFile = ''' tempNameRoots.allReconPars ''';cluster_combineCoils;exit;"\n']);
 fclose(fid);
 
 disp('Launching batch job array for applying the coil combination...')
@@ -720,7 +720,7 @@ fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconCleanup_%%j.err\n']);
 fprintf(fid,'#SBATCH --ntasks 1\n');
 fprintf(fid,'#SBATCH --mem-per-cpu=8000M\n');
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
-fprintf(fid,['matlab -nodesktop -nosplash -r "cleanupFile = ''' tempNameRoots.cleanupFiles ''';cluster_cleanup;exit;"\n']);
+fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "cleanupFile = ''' tempNameRoots.cleanupFiles ''';cluster_cleanup;exit;"\n']);
 fclose(fid);
 
 disp('Launching batch job array for applying the cleanup...')
