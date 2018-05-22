@@ -7,7 +7,7 @@ run([getenv('MIRT_HOME') '/setup.m']);
 addpath(getenv('SPM_HOME'));
 
 %% Haven't yet worked out a good way to feed these options from the command line launch for the cluster
-if ~exist('FatNavNavRes_mm','var')
+if ~exist('FatNavRes_mm','var')
     FatNavRes_mm = 2;
 end
 if ~exist('swapDims_xyz','var')
@@ -16,6 +16,6 @@ end
 
 %%
 
-reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,'FatNavRes_mm',FatNavRes_mm,'bGRAPPAinRAM',1,'bKeepReconInRAM',1,'bFullParforRecon',1,'swapDims_xyz',swapDims_xyz);
+reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,'FatNavRes_mm',FatNavRes_mm,'bGRAPPAinRAM',1,'bKeepReconInRAM',1,'bFullParforRecon',1,'swapDims_xyz',swapDims_xyz,'bKeepFatNavs',1);
 
 
