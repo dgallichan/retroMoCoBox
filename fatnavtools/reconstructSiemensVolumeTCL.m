@@ -279,6 +279,7 @@ nc_keep = length(iC_keep);
 %% Check the TCL data covers the same time as the MP2RAGE data
 
 %%%--- requires TracSuite functions!
+disp('Loading TCL data from session...')
 trackingFile = TS_getTrackingFile(reconPars.TCLdir);
 logFile = TS_getTracSuiteLogFile(reconPars.TCLdir);
 [TS_time_matrix, h, logStruct, pcl_filelist] = TS_readLog(logFile);
@@ -299,10 +300,10 @@ TS_alignMat = importdata([reconPars.TCLdir '/' alignMatFile.name]);
 t_MPR = duration(0,0,0,twix_obj.image.timestamp*2.5);
 
 
-fprintf(fid,'Time period of MPR acquisition: ' + string(t_MPR(1)) + ' -> ' + string(t_MPR(end)) + '<br>\n');
-fprintf(fid,'Time period of TCL log: ' + string(t_TCL(1)) + ' -> ' + string(t_TCL(end)) + '<br>\n');
-fprintf('Time period of MPR acquisition: ' + string(t_MPR(1)) + ' -> ' + string(t_MPR(end)) + '\n');
-fprintf('Time period of TCL log: ' + string(t_TCL(1)) + ' -> ' + string(t_TCL(end)) + '\n');
+fprintf(fid,['Time period of MPR acquisition: ' char(t_MPR(1)) ' -> ' char(t_MPR(end)) '<br>\n']);
+fprintf(fid,['Time period of TCL log: ' char(t_TCL(1)) ' -> ' char(t_TCL(end)) '<br>\n']);
+fprintf(['Time period of MPR acquisition: ' char(t_MPR(1)) ' -> ' char(t_MPR(end)) '\n']);
+fprintf(['Time period of TCL log: ' char(t_TCL(1)) ' -> ' char(t_TCL(end)) '\n']);
 
 if t_MPR(1) < t_TCL(1) || t_MPR(end) > t_TCL(end)
     error('Error: TCL log data does not appear to span the timing of the MPR data')
