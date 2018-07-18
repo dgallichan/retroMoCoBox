@@ -4,6 +4,13 @@ function ha = plotFitPars(fitPars,t,climsXYZ,climsRTP,isVertical)
 % 16/3/16 - Added a little trick so that 'isVertical' can also be of the
 % form [handle1 handle2] for the two subplots to plot into
 
+if size(fitPars,1)==4 && size(fitPars,2)==4 % assume affine matrices
+    Amats = fitPars;
+    fitPars = zeros(6,size(Amats,3));
+    fitPars(1:3,:) = squeeze(Amats(1:3,4,:));
+    fitPars(4:6,:) = rotmat2euler(Amats(1:3,1:3,:));
+end
+
 if nargin < 5
     isVertical = 1;
 end
@@ -38,6 +45,8 @@ if nargin < 2 || isempty(t)
 else
     timeUnits = '(mins)';
 end
+
+
 
 lstyle = {'linewidth',2};
 

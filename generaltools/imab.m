@@ -1,5 +1,5 @@
-function img = imab(data, clims, bSep, noCols)
-% function img = imab(data, clims, bSep, noCols)
+function [img handle] = imab(data, clims, bSep, noCols)
+% function [img handle] = imab(data, clims, bSep, noCols)
 %
 % Just show the 2D, 3D or 4D data as quickly as possible
 % 
@@ -140,7 +140,7 @@ end
 set(gca,'YDir','normal','xlim',[0.5 size(outIm,2)+.5],'ylim',[.5 size(outIm,1)+.5]);
 
 if nargout
-%     handle=hndl;
+    handle=hndl;
     img = outIm;
 end
 
