@@ -10,7 +10,8 @@ if (nV)~=size(Mats,3)
 end
 
 Vout = V;
+Mstart = Vout(1).mat;
 
 for iV = 1:nV
-    Vout(iV).mat = Mats(:,:,iV)*Vout(1).mat;
+    Vout(iV).mat = Mats(:,:,iV)*Mstart;
 end
