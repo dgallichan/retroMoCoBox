@@ -65,4 +65,8 @@ The script `run_SiemensMP2RAGErecon.m` gives an example of how to call the recon
 
 ### Additional things to note
 
+## "Correctable" motion 
 Be aware that because the FatNavs are never acquired coincidentally with the host data, the quality of the correction they provide will depend on the kind of motion that took place. Slow smooth motion can be corrected well, as can a few instances where there was sudden motion. However, if the subject moves continuously and in a 'random' way, then the FatNav motion estimates will not correspond to the head position when the host data were acquired. I have not noticed that this causes a problem for healthy volunteers, but it could be important for scanning certain patient populations. It also means that when testing that the FatNavs are working, it is best to perform a small slow movement throughout the scan as the 'deliberate motion' to be corrected.
+
+## Phase or slice oversampling
+Currently my code for the Siemens reconstruction will not properly handle the data if phase oversampling or slice oversampling is on (it runs but gets the voxel dimension wrong and so the correction won't be quite right either). This is not actually particularly complicated to fix - but would require a fair amount of time to implement and debug. I therefore recommend increasing the FOV instead of oversampling. Please let me know if anyone would *require* oversampling and we can look at changing the code to handle it properly.
