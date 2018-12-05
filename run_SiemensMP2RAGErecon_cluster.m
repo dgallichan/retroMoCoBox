@@ -23,7 +23,7 @@ if ~exist('bFullParforRecon','var')
     bFullParforRecon = 1;
 end
 if ~exist('bKeepComplexImageData','var')
-    bKeepComplexImageData = 1;
+    bKeepComplexImageData = 0;
 end
 
 
