@@ -24,6 +24,9 @@ if useDisp
 end
 
 while iteration < maxIters %&& delta > epsilon %
+    
+    disp(['Iteration : ' num2str(iteration)])
+    
     iteration = iteration + 1;
     
     %%% Linear CG:    
