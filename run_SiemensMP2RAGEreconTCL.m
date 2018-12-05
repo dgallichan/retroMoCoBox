@@ -20,8 +20,6 @@ TCLtimeOffset_ms = -82229 + 900; % -82229 is from manual logging that day, 900 i
 
 reconstructSiemensMP2RAGEwithTCL(rawDataFile,TCLdir,'TCLtimeOffset_ms',TCLtimeOffset_ms,'bGRAPPAinRAM',1,'bKeepReconInRAM',1,'bFullParforRecon',1);
 
-varargin = {'TCLtimeOffset_ms',TCLtimeOffset_ms,'bGRAPPAinRAM',1,'bKeepReconInRAM',1,'bFullParforRecon',1};
-
 %% if you have plenty of RAM:
 
 % reconstructSiemensMP2RAGEwithTCL(rawDataFile,TCLdir,'bGRAPPAinRAM',1);
