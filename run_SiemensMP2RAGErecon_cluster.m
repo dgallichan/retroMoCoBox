@@ -13,9 +13,24 @@ end
 if ~exist('swapDims_xyz','var')
     swapDims_xyz = [0 0 1]; % seems to be most common...
 end
+if ~exist('bKeepGRAPPArecon','var')
+    bKeepGRAPPArecon = 0;
+end
+if ~exist('bLinParSwap','var')
+    bLinParSwap = 0;
+end
+if ~exist('bFullParforRecon','var')
+    bFullParforRecon = 1;
+end
+if ~exist('bKeepComplexImageData','var')
+    bKeepComplexImageData = 1;
+end
+
 
 %%
 
-reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,'FatNavRes_mm',FatNavRes_mm,'bGRAPPAinRAM',1,'bKeepReconInRAM',1,'bFullParforRecon',1,'swapDims_xyz',swapDims_xyz,'bKeepFatNavs',1);
+reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,'FatNavRes_mm',FatNavRes_mm,...
+    'bGRAPPAinRAM',1,'bKeepReconInRAM',1,'bFullParforRecon',bFullParforRecon,'swapDims_xyz',swapDims_xyz,'bKeepFatNavs',1,...
+    'bKeepGRAPPArecon',bKeepGRAPPArecon,'bLinParSwap',bLinParSwap,'bKeepComplexImageData',bKeepComplexImageData);
 
 

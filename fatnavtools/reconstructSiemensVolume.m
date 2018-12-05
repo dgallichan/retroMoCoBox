@@ -295,16 +295,19 @@ end
 %% Check if using HEADNECK_64 receive coil, and discard channels over the neck if this is the case (would be nice to know what Siemens does...)
 if isfield(twix_obj.hdr.MeasYaps,'sCoilSelectMeas') ...
         && strcmp(twix_obj.hdr.MeasYaps.sCoilSelectMeas.aRxCoilSelectData{1}.asList{1}.sCoilElementID.tCoilID,'"HeadNeck_64"')
+    
     iC_keep = 1:nc;
-    iC_keep([1 7 8 18 29 30 39 40 49 50]) = []; % these channels cover the neck (in one test dataset with 52 data channels from the 64-channel coil...)
-    fprintf(['\n\n****  Detected use of HeadNeck_64 RF coil **** \n'...
-                 'Using manually predefined set of channels\n'...
-                 'to reduce signal from neck area\n' ...
-                 '*********************************\n\n']);
-    fprintf(fid,['<br><br>\n\n****  Detected use of HeadNeck_64 RF coil **** <br>\n'...
-                 'Using manually predefined set of channels<br>\n'...
-                 'to reduce signal from neck area<br>\n' ...
-                 '*********************************<br><br>\n\n']);    
+    if nc==52
+        iC_keep([1 7 8 18 29 30 39 40 49 50]) = []; % these channels cover the neck (in one test dataset with 52 data channels from the 64-channel coil...)
+        fprintf(['\n\n****  Detected use of HeadNeck_64 RF coil **** \n'...
+            'Using manually predefined set of channels\n'...
+            'to reduce signal from neck area\n' ...
+            '*********************************\n\n']);
+        fprintf(fid,['<br><br>\n\n****  Detected use of HeadNeck_64 RF coil **** <br>\n'...
+            'Using manually predefined set of channels<br>\n'...
+            'to reduce signal from neck area<br>\n' ...
+            '*********************************<br><br>\n\n']);
+    end
 else
     iC_keep = 1:nc;
 end
@@ -499,7 +502,9 @@ fprintf(fid,['(Both images above should have the brightest signal on the left of
 
 if exist([fatnavdir '/eachFatNav_001.nii'],'file')
     affMat = thisRot;
-    affMat(1:3,4) = rotMatDisplacement_mm.'/2;
+%     affMat(1:3,4) = rotMatDisplacement_mm.'/2; % Why was this divided by
+%     two...?
+    affMat(1:3,4) = rotMatDisplacement_mm.'; 
     affMat(4,4) = 1;
     
     fileTest1 = [fatnavdir '/test1.nii'];
@@ -815,9 +820,11 @@ if ~reconPars.bFullParforRecon
             
         end
         
-        
-        
-        
+        % allow saving of motion-corrected complex data
+        if reconPars.bKeepComplexImageData
+            save([outDir '/complexImageData_coil' num2str(iC,'%.2d') '.mat'],'mOut','-v7.3');
+        end
+          
         
     end
     
@@ -977,6 +984,11 @@ else % the much faster version with much hungrier RAM requirements:
                     all_refImage_corrected = all_refImage_corrected + abs(weightsImage).^2;
             end
             
+        end
+        
+        % allow saving of motion-corrected complex data
+        if reconPars.bKeepComplexImageData
+            parsave([outDir '/complexImageData_coil' num2str(iC,'%.2d') '.mat'],thiscoil_ims,thiscoil_ims_corrected);
         end
         
         

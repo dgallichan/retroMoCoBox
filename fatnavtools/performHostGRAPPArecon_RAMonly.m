@@ -1,6 +1,6 @@
-function [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_obj, counterStruct, nSliceNeighbours)
+function [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_obj, counterStruct, nSliceNeighbours, combinePars, lambda)
 %
-% function [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_obj, counterStruct, nSliceNeighbours))
+% function [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_obj, counterStruct, nSliceNeighbours, combinePars, lambda)
 %
 % Applies GRAPPA to the host data, which here is assumed to have acceleration in
 % the first phase-encoding direction only (as is the current limitation of
@@ -32,6 +32,13 @@ function [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_o
 %          the FatNav recon will then clash. This is fixable, but not yet
 %          implemented...
    
+if nargin < 5
+    lambda = 0; % regularisation term for determination of GRAPPA weights
+end
+
+if nargin < 4
+    combinePars = [];
+end
 
 if nargin < 3
     nSliceNeighbours = 2; % no. of neighbouring 'virtual' slices to include in ACS lines to try to improve conditioning and regularize in the readout direction
@@ -130,20 +137,21 @@ grapKernel(startx:startx+Ax-2, starty:starty+Ay-1) = 0.5;
 % (complex based on SVD weights, and magnitude from SSOS)
 % This isn't needed for the final reconstruction, but can be really
 % useful for debugging the motion-correction
-
-if isfield(twix_obj.hdr.MeasYaps,'asCoilSelectMeas') && strcmp(twix_obj.hdr.MeasYaps.asCoilSelectMeas{1}.asList{1}.sCoilElementID.tCoilID,'"32Ch_Head_7T"')
-    % VE doesn't have 'asCoilSelectMeas', it's become sCoilSelectMeas and needs handling differently...
-    disp('...............')
-    disp('Detected use of 32Ch_Head_7T RF coil: therefore using predefined weights to also output a coil-combined image')
-    disp('...............')
-    combinePars = [-0.1049809 + -0.000000i;-0.01325038 - 0.1056198i;0.008624907 + 0.1050349i;-0.01387145 + 0.1499731i;0.009075958 - 0.2163172i;0.1473467 + 0.2160684i;0.2057536 - 0.003884733i;0.07486724 - 0.003189813i;-0.1640732 - 0.1206727i;-0.1645964 + 0.1266792i;-0.1423699 + 0.1314524i;-0.09954340 + 0.008023512i;0.2731563 + 0.1721494i;-0.2633240 - 0.2804754i;-0.2702133 + 0.05874889i;-0.07764274 + 0.05792535i;0.06793594 + 0.05160413i;-0.08903237 - 0.02729516i;0.0002752086 - 0.08664161i;-0.009266425 - 0.1078144i;-0.1005209 - 0.008859677i;0.1311229 - 0.05615813i;0.07896266 - 0.1288482i;0.02203858 - 0.06309662i;0.05616169 + 0.02123157i;-0.04540515 + 0.1785710i;-0.05066793 + 0.1244546i;0.03634416 + 0.003367372i;-0.1074157 + 0.1084992i;-0.2847729 + 0.04550047i;-0.1664367 + 0.06486133i;0.1344117 - 0.06306267i];
-elseif isfield(twix_obj.hdr.MeasYaps,'sCoilSelectMeas') && strcmp(twix_obj.hdr.MeasYaps.sCoilSelectMeas.aRxCoilSelectData{1}.asList{1}.sCoilElementID.tCoilID,'"Head_32"')
-    disp('...............')
-    disp('Detected use of Head_32 RF coil: therefore using predefined weights to also output a coil-combined image')
-    disp('...............')
-    combinePars = [0.1594946 + -0.000000i;0.1380453 - 0.1252680i;0.07394803 + 0.02236076i;-0.003868112 - 0.04217451i;0.1586883 + 0.07089107i;-0.01689743 - 0.1095780i;0.1480643 - 0.1408224i;0.1361057 - 0.2401873i;-0.1805168 - 0.007387850i;-0.03127036 - 0.06406011i;-0.01802163 - 0.06191686i;-0.1405896 + 0.07391697i;0.1038372 + 0.1059907i;-0.1225750 - 0.1220108i;0.1563336 + 0.02195730i;0.04546504 + 0.06252396i;-0.1738011 + 0.1473046i;-0.04153660 - 0.07626408i;-0.002118694 - 0.04707073i;-0.1151142 + 0.001793748i;0.09497871 + 0.1227228i;0.1143874 - 0.1130082i;0.1781285 + 0.1936812i;0.01422700 + 0.06057038i;-0.1706611 + 0.1959620i;-0.1682587 - 0.08187808i;-0.08768330 + 0.3116531i;-0.1621448 + 0.05920917i;-0.01707672 - 0.01533752i;-0.1027938 + 0.01049052i;0.3328240 - 0.1747643i;-0.1577251 - 0.09552535i];
-else
-    combinePars = [];
+if isempty(combinePars)   
+    if isfield(twix_obj.hdr.MeasYaps,'asCoilSelectMeas') && strcmp(twix_obj.hdr.MeasYaps.asCoilSelectMeas{1}.asList{1}.sCoilElementID.tCoilID,'"32Ch_Head_7T"')
+        % VE doesn't have 'asCoilSelectMeas', it's become sCoilSelectMeas and needs handling differently...
+        disp('...............')
+        disp('Detected use of 32Ch_Head_7T RF coil: therefore using predefined weights to also output a coil-combined image')
+        disp('...............')
+        combinePars = [-0.1049809 + -0.000000i;-0.01325038 - 0.1056198i;0.008624907 + 0.1050349i;-0.01387145 + 0.1499731i;0.009075958 - 0.2163172i;0.1473467 + 0.2160684i;0.2057536 - 0.003884733i;0.07486724 - 0.003189813i;-0.1640732 - 0.1206727i;-0.1645964 + 0.1266792i;-0.1423699 + 0.1314524i;-0.09954340 + 0.008023512i;0.2731563 + 0.1721494i;-0.2633240 - 0.2804754i;-0.2702133 + 0.05874889i;-0.07764274 + 0.05792535i;0.06793594 + 0.05160413i;-0.08903237 - 0.02729516i;0.0002752086 - 0.08664161i;-0.009266425 - 0.1078144i;-0.1005209 - 0.008859677i;0.1311229 - 0.05615813i;0.07896266 - 0.1288482i;0.02203858 - 0.06309662i;0.05616169 + 0.02123157i;-0.04540515 + 0.1785710i;-0.05066793 + 0.1244546i;0.03634416 + 0.003367372i;-0.1074157 + 0.1084992i;-0.2847729 + 0.04550047i;-0.1664367 + 0.06486133i;0.1344117 - 0.06306267i];
+    elseif isfield(twix_obj.hdr.MeasYaps,'sCoilSelectMeas') && strcmp(twix_obj.hdr.MeasYaps.sCoilSelectMeas.aRxCoilSelectData{1}.asList{1}.sCoilElementID.tCoilID,'"Head_32"')
+        disp('...............')
+        disp('Detected use of Head_32 RF coil: therefore using predefined weights to also output a coil-combined image')
+        disp('...............')
+        combinePars = [0.1594946 + -0.000000i;0.1380453 - 0.1252680i;0.07394803 + 0.02236076i;-0.003868112 - 0.04217451i;0.1586883 + 0.07089107i;-0.01689743 - 0.1095780i;0.1480643 - 0.1408224i;0.1361057 - 0.2401873i;-0.1805168 - 0.007387850i;-0.03127036 - 0.06406011i;-0.01802163 - 0.06191686i;-0.1405896 + 0.07391697i;0.1038372 + 0.1059907i;-0.1225750 - 0.1220108i;0.1563336 + 0.02195730i;0.04546504 + 0.06252396i;-0.1738011 + 0.1473046i;-0.04153660 - 0.07626408i;-0.002118694 - 0.04707073i;-0.1151142 + 0.001793748i;0.09497871 + 0.1227228i;0.1143874 - 0.1130082i;0.1781285 + 0.1936812i;0.01422700 + 0.06057038i;-0.1706611 + 0.1959620i;-0.1682587 - 0.08187808i;-0.08768330 + 0.3116531i;-0.1621448 + 0.05920917i;-0.01707672 - 0.01533752i;-0.1027938 + 0.01049052i;0.3328240 - 0.1747643i;-0.1577251 - 0.09552535i];
+    else
+        combinePars = [];
+    end
 end
 
 disp('...............')
@@ -201,14 +209,19 @@ parfor iS = 1:nread
                 thisACSdataFull = squeeze(ACSdata(iS,:,:,:,1,1,1,iEco,1,iSet));
                 thisACSdataFull = permute(thisACSdataFull,[2 3 1]);
                 
-                thisGrapW = pinv(src)*targ;
+                if (lambda)
+                    lambdaApply = lambda*norm(src(:));
+                    thisGrapW  = pinv(src'*src + lambdaApply^2*eye(size(src,2))) * src' * targ;
+                else
+                    thisGrapW = pinv(src)*targ;
+                end
                           
             else
                 thisACSdataFull = squeeze(ACSdata(iS,:,:,:,1,1,1,iEco,1,iSet));
                 thisACSdataFull = permute(thisACSdataFull,[2 3 1]); % this permute is necessary for my GRAPPA code, but may not be the fastest approach...
                 thisACSdata = thisACSdataFull([1:nACS1]-floor(nACS1/2)+floor(nACSmeas1/2),iPE2,:);
                 
-                thisGrapW = GrappaCalib3D_arb(thisACSdata,grapKernel,0,1);
+                thisGrapW = GrappaCalib3D_arb(thisACSdata,grapKernel,lambda,1);
             end           
             
             

@@ -105,7 +105,9 @@ function reconstructSiemensMP2RAGEwithTCL(rawDataFile,TCLdir,varargin)
 %                           and use a string e.g. '0019' to insert the ID from
 %                           another database.
 %
-%
+%       'GRAPPAlambda' - regularization for GRAPPA weights for MPRAGE
+%                        recon. Default is zero, but for large motion may
+%                        want to use 1e-2 or so.
 %
 %     
 %   
@@ -121,9 +123,8 @@ function reconstructSiemensMP2RAGEwithTCL(rawDataFile,TCLdir,varargin)
 %           For reading in the Siemens raw data format - and able to handle
 %           very large datasets elegantly. 
 %           I made small changes to the code to allow handling of the
-%           FatNav data. For the TCL data, no modification to this code is
-%           required, so if you have it already - just put it on your path.
-%
+%           FatNav data. For the TCL data, certain properties of my modified 
+%           version are also used, despite having no FatNavs.
 %     NIFTI Tools (from Jimmy Shen)
 %           For reading in and saving out in the .nii NIFTI format. 
 %           This code is provided here unaltered.            
@@ -175,9 +176,9 @@ end
 %%
 
 [reconPars.TCLtimeOffset_ms, reconPars.outRoot, reconPars.tempRoot, reconPars.bLinParSwap, reconPars.bGRAPPAinRAM, reconPars.bKeepGRAPPArecon, reconPars.bKeepReconInRAM, reconPars.bFullParforRecon,...
-    reconPars.coilCombineMethod, reconPars.swapDims_xyz, reconPars.bZipNIFTIs, reconPars.bKeepPatientInfo] = process_options(varargin,...
+    reconPars.coilCombineMethod, reconPars.swapDims_xyz, reconPars.bZipNIFTIs, reconPars.bKeepPatientInfo, reconPars.GRAPPAlambda] = process_options(varargin,...
     'TCLtimeOffset_ms',0,'outRoot',[],'tempRoot',[],'bLinParSwap',0,'bGRAPPAinRAM',0,'bKeepGRAPPArecon',0,'bKeepReconInRAM',0,...
-    'bFullParforRecon',0,'coilCombineMethod','default','swapDims_xyz',[0 0 1],'bZipNIFTIs',1,'bKeepPatientInfo',1);
+    'bFullParforRecon',0,'coilCombineMethod','default','swapDims_xyz',[0 0 1],'bZipNIFTIs',1,'bKeepPatientInfo',1,'GRAPPAlambda',0);
 
 
 %%
@@ -196,11 +197,19 @@ startTime = clock;
 %% Make raw data object (parses file, but does not load into RAM)
 
 tic
-twix_obj = mapVBVD(rawDataFile,'removeOS',1);
+twix_obj = mapVBVD_fatnavs(rawDataFile,'removeOS',1);
 timingReport_parseRawDataFile = toc;
 
 if length(twix_obj)>1 % on VE (and presumably VD as well) the raw data typically also has the adjcoilsens data as scan 1, so skip this
+    prescan_twix_obj = twix_obj{1};
     twix_obj = twix_obj{2};
+        
+    % calculate SVD coil combination
+    prescanIm = prescan_twix_obj.image(:,:,:,:,1,1,1,1,1,1);
+    prescanIm = ifft3s(permute(prescanIm,[4 3 1 2]));
+    [~,~,V] =  svd(reshape(prescanIm,[],size(prescanIm,4)),'econ');
+    reconPars.svdpars = V(:,1);
+%     prescanIm_svd = reshape( reshape(prescanIm,[],size(prescanIm,4)) * reconPars.svdpars , size(prescanIm(:,:,:,1)) );
 end
 
 

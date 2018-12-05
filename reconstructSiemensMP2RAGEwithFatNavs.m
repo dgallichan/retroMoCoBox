@@ -258,8 +258,13 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %           of the input options (always putting a 'b' for boolean in front
 %           of logical options) so please check your calling code!
 %
+%
+%   0.7.1 - -- Nov 2018
+%         - Added new input flag 'bKeepComplexImageData' to allow saving
+%           out of the complex data per coil as MATLAB files - before and
+%           after application of MoCo.
 
-reconPars.retroMocoBoxVersion = '0.7.0dev'; % put this into the HTML for reference
+reconPars.retroMocoBoxVersion = '0.7.1dev'; % put this into the HTML for reference
 reconPars.rawDataFile = rawDataFile;
 
 %% Check SPM and Fessler's toolbox are on path
@@ -277,9 +282,11 @@ end
 %%
 
 [reconPars.outRoot, reconPars.tempRoot, reconPars.bLinParSwap, reconPars.bGRAPPAinRAM, reconPars.bKeepGRAPPArecon, reconPars.bKeepReconInRAM, reconPars.bFullParforRecon,...
-    reconPars.coilCombineMethod, reconPars.FatNavRes_mm, reconPars.swapDims_xyz, reconPars.bZipNIFTIs, reconPars.bKeepFatNavs,reconPars.bKeepPatientInfo] = process_options(varargin,...
+    reconPars.coilCombineMethod, reconPars.FatNavRes_mm, reconPars.swapDims_xyz, reconPars.bZipNIFTIs, reconPars.bKeepFatNavs,reconPars.bKeepPatientInfo,...
+    reconPars.bKeepComplexImageData] = process_options(varargin,...
     'outRoot',[],'tempRoot',[],'bLinParSwap',0,'bGRAPPAinRAM',0,'bKeepGRAPPArecon',0,'bKeepReconInRAM',0,...
-    'bFullParforRecon',0,'coilCombineMethod','default','FatNavRes_mm',[],'swapDims_xyz',[0 0 1],'bZipNIFTIs',1,'bKeepFatNavs',0,'bKeepPatientInfo',1);
+    'bFullParforRecon',0,'coilCombineMethod','default','FatNavRes_mm',[],'swapDims_xyz',[0 0 1],'bZipNIFTIs',1,'bKeepFatNavs',0,'bKeepPatientInfo',1,...
+    'bKeepComplexImageData',0);
 
 
 %%

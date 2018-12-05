@@ -8,6 +8,9 @@ function timingReport = reconstructSiemensVolumeTCL(twix_obj,reconPars)
 
 retroMocoBoxVersion = reconPars.retroMocoBoxVersion; % put this into the HTML for reference
 
+cgIters = 5;
+
+
 %%
 
 if ~isfield(reconPars,'iAve')
@@ -16,7 +19,9 @@ end
 if ~isfield(reconPars,'iRep')
     reconPars.iRep = 1;
 end
-
+if ~isfield(reconPars,'GRAPPAlambda')
+    reconPars.GRAPPAlambda = 0;
+end
 
 %%           
 
@@ -297,7 +302,7 @@ if isempty(alignMatFile)
 end
 TS_alignMat = importdata([reconPars.TCLdir '/' alignMatFile.name]);
 
-t_MPR = duration(0,0,0,twix_obj.image.timestamp*2.5);
+t_MPR = duration(0,0,0,twix_obj.imageWithRefscan.timestamp*2.5);
 
 
 fprintf(fid,['Time period of MPR acquisition: ' char(t_MPR(1)) ' -> ' char(t_MPR(end)) '<br>\n']);
@@ -318,7 +323,7 @@ end
 if Arps(2) > 1
     useGRAPPAforHost = 1;
     if reconPars.bGRAPPAinRAM        
-        [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_obj,struct('iAve',reconPars.iAve,'iRep',reconPars.iRep));
+        [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_obj,struct('iAve',reconPars.iAve,'iRep',reconPars.iRep),2,reconPars.svdpars,reconPars.GRAPPAlambda);
         mOutGRAPPA.grappaRecon_1DFFT = grappaRecon_1DFFT; clear grappaRecon_1DFFT;
         timingReport_hostRecon = mOutGRAPPA.timingReport;
     else
@@ -326,7 +331,7 @@ if Arps(2) > 1
 %         performHostGRAPPArecon(twix_obj,tempDir); % the original low-RAM
 %         alternative code needs verifying as the output ends up corrupted
 %         (in at least some cases)
-        [timingReport_hostRecon, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,struct('iAve',reconPars.iAve,'iRep',reconPars.iRep));    
+        [timingReport_hostRecon, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,struct('iAve',reconPars.iAve,'iRep',reconPars.iRep),2,reconPars.svdpars,reconPars.GRAPPAlambda);    
     end
 else
     useGRAPPAforHost = 0;
@@ -340,9 +345,29 @@ end
 TS_offsetMat = diag([-1 1 -1 1]); % manually tested sign changes for certain axes
 
 iSkip = 4;
-iTCL_MPR = interp1(t_TCL(1:iSkip:end),1:iSkip:length(t_TCL),t_MPR,'nearest'); % TCL timestamps can be identical to ms level...(?)
+iTCL_MPR = interp1(seconds(t_TCL(1:iSkip:end)),1:iSkip:length(t_TCL),seconds(t_MPR),'nearest'); % TCL timestamps can be identical to ms level...(?)
 
 this_fitMat = moveFrame(A_vector(:,:,iTCL_MPR),TS_offsetMat*TS_alignMat);
+
+%% Include image of motion parameters in HTML output - in isocentre coordinate frame (i.e same as FatNavs)
+
+plotFitPars(this_fitMat);
+export_fig([htmlDir '/motion_parameters_TCL.png']);
+fprintf(fid,['Motion parameters from TCL:<br><img src=''motion_parameters_TCL.png''><br>\n']);
+
+
+
+%%
+
+t_Map = zeros(twix_obj.image.NLin,twix_obj.image.NPar); % create image in units of 2.5 ms since midnight
+for iT = 1:twix_obj.imageWithRefscan.NAcq
+   t_Map(twix_obj.imageWithRefscan.Lin(iT),twix_obj.imageWithRefscan.Par(iT)) = twix_obj.imageWithRefscan.timestamp(iT); 
+end
+
+t_kspaceCentre = duration(0,0,0,2.5*t_Map(twix_obj.imageWithRefscan.centerLin(1),twix_obj.imageWithRefscan.centerPar(1)));
+iMPR_kspaceCentre = round(interp1(seconds(t_MPR),1:length(t_MPR), seconds(t_kspaceCentre)));
+
+this_fitMat = recentre_affmats(this_fitMat,iMPR_kspaceCentre);
 
 % Account for the fact that the host sequence may not have been acquired at
 % isocentre:
@@ -385,29 +410,27 @@ this_fitMat_mm(1:3,4,:) = newDisplacements;
 
 
 
-
 %% If GRAPPA was used we will need to interpolate the motion parameters for lines we didn't acquire...
 
-exampleK = squeeze(twix_obj.image(1,1,:,:));
-%%
-plot3(twix_obj.image.Lin,twix_obj.image.Par,totalDisplacement(iTCL_MPR),'.')
 
-
-%%
 if useGRAPPAforHost
+    
+%     thisLine = squeeze(twix_obj.imageWithRefscan(1,1,:,1,1,1,1,1,1,1,1,1));
+%     iSamp = find(thisLine);
+%     nSamp = length(iSamp);
+    
     rotTrans = rotmat2euler(this_fitMat_mm(1:3,1:3,:));
     rotTrans(4:6,:) = squeeze(this_fitMat_mm(1:3,4,:));
     
     rotTrans_interp = zeros(6,hrps(2)*hrps(3));
     
     ix = 1:hrps(2); iy = 1:hrps(3);
-%     [ix, iy] = meshgrid(1:hrps(2),1:hrps(3));
     
     for iP = 1:6
-        thisPim = reshape(rotTrans(iP,:),hrps(2)/Arps(2),hrps(3));
-        thisPimInterp = griddata(twix_obj.image.Par,twix_obj.image.Lin,thisPim(:),iy.',ix);
+%         thisPim = reshape(rotTrans(iP,:),hrps(2)/Arps(2),hrps(3));
+        thisPimInterp = griddata(twix_obj.imageWithRefscan.Par,twix_obj.imageWithRefscan.Lin,rotTrans(iP,:).',iy.',ix);
         thisPimInterp(1,:) = thisPimInterp(2,:); % can't extrapolate here, so copy instead
-        rotTrans_interp(iP,:) = squash(thisPimInterp);
+        rotTrans_interp(iP,:) = squash(thisPimInterp.');
     end
     
     this_fitMat_mm_interp = zeros(4,4,hrps(2)*hrps(3));
@@ -418,11 +441,16 @@ if useGRAPPAforHost
     
     fitMats_mm_toApply = this_fitMat_mm_interp;
     
+    
+
+    
 else
     fitMats_mm_toApply = this_fitMat_mm;
     fitMats_mm_toApply(4,4,:) = 1;
 end
 
+alignDim = [2 3];
+alignIndices = reshape(1:hrps(2)*hrps(3),hrps(3),hrps(2)).';
 
 
 %% Prepare for the retrospective motion-correction of the host sequence
@@ -505,6 +533,7 @@ else % for Parfor to work you can't use the mOut structure trick (which could ei
     
 end
 
+
 %% Apply the motion-correction
 
 if ~reconPars.bFullParforRecon
@@ -528,7 +557,7 @@ if ~reconPars.bFullParforRecon
                         thisData(iReadSlice,:,:) = reshape(tempData.outData(1,iC_keep(iC),:,:),[1 hrps(2) hrps(3)]);
                     end
                 end
-                % thisData = squeeze(mOutGRAPPA.dataCombined(:,:,:,2)); iC=1;iS = 1; % use this to have more brain coverage for debugging...
+                % thisData = squeeze(mOutGRAPPA.dataCombined(:,:,:,end)); iC=1;iS = 1; % use this to have more brain coverage for debugging...
                 thisData = fft1s(thisData,1); % put into full 3D k-space
             else
                 thisData = squeeze(twix_obj.image(:,iC_keep(iC),:,:,1,reconPars.iAve,1,1,reconPars.iRep,iS));
@@ -557,7 +586,10 @@ if ~reconPars.bFullParforRecon
             thisData = ifft3s(thisData)*prod(hxyz);
             
             tic
-            thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+%             thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+            % see if there is a difference using 5 cgIters
+            thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz,cgIters);
+            
             % the multi-CPU (parfor) version of the NUFFT can be called with a
             % negative value for the 'useTable' input:
             %    thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,-11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
@@ -731,7 +763,9 @@ else % the much faster version with much hungrier RAM requirements:
             thisData = ifft3s(thisData)*prod(hxyz);
             
             tic
-            thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+%             thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+            thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz,cgIters);
+
             timingReport_applyMoco(iC,iS) = toc;
             
             if nS > 1
@@ -1058,9 +1092,6 @@ else
 end
 
 fprintf(fid,['<h4>Total reconstruction time: ' num2str(totalTime_hrs) ' hours, ' num2str(totalTime_mins) ' mins</h4>\n']);
-fprintf(fid,['<strong>Calculate GRAPPA weights for FatNavs: </strong>' num2str(round(timingReport_FatNavs.calculateGRAPPAweights)) ' seconds.<br>\n']);
-fprintf(fid,['<strong>Reconstruct FatNavs: </strong>' num2str(nFatNavs) 'x ' num2str(round(mean(timingReport_FatNavs.eachFatNav))) ' seconds. Total time (possibly parallelized!): = ' num2str(round(timingReport_FatNavs.allFatNavs)) ' seconds. <br>\n']);
-fprintf(fid,['<strong>Align FatNavs using SPM: </strong>' num2str(round(timingReport_FatNavs.SPMalignment)) ' seconds.<br>\n']);
 if reconPars.bGRAPPAinRAM
     fprintf(fid,'<em>GRAPPA recon of host performed in RAM (i.e. faster)...</em><br>\n');
 else
@@ -1113,13 +1144,9 @@ if reconPars.bZipNIFTIs
     delete([outDir '/*.nii']);
 end
 
-if ~reconPars.bKeepFatNavs
-    rmdir(fatnavdir,'s')
-end
-    
+   
 timingReport.totalTime_hrs = totalTime_hrs;
 timingReport.totalTime_mins = totalTime_mins;
-timingReport.timingReport_FatNavs = timingReport_FatNavs;
 timingReport.timingReport_hostRecon = timingReport_hostRecon;
 timingReport.avgTimeApplyMocoPerVolume = avgTimeApplyMocoPerVolume;
 timingReport.timingReport_totalTimeApplyMoco = timingReport_totalTimeApplyMoco;
