@@ -32,6 +32,14 @@ echo "#SBATCH --ntasks=10" >> ${tempfile}
 echo "cd ${RETROMOCOBOX_HOME}" >> ${tempfile}
 echo "matlab -nodisplay -nodesktop -nosplash -r \"rawDataFile='${PWD}/${inputfile}';swapDims_xyz = [1 0 1]; FatNavRes_mm = 2;run_SiemensMP2RAGErecon_cluster;exit;\"" >> ${tempfile}
 
+echo " "
+echo " "
+echo "Creating this temporary file to process your data:"
+echo "=================================================="
+cat ${tempfile}
+echo " "
+echo " "
+
 sbatch ${tempfile}
 rm ${tempfile}
 
