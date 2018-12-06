@@ -8,7 +8,7 @@ function timingReport = reconstructSiemensVolumeTCL(twix_obj,reconPars)
 
 retroMocoBoxVersion = reconPars.retroMocoBoxVersion; % put this into the HTML for reference
 
-cgIters = 5;
+cgIters = 1; % can also increase this to see if iterative approach improves 
 
 
 %%
@@ -395,16 +395,23 @@ this_fitMat_mm(1:3,4,:) = bsxfun(@times,this_fitMat_mm(1:3,4,:), hostVoxDim_mm);
 
 theseDisplacements = squeeze(this_fitMat_mm(1:3,4,:));
 
+alignDim = []; % need to assign which dimensions to perform MoCo along - for now do known variants manually...
 switch baseOrientation
     case 1 % Coronal         
         tiltTheta = acos(allNormals(1))*180/pi;
         thisRot = euler2rmat(tiltTheta,0,0);        
     case 2 % Transverse
         tiltTheta = acos(allNormals(2))*180/pi;
-        thisRot = euler2rmat(tiltTheta,0,0);
+        thisRot = euler2rmat(tiltTheta,0,0);        
     case 3 % Sagittal
         thisRot = euler2rmat(dInPlaneRot*180/pi,0,0);
+        alignDim = [1 2];
 end
+if isempty(alignDim)
+    disp('Error: TCL recon code not yet able to handle slice orientation - see reconstructSiemensVolumeTCL.m')
+    return
+end
+ 
 
 % and account for rotation of slices...
 newDisplacements = thisRot*theseDisplacements;
@@ -441,9 +448,7 @@ if useGRAPPAforHost
     this_fitMat_mm_interp(1:3,1:3,:) = euler2rmat(rotTrans_interp(1:3,:));
     this_fitMat_mm_interp(1:3,4,:) = rotTrans_interp(4:6,:);
     
-    fitMats_mm_toApply = this_fitMat_mm_interp;
-    
-    
+    fitMats_mm_toApply = this_fitMat_mm_interp;   
 
     
 else
@@ -451,9 +456,12 @@ else
     fitMats_mm_toApply(4,4,:) = 1;
 end
 
-alignDim = [2 3];
-alignIndices = reshape(1:hrps(2)*hrps(3),hrps(3),hrps(2)).';
-
+% at the moment i'm basically guessing these - needs more time and thought!...
+if all( alignDim == [2 3] )
+    alignIndices = reshape(1:hrps(2)*hrps(3),hrps(3),hrps(2)).';
+elseif all( alignDim == [1 2] )
+    alignIndices = reshape(1:hrps(2)*hrps(3),hrps(3),hrps(2));
+end
 
 %% Prepare for the retrospective motion-correction of the host sequence
 tStart_applyMoco = clock;
