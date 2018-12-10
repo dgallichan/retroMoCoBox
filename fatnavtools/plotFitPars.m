@@ -6,9 +6,8 @@ function ha = plotFitPars(fitPars,t,climsXYZ,climsRTP,isVertical)
 
 if size(fitPars,1)==4 && size(fitPars,2)==4 % assume affine matrices
     Amats = fitPars;
-    fitPars = zeros(6,size(Amats,3));
-    fitPars(1:3,:) = squeeze(Amats(1:3,4,:));
-    fitPars(4:6,:) = rotmat2euler(Amats(1:3,1:3,:));
+    % match the way the get_spm_affmats function was written
+    fitPars = mats2pars(Amats);   
 end
 
 if nargin < 5
@@ -43,7 +42,12 @@ if nargin < 2 || isempty(t)
     t = 1:size(fitPars,2);
     timeUnits = '';
 else
-    timeUnits = '(mins)';
+    if isduration(t)
+        timeUnits = '';
+        t.Format = 'hh:mm:ss';
+    else
+        timeUnits = '(mins)';
+    end
 end
 
 
@@ -89,10 +93,12 @@ end
 subplot(ha.s1)
 set(gca,'ColorOrder',cOrder);
 plot(t,fitPars(1:3,:).',lstyle{:})
-axis([0 t(end) climsXYZ])
+% axis([0 t(end) climsXYZ])
+set(gca,'XLim',[t(1) t(end)]);
+set(gca,'YLim',climsXYZ);
 grid on
 ylabel('Displacements (mm)')
-legend('x','y','z','location','north','orientation','horizontal')
+legend('x','y','z','location','north','orientation','horizontal','autoupdate','off')
 if isVertical(1)==0 || ~isnumeric(isVertical)
     xlabel(['Time ' timeUnits])
 end
@@ -100,13 +106,15 @@ title(['RMS displacement: ' num2str(RMS_displacement,'%.2f') ' mm'])
 subplot(ha.s2)
 set(gca,'ColorOrder',cOrder);
 plot(t,fitPars(4:6,:).',lstyle{:})
-axis([0 t(end) climsRTP])
+% axis([0 t(end) climsRTP])
+set(gca,'XLim',[t(1) t(end)]);
+set(gca,'YLim',climsRTP);
 title(['RMS rotations: ' num2str(RMS_rot,'%.2f') ' degrees'])
 grid on
 xlabel(['Time ' timeUnits])
 ylabel('Rotations (degrees)')
 % legend('\phi','\theta','\psi','location','northwest')
-legend('Pitch','Roll','Yaw','location','north','orientation','horizontal')
+legend('Pitch','Roll','Yaw','location','north','orientation','horizontal','autoupdate','off')
 
 if verLessThan('matlab','8.4')
     fontScale(1.6)

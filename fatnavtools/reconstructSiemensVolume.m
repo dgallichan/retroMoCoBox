@@ -490,7 +490,7 @@ imab(ov1.im1)
 title(['xy MIP of FatNav, coil ' num2str(iAsymCoil)])
 subplot1(2)
 imab(ov2.im1)
-title(['xy MIP of host GRAPPA recon, coil ' num2str(iAsymCoil)])
+title(['xy centre-slice of host GRAPPA recon, coil ' num2str(iAsymCoil)])
 colormap(gray)
 export_fig([htmlDir '/orientationCheck_xy.png']);
 fprintf(fid,['Orientation check for left/right symmetry:<br>\n']);

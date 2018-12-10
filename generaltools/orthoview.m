@@ -1,7 +1,8 @@
 function out = orthoview(vol,varargin)
 % function orthoview(vol,...)
 
-[cvox voxdim clims useColorbar useMip useTitles drawIms interpFact useNewFig] = process_options(varargin,'centre',[],'voxdim',[],'clims',[],'colorbar',0,'mip',0,'useTitles',1,'drawIms',1,'interpFact',1,'useNewFig',1);
+[cvox voxdim clims useColorbar useMip useMeanip useTitles drawIms interpFact useNewFig] = process_options(varargin,...
+    'centre',[],'voxdim',[],'clims',[],'colorbar',0,'mip',0,'meanip',0,'useTitles',1,'drawIms',1,'interpFact',1,'useNewFig',1);
 
 if ~any(isreal(vol(:)))
     vol = abs(vol);
@@ -42,14 +43,23 @@ end
 out.vdims = vdims;
 out.irange = irange;
 
-if ~useMip
+if useMip && useMeanip
+    disp('Error - MIP and MeanIP are mutually exclusive...!')
+    return
+end
+
+if ~useMip && ~useMeanip
     out.im1 = vol(:,:,cvox(3));
     out.im2 = squeeze(vol(:,cvox(2),:));
     out.im3 = squeeze(vol(cvox(1),:,:));
-else
+elseif useMip
     out.im1 = max(vol,[],3);
     out.im2 = squeeze(max(vol,[],2));
     out.im3 = squeeze(max(vol,[],1));
+else % now useMeanip must be true!
+    out.im1 = mean(vol,3);
+    out.im2 = squeeze(mean(vol,2));
+    out.im3 = squeeze(mean(vol,1));
 end
 
 if drawIms
