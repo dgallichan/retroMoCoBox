@@ -10,7 +10,10 @@ CLUSTER_LOG_PATH = getenv('CLUSTER_LOG_PATH');
 %%
 
 addpath([retroMoCoPath '/cluster']); % add the cluster subfolder to the path
-swapDims_xyz = [1 0 1]; % <-- seems to be correct for current FatNav ASPIRE protocol
+%swapDims_xyz = [1 0 1]; % <-- seems to be correct for current FatNav ASPIRE protocol
+if ~exist('swapDims_xyz','var')
+    swapDims_xyz = [1 0 1]; % <-- seems to be correct for current FatNav ASPIRE protocol
+end
 
 %%
 
