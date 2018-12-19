@@ -31,6 +31,9 @@ function [timingReport, tempNameRoots] = performHostGRAPPArecon2D_toDisk(twix_ob
 %    - Also save more RAM by creating a 'matfile' from the ACS data so it
 %    doesn't need to be held in memory by each thread
 
+if nargin < 5
+    combinePars = [];
+end
 
 if nargin < 4
     nSliceNeighbours = 2; % no. of neighbouring 'virtual' slices to include in ACS lines to try to improve conditioning and regularize in the readout direction
