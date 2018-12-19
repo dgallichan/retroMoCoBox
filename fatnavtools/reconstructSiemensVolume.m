@@ -284,6 +284,8 @@ else
 end
 fprintf(fid,['Detected orientation: ' orientText '<br>\n']);
 fprintf(['Detected orientation: ' orientText '\n']);
+fprintf(fid,['SwapDims_xyz: [' num2str(reconPars.swapDims_xyz(1)) ' ' num2str(reconPars.swapDims_xyz(2)) ' ' num2str(reconPars.swapDims_xyz(3)) ']<br>\n']); 
+fprintf(['SwapDims_xyz: [' num2str(reconPars.swapDims_xyz(1)) ' ' num2str(reconPars.swapDims_xyz(2)) ' ' num2str(reconPars.swapDims_xyz(3)) ']\n']); 
 if isfield(twix_obj.hdr.MeasYaps,'sCoilSelectMeas')
     fprintf(['Coil used: ' char(twix_obj.hdr.MeasYaps.sCoilSelectMeas.aRxCoilSelectData{1}.asList{1}.sCoilElementID.tCoilID) ', with ' num2str(nc) ' channels active\n']);
     fprintf(fid,['Coil used: ' char(twix_obj.hdr.MeasYaps.sCoilSelectMeas.aRxCoilSelectData{1}.asList{1}.sCoilElementID.tCoilID) ', with ' num2str(nc) ' channels active<br>\n']);
