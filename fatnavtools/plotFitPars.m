@@ -42,6 +42,8 @@ end
 if nargin < 2 || isempty(t)
     t = 1:size(fitPars,2);
     timeUnits = '';
+elseif isduration(t(1))
+    timeUnits = '';
 else
     timeUnits = '(mins)';
 end
@@ -89,7 +91,8 @@ end
 subplot(ha.s1)
 set(gca,'ColorOrder',cOrder);
 plot(t,fitPars(1:3,:).',lstyle{:})
-axis([0 t(end) climsXYZ])
+xlim([t(1) t(end)])
+ylim(climsXYZ)
 grid on
 ylabel('Displacements (mm)')
 legend('x','y','z','location','north','orientation','horizontal')
@@ -100,7 +103,8 @@ title(['RMS displacement: ' num2str(RMS_displacement,'%.2f') ' mm'])
 subplot(ha.s2)
 set(gca,'ColorOrder',cOrder);
 plot(t,fitPars(4:6,:).',lstyle{:})
-axis([0 t(end) climsRTP])
+xlim([t(1) t(end)])
+ylim(climsRTP)
 title(['RMS rotations: ' num2str(RMS_rot,'%.2f') ' degrees'])
 grid on
 xlabel(['Time ' timeUnits])
