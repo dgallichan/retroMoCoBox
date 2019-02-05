@@ -46,8 +46,8 @@ else
         timeUnits = '';
         t.Format = 'hh:mm:ss';
     else
-        timeUnits = '(mins)';
-    end
+    timeUnits = '(mins)';
+end
 end
 
 
