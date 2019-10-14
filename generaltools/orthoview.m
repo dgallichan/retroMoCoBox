@@ -1,8 +1,9 @@
 function out = orthoview(vol,varargin)
 % function orthoview(vol,...)
 
-[cvox voxdim clims useColorbar useMip useMeanip useTitles drawIms interpFact useNewFig] = process_options(varargin,...
-    'centre',[],'voxdim',[],'clims',[],'colorbar',0,'mip',0,'meanip',0,'useTitles',1,'drawIms',1,'interpFact',1,'useNewFig',1);
+[cvox voxdim clims useColorbar useMip useMeanip useTitles drawIms interpFact useNewFig useZeroCrop] = process_options(varargin,...
+    'centre',[],'voxdim',[],'clims',[],'colorbar',0,'mip',0,'meanip',0,'useTitles',1,'drawIms',1,'interpFact',1,'useNewFig',1,...
+    'zeroCrop',0);
 
 if ~any(isreal(vol(:)))
     vol = abs(vol);
@@ -16,6 +17,20 @@ end
 
 if isempty(cvox)
    cvox = round(size(vol)/2);
+end
+
+if useZeroCrop
+    xMin = find(any(any(vol,2),3),1,'first');
+    xMax = find(any(any(vol,2),3),1,'last');
+    
+    yMin = find(squeeze(any(any(vol,1),3)),1,'first');
+    yMax = find(squeeze(any(any(vol,1),3)),1,'last');
+    
+    zMin = find(squeeze(any(any(vol,1),2)),1,'first');
+    zMax = find(squeeze(any(any(vol,1),2)),1,'last');
+    
+    vol = vol(xMin:xMax,yMin:yMax,zMin:zMax,:);
+    cvox = cvox - [xMin yMin zMin];
 end
 
 if ~isempty(voxdim)
