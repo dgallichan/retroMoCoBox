@@ -118,6 +118,8 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %                           and use a string e.g. '0019' to insert the ID from
 %                           another database.
 %
+%       'bKeepComplexImageData' - save out the complex data per coil as MATLAB files 
+%                                 before and after application of MoCo.
 %
 %
 %     

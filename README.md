@@ -12,8 +12,9 @@ Used in:
 * [Retrospective correction of involuntary microscopic head movement using highly accelerated fat image navigators (3D FatNavs) at 7T](http://doi.wiley.com/10.1002/mrm.25670), _Gallichan, Marques and Gruetter_, MRM 2015
 * [Optimizing the acceleration and resolution of three-dimensional fat image navigators for high-resolution motion correction at 7T](http://doi.wiley.com/10.1002/mrm.26127), _Gallichan and Marques,_ MRM 2016
 * [Motion-Correction Enabled Ultra-High Resolution In-Vivo 7T-MRI of the Brain](http://dx.plos.org/10.1371/journal.pone.0154974), _Federau and Gallichan,_ Plos One 2016
+* [Evaluation of 3D fat-navigator based retrospective motion correction in the clinical setting of patients with brain tumors](https://doi.org/10.1007/s00234-019-02160-w), _Glessgen, Gallichan, Moor, Hainc and Federau_, Neuroradiology 2019
 
-All of the work cited above is based on 3D FatNavs data from a Siemens 7T scanner - but in collaboration with the [Spinoza Center for Neuroimaging](https://www.spinozacentre.nl/) we have also demonstrated that the same code can be used to correct data collected with 3D EPI FatNavs from a Philips 7T scanner (_Fast and Flexible 3D-EPI Fat Navigators for High-Resolution Brain Imaging at 7 Tesla_ Buur et al, Proc ISMRM 2016). If you are also interested in using the code adapted for Philips scanners (not yet included in this Github), [please contact me](mailto:gallichand@cardiff.ac.uk).
+All of the work cited above is based on 3D FatNavs data from Siemens scanners - but in collaboration with the [Spinoza Center for Neuroimaging](https://www.spinozacentre.nl/) we have also demonstrated that the same code can be used to correct data collected with 3D EPI FatNavs from a Philips 7T scanner (_Fast and Flexible 3D-EPI Fat Navigators for High-Resolution Brain Imaging at 7 Tesla_ Buur et al, Proc ISMRM 2016). If you are also interested in using the code adapted for Philips scanners (not yet included in this Github), [please contact me](mailto:gallichand@cardiff.ac.uk).
 
 
 ---
@@ -25,6 +26,14 @@ You can choose to either download the last 'release' or you can download the lat
 ```
 $ git clone https://github.com/dgallichan/retroMoCoBox.git
 ```
+
+---
+
+### Requirements
+
+The only part of my code that is not included here is the FatNav-modification version of Philipp Ehses' `mapVBVD.m` code for reading the raw Siemens data into Matlab. Philipp's original code is freely available from the Siemens MR-IDEA online forum, but I have not included the FatNav-modified code here as it appears to be 'Siemens sensitive'. If you would like this code too, please [email me](mailto:gallichand@cardiff.ac.uk).
+
+I have included various open-source tools inside the toolbox - but you will need to separately download and install both the [Michigan Image Reconstruction Toolbox (MIRT) for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html) (used for the NUFFT) and [SPM 12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/) (used for the co-registration of the individual FatNav images to estimate the motion parameters).
 
 ---
 
@@ -52,10 +61,6 @@ This script loads an example of real 3D FatNavs data (15 volumes at 2mm resoluti
 `reconstructSiemensMP2RAGEwithFatNavs.m`
 
 This is the code we currently use for the complete reconstruction pipeline, starting from the raw data. The full script will probably only be useful if you already have the MP2RAGE with FatNavs pulse sequence. If you have a 7T Siemens system and are interested in obtaining a C2P version of the sequence - [please let me know](mailto:gallichand@cardiff.ac.uk). If you are interested in using it for 3T, it is also available for VB17 and VE11B/C - and hopefully some other baselines soon. If you don't have a 3D FatNavs sequence, perhaps some parts of the pipeline are also useful for other research. 
-
-The only part of my code that is not included here is the FatNav-modification version of Philipp Ehses' `mapVBVD.m` code for reading the raw Siemens data into Matlab. Philipp's original code is freely available from the Siemens MR-IDEA online forum, but I have not included the FatNav-modified code here as it appears to be 'Siemens sensitive'. If you would like this code too, please [email me](mailto:gallichand@cardiff.ac.uk).
-
-I have included various open-source tools inside the toolbox - but you will need to separately download and install both the [Michigan Image Reconstruction Toolbox (MIRT) for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html) (used for the NUFFT) and [SPM 12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/) (used for the co-registration of the individual FatNav images to estimate the motion parameters).
 
 The full script takes rather a long time to run (from around 10 mins through to several hours, depending on the number of CPUs you have and the size of the dataset, as well as the amount of RAM you have available) as it has to do the full reconstruction of the raw data (which typically also requires a GRAPPA reconstruction of the 3D dataset) and then perform the motion-correction step for each RF channel and each inversion time of the MP2RAGE scan. 
 
