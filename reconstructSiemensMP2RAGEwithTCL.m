@@ -162,7 +162,7 @@ function reconstructSiemensMP2RAGEwithTCL(rawDataFile,TCLdir,varargin)
 % -- modification of original reconstructSiemensMP2RAGEwithFatNavs.m to be
 %    adapted for motion paramters from the Tracoline TCL system
 
-reconPars.retroMocoBoxVersion = '0.8.0dev'; % put this into the HTML for reference
+reconPars.retroMocoBoxVersion = retroMocoBoxVersion; % put this into the HTML for reference
 reconPars.rawDataFile = rawDataFile;
 reconPars.TCLdir = TCLdir;
 

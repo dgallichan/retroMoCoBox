@@ -266,7 +266,7 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %           out of the complex data per coil as MATLAB files - before and
 %           after application of MoCo.
 
-reconPars.retroMocoBoxVersion = '0.7.1dev'; % put this into the HTML for reference
+reconPars.retroMocoBoxVersion = retroMocoBoxVersion; % put this into the HTML for reference
 reconPars.rawDataFile = rawDataFile;
 
 %% Check SPM and Fessler's toolbox are on path
