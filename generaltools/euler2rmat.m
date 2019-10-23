@@ -20,9 +20,31 @@ for iT = 1:nT
     sp = sin(phi);    cp = cos(phi);
     st = sin(theta);  ct = cos(theta);
     sps = sin(psi);   cps = cos(psi);
+
     
-    out(:,:,iT) = [  ct*cps cp*sps+sp*st*cps sp*sps-cp*st*cps;
-        -ct*sps cp*cps-sp*st*sps sp*cps-cp*st*sps;
-        st        -sp*ct           cp*ct;];
+    %%% The following code was in place for many years, but I'm not sure
+    %%% where I got it from originally...! It seems to work correctly until
+    %%% double oblique slices are used, then it deviates from expected
+    %%% behaviour (non-normalised rotation matrix...)
+%     out(:,:,iT) = [  ct*cps cp*sps+sp*st*cps sp*sps-cp*st*cps;
+%         -ct*sps cp*cps-sp*st*sps sp*cps-cp*st*sps;
+%         st        -sp*ct           cp*ct;];
+
+%%% instead use the method from spm_matrix:
+
+R1 = [1    0    0;
+      0   cp   sp; 
+      0  -sp   cp];
+  
+R2 = [ct  0   -st;
+      0    1   0  ;
+      st 0   ct];
+  
+R3 = [cps sps 0;
+     -sps cps 0;
+      0   0 1];
+  
+  out(:,:,iT) = R1*R2*R3;
+
     
 end
