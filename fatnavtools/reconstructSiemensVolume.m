@@ -363,6 +363,11 @@ if exist(fatnavdir,'dir') % could have just kept the motion-parameters file...
         fprintf(fid,['ACS image:<br>\n']);
         fprintf(fid,['<img src="ACSim.png" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
     end
+    if exist([fatnavdir '/a_FatNav_ACSim_' MIDstr '_channelCut.png'],'file')
+        copyfile([fatnavdir '/a_FatNav_ACSim_' MIDstr '_channelCut.png'],[htmlDir '/ACSim_channelCut.png']);
+        fprintf(fid,['ACS image (after removing neck channels from 64ch coil):<br>\n']);
+        fprintf(fid,['<img src="ACSim_channelCut.png" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
+    end
     if exist([fatnavdir '/a_FatNav_MoCoPars_' MIDstr '.png'],'file')
         copyfile([fatnavdir '/a_FatNav_MoCoPars_' MIDstr '.png'],[htmlDir '/motion_parameters.png']);
         fprintf(fid,['<h4>FatNavs</h4>\n']);
