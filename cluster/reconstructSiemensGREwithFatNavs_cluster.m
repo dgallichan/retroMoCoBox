@@ -5,7 +5,7 @@ function reconstructSiemensGREwithFatNavs_cluster(rawDataFile, varargin)
     CLUSTER_LOG_PATH] = process_options(varargin,...
     'outRoot',[],'tempRoot',[],'bLinParSwap',0,'bGRAPPAinRAM',0,'bKeepGRAPPArecon',0,'bKeepReconInRAM',0,...
     'bFullParforRecon',0,'coilCombineMethod','default','FatNavRes_mm',[],'swapDims_xyz',[0 0 1],'bZipNIFTIs',1,'bKeepFatNavs',0,'bKeepPatientInfo',1,...
-    'CLUSTER_LOG_PATH','~/');
+    'CLUSTER_LOG_PATH','~');
 
 % bKeepReconInRAM, bFullParforRecon, coilCombineMethod - all ignored for this GRE script!!
 
@@ -52,7 +52,11 @@ end
 
 % for 7T-GRE sequence, the FatNav resolution is obtainable from the WIP
 % parameters:
-reconPars.FatNavRes_mm = twix_obj.hdr.MeasYaps.sWiPMemBlock.alFree{5};
+try
+    reconPars.FatNavRes_mm = twix_obj.hdr.MeasYaps.sWiPMemBlock.alFree{5};
+catch
+    reconPars.FatNavRes_mm = 4; % if it didn't work (which it doesn't for the smaller reconcheck dataset...), assume it was 4
+end
 
 
 
