@@ -61,7 +61,7 @@ function [ACSims, timingReport, fatnavdir] = processFatNavs_GRAPPA4x4(twix_obj, 
 % 
 %  10/2/16 - danielg - added option to keep or delete FatNavs folder at the end
 %              --> now moved this feature to part of
-%              reconstructMP2RAGEiwthFatNavs.m instead - 15/3/16
+%              reconstructMP2RAGEwithFatNavs.m instead - 15/3/16
 %
 %  8/3/16 - danielg - should now cope with 2, 4 or 6 mm FatNavs, so also
 %         renamed the function to reflect this.
@@ -81,6 +81,12 @@ function [ACSims, timingReport, fatnavdir] = processFatNavs_GRAPPA4x4(twix_obj, 
 %         -  NB: really the sequence itself needs updating on the scanner
 %            so that the counters are incremented properly... Probably this
 %            feature won't be used enough to make that worthwhile though...
+%
+% 15/7/20 - gallichand@cardiff.ac.uk (danielg)
+%         - For 64ch coil at 3T now discard the 10 most inferior channels
+%         (when 52 channels are active) as the neck signals affect motion
+%         parameter estimation - especially for pitch)
+
 
 if (~isfield(twix_obj,'FatNav') || ~isfield(twix_obj,'FatNav_refscan'))
     disp('Error: input twix_obj doesn''t seem to contain FatNav data...')
@@ -285,7 +291,7 @@ if FatNavRes_mm==2 && bApplyNoseFix
     else
         iC_keep = 1:nc;
         disp('...............')
-        disp(['RF coil unrecognized, using data from all ' num2str(nc) ' channels.'])
+        disp(['RF coil is not 32Ch_Head_7T'])
         disp(['No information available to reduce signal from nose'])
         disp('...............')
         sigDistMask = [];
@@ -293,7 +299,23 @@ if FatNavRes_mm==2 && bApplyNoseFix
     end
     
 else
-    iC_keep = 1:nc;
+    % If using 64-channel coil, discard the channels around the neck
+    if isfield(twix_obj.hdr.MeasYaps,'sCoilSelectMeas') ...
+            && strcmp(twix_obj.hdr.MeasYaps.sCoilSelectMeas.aRxCoilSelectData{1}.asList{1}.sCoilElementID.tCoilID,'"HeadNeck_64"')
+        
+        iC_keep = 1:nc;
+        if nc==52
+            iC_keep([1 7 8 18 29 30 39 40 49 50]) = []; % these channels cover the neck (in two test datasets with 52 data channels from the 64-channel coil...)
+        end
+        
+        newACSim = ssos(ACSims(:,:,:,iC_keep));
+
+        new_ovACS = orthoview(newACSim,'drawIms',0);
+        imab_overwrite([fatnavdir '/a_FatNav_ACSim_' MIDstr '_channelCut.png'],new_ovACS.oneIm);
+
+    else
+        iC_keep = 1:nc;
+    end
     sigDistMask = [];
 end
 
