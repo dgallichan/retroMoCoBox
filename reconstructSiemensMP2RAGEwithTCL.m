@@ -109,6 +109,8 @@ function reconstructSiemensMP2RAGEwithTCL(rawDataFile,TCLdir,varargin)
 %                        recon. Default is zero, but for large motion may
 %                        want to use 1e-2 or so.
 %
+%       'pSmoothMPars' - factor to smooth the TCL motion parameters by -
+%                        corresponds to 'p' in csaps.m help
 %     
 %   
 % Matlab tools which are included (with 'assumed' permission, as I collected them online):
@@ -176,9 +178,11 @@ end
 %%
 
 [reconPars.TCLtimeOffset_ms, reconPars.outRoot, reconPars.tempRoot, reconPars.bLinParSwap, reconPars.bGRAPPAinRAM, reconPars.bKeepGRAPPArecon, reconPars.bKeepReconInRAM, reconPars.bFullParforRecon,...
-    reconPars.coilCombineMethod, reconPars.swapDims_xyz, reconPars.bZipNIFTIs, reconPars.bKeepPatientInfo, reconPars.GRAPPAlambda] = process_options(varargin,...
+    reconPars.coilCombineMethod, reconPars.swapDims_xyz, reconPars.bZipNIFTIs, reconPars.bKeepPatientInfo, reconPars.GRAPPAlambda,...
+    reconPars.pSmoothMPars, reconPars.cgIters] = process_options(varargin,...
     'TCLtimeOffset_ms',0,'outRoot',[],'tempRoot',[],'bLinParSwap',0,'bGRAPPAinRAM',0,'bKeepGRAPPArecon',0,'bKeepReconInRAM',0,...
-    'bFullParforRecon',0,'coilCombineMethod','default','swapDims_xyz',[0 0 1],'bZipNIFTIs',1,'bKeepPatientInfo',1,'GRAPPAlambda',0);
+    'bFullParforRecon',0,'coilCombineMethod','default','swapDims_xyz',[0 0 1],'bZipNIFTIs',1,'bKeepPatientInfo',1,'GRAPPAlambda',0,...
+    'pSmoothMPars',[],'cgIters',1);
 
 
 %%
