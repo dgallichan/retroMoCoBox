@@ -25,12 +25,17 @@ end
 if ~exist('bKeepComplexImageData','var')
     bKeepComplexImageData = 0;
 end
+if ~exist('outRoot','var')
+    outRoot = [];
+end
 
-
+%%
+dir(rawDataFile)
 %%
 
 reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,'FatNavRes_mm',FatNavRes_mm,...
-    'bGRAPPAinRAM',1,'bKeepReconInRAM',1,'bFullParforRecon',bFullParforRecon,'swapDims_xyz',swapDims_xyz,'bKeepFatNavs',1,...
-    'bKeepGRAPPArecon',bKeepGRAPPArecon,'bLinParSwap',bLinParSwap,'bKeepComplexImageData',bKeepComplexImageData);
+    'bGRAPPAinRAM',1,'bKeepReconInRAM',1,'bFullParforRecon',bFullParforRecon,'swapDims_xyz',swapDims_xyz,'bKeepFatNavs',0,...
+    'bKeepGRAPPArecon',bKeepGRAPPArecon,'bLinParSwap',bLinParSwap,'bKeepComplexImageData',bKeepComplexImageData,...
+    'outRoot',outRoot);
 
 
