@@ -8,11 +8,14 @@ function timingReport = reconstructSiemensVolumeTCL(twix_obj,reconPars)
 
 retroMocoBoxVersion = reconPars.retroMocoBoxVersion; % put this into the HTML for reference
 
-cgIters = 1; % can also increase this to see if iterative approach improves 
-
 
 %%
-
+if ~isfield(reconPars,'cgIters')
+    reconPars.cgIters = 1;
+end
+if ~isfield(reconPars,'pSmoothMPars')
+    reconPars.pSmoothMpars = [];
+end
 if ~isfield(reconPars,'iAve')
     reconPars.iAve = 1;
 end
@@ -255,6 +258,7 @@ else
     fprintf(['Coil used: ' char(twix_obj.hdr.MeasYaps.asCoilSelectMeas{1}.asList{1}.sCoilElementID.tCoilID) ', with ' num2str(nc) ' channels active\n']);
     fprintf(fid,['Coil used: ' char(twix_obj.hdr.MeasYaps.asCoilSelectMeas{1}.asList{1}.sCoilElementID.tCoilID) ', with ' num2str(nc) ' channels active<br>\n']);
 end
+fprintf(fid,['CGiters: ' num2str(reconPars.cgIters) '\n']);
 
 %% Check if using HEADNECK_64 receive coil, and discard channels over the neck if this is the case (would be nice to know what Siemens does...)
 %%% It seems that this manual selection was only valid for one acquisition
@@ -356,12 +360,6 @@ iSkip = 4;
 iTCL_MPR = interp1(seconds(t_TCL(1:iSkip:end)),1:iSkip:length(t_TCL),seconds(t_MPR),'nearest'); % TCL timestamps can be identical to ms level...(?)
 
 this_fitMat = moveFrame(A_vector(:,:,iTCL_MPR),TS_offsetMat*TS_alignMat);
-
-%% Include image of motion parameters in HTML output - in isocentre coordinate frame (i.e same as FatNavs)
-
-plotFitPars(this_fitMat);
-export_fig([htmlDir '/motion_parameters_TCL.png']);
-fprintf(fid,['Motion parameters from TCL:<br><img src=''motion_parameters_TCL.png''><br>\n']);
 
 
 
@@ -468,6 +466,44 @@ if all( alignDim == [2 3] )
 elseif all( alignDim == [1 2] )
     alignIndices = reshape(1:hrps(2)*hrps(3),hrps(3),hrps(2));
 end
+
+%% Smooth mpars if necessary
+
+if isempty(reconPars.pSmoothMPars)
+    fprintf(fid,['Motion parameter smoothing: None<br>\n']);
+    
+    %%% Include image of motion parameters in HTML output - in isocentre coordinate frame (i.e same as FatNavs)
+    plotFitPars(this_fitMat);
+    export_fig([htmlDir '/motion_parameters_TCL.png']);
+    fprintf(fid,['Motion parameters from TCL:<br><img src=''motion_parameters_TCL.png''><br>\n']);
+    
+else
+    
+    %%% Use coordinate frame in which params are to be applied for HTML
+    %%% output:
+    plotFitPars(fitMats_mm_toApply);
+    export_fig([htmlDir '/motion_parameters_TCL.png']);
+    fprintf(fid,['Motion parameters from TCL:<br><img src=''motion_parameters_TCL.png''><br>\n']);
+    
+    rotTrans = rotmat2euler(fitMats_mm_toApply(1:3,1:3,:));
+    rotTrans(4:6,:) = squeeze(fitMats_mm_toApply(1:3,4,:));
+    
+    pp = csaps(1:size(rotTrans,2),rotTrans,reconPars.pSmoothMPars);
+    rotTrans_smooth = ppval(pp,1:size(rotTrans,2));
+    
+    fitMats_mm_toApply = zeros(4,4,hrps(2)*hrps(3));
+    fitMats_mm_toApply(4,4,:) = 1;
+    
+    fitMats_mm_toApply(1:3,1:3,:) = euler2rmat(rotTrans_smooth(1:3,:));
+    fitMats_mm_toApply(1:3,4,:) = rotTrans_smooth(4:6,:);
+        
+    plotFitPars(fitMats_mm_toApply);
+    export_fig([htmlDir '/motion_parameters_TCL_smooth.png']);
+    fprintf(fid,['Motion parameter smoothing: ' num2str(reconPars.pSmoothMPars) ' <br>\n']);
+    fprintf(fid,['Smoothed motion parameters from TCL:<br><img src=''motion_parameters_TCL_smooth.png''><br>\n']);    
+    
+end
+
 
 %% Prepare for the retrospective motion-correction of the host sequence
 tStart_applyMoco = clock;
@@ -603,8 +639,7 @@ if ~reconPars.bFullParforRecon
             
             tic
 %             thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
-            % see if there is a difference using 5 cgIters
-            thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz,cgIters);
+            thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz,reconPars.cgIters);
             
             % the multi-CPU (parfor) version of the NUFFT can be called with a
             % negative value for the 'useTable' input:
@@ -780,7 +815,7 @@ else % the much faster version with much hungrier RAM requirements:
             
             tic
 %             thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
-            thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz,cgIters);
+            thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz,reconPars.cgIters);
 
             timingReport_applyMoco(iC,iS) = toc;
             
