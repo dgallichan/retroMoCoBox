@@ -214,6 +214,8 @@ if length(twix_obj)>1 % on VE (and presumably VD as well) the raw data typically
     [~,~,V] =  svd(reshape(prescanIm,[],size(prescanIm,4)),'econ');
     reconPars.svdpars = V(:,1);
 %     prescanIm_svd = reshape( reshape(prescanIm,[],size(prescanIm,4)) * reconPars.svdpars , size(prescanIm(:,:,:,1)) );
+else
+    reconPars.svdpars = [];
 end
 
 
