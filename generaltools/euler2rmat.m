@@ -30,7 +30,9 @@ for iT = 1:nT
 %         -ct*sps cp*cps-sp*st*sps sp*cps-cp*st*sps;
 %         st        -sp*ct           cp*ct;];
 
-%%% instead use the method from spm_matrix:
+%%% instead use the method from spm_matrix: 
+% (note that sign on st in R2 is swapped compared to spm_matrix.m so that
+%  euler2rmat.m and rotmat2euler.m remain a compatible pair)
 
 R1 = [1    0    0;
       0   cp   sp; 
