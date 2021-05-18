@@ -15,6 +15,8 @@ Used in:
 * [Evaluation of 3D fat-navigator based retrospective motion correction in the clinical setting of patients with brain tumors](https://doi.org/10.1007/s00234-019-02160-w), _Glessgen, Gallichan, Moor, Hainc and Federau_, Neuroradiology 2019
 * [Fat navigators and Moiré phase tracking comparison for motion estimation and retrospective correction](https://doi.org/10.1002/mrm.27908), _Gretsch, Mattern, Gallichan, Speck_, MRM 2020
 * [Sharpness in motion corrected quantitative imaging at 7T](https://doi.org/10.1016/j.neuroimage.2020.117227), _Bazin, Nijsse, van der Zwaag, Gallichan, Alkemade, Vos, Forstmann, Caan_, NeuroImage 2020  
+
+
 Most of the work cited above (all except the Bazin 2020 paper!) is based on data collected on Siemens scanners. If you are also interested in using the code adapted for Philips scanners (not yet included in this Github), [please contact me](mailto:gallichand@cardiff.ac.uk).
 
 
