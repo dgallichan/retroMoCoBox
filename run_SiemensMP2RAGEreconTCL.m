@@ -12,7 +12,7 @@ addpath ~/matlab/matlabdownloads/tracSuite/
 run('~/Documents/code/retroMoCoBox/addRetroMoCoBoxToPath.m')
 
 % And the Michigan Image Reconstruction Toolbox (MIRT) (http://web.eecs.umich.edu/~fessler/code/) for the NUFFT
-run('~/matlab/matlabdownloads/mirt/setup.m')
+% run('~/matlab/matlabdownloads/mirt/setup.m') % mirt_nufft now added to retromocobox
 
 TCLtimeOffset_ms = -82229 + 900; % -82229 is from manual logging that day, 900 is observed additional offset in other data
 
