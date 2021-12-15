@@ -105,7 +105,7 @@ run('addRetroMoCoBoxToPath.m')
 
 % The NUFFT uses the Michigan Image Reconstruction Toolbox (MIRT)
 % (http://web.eecs.umich.edu/~fessler/code/index.html)
-run('../mirt/setup.m')
+% This is now included directly in retroMoCoBox/mirt_nufft
 
 %%% Load in an example image: 
 %%% (The Colin27 brain is good for this - downloadable from here: http://www.bic.mni.mcgill.ca/ServicesAtlases/Colin27) 
