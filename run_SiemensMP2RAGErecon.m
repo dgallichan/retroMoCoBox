@@ -8,7 +8,7 @@ run('~/Documents/code/retroMoCoBox/addRetroMoCoBoxToPath.m')
 addpath('~/matlabdownloads/spm12')
 
 % And the Michigan Image Reconstruction Toolbox (MIRT) (http://web.eecs.umich.edu/~fessler/code/) for the NUFFT
-run('~/matlabdownloads/mirt/setup.m')
+% run('~/matlabdownloads/mirt/setup.m') % This is now included in retroMoCoBox/mirt_nufft
 
 % Set the resolution of the FatNavs that were used (default is 2 for 7T and 4 for 3T)
 FatNavRes_mm = 2;
