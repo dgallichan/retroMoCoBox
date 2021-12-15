@@ -12,7 +12,7 @@ function [gdata, st, newData] = applyRetroMC_nufft(kdata_in, alignMats, alignDim
 % 'kspaceCentre' are the centre coordinates of k-space
 %
 % Requires Jeffrey Fessler's NUFFT code (downloadable from:
-% http://web.eecs.umich.edu/~fessler/code/ )
+% http://web.eecs.umich.edu/~fessler/code/ ) - now included in retroMoCoBox/mirt_nufft
 %
 % -- Daniel Gallichan, CIBM, EPFL, Lausanne, July 2014
 % - 31/7/14 - fixed input default definition problem...
