@@ -44,7 +44,7 @@ I have included various open-source tools inside the toolbox - but you will need
 
 #### `run_retroMocoDemo_NUFFT.m`
 
-The simple demonstration code  uses a single volume of real data from our scanner to demonstrate how the measured motion parameters can be used to correct the 3D k-space. The translations correpond to a simple phase ramp in k-space, but the rotations move the sampling positions away from a simple Cartesian grid, so some form of gridding is necessary. This was implemented here using the [Michigan Image Reconstruction Toolbox (MIRT) for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html) - which is a prerequisite for using the RetroMoCoBox. 
+The simple demonstration code  uses a single volume of real data from our scanner to demonstrate how the measured motion parameters can be used to correct the 3D k-space. The translations correpond to a simple phase ramp in k-space, but the rotations move the sampling positions away from a simple Cartesian grid, so some form of gridding is necessary. This was implemented here using the [Michigan Image Reconstruction Toolbox (MIRT) for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html) - the necessary part of which is now included here in the 'mirt_nufft' folder.
 
 The data for the demo can be downloaded [here for the 1 mm dataset with large motion](http://goo.gl/ERULZA) (32 MB), [here for the 600 um dataset (medium motion)](http://goo.gl/wto1MK) (86 MB) and [here for the 1mm dataset with small motion](https://goo.gl/oEnLgQ) (32 MB).
 
