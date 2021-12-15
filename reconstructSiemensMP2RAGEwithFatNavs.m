@@ -14,13 +14,6 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %           well for FatNavs - being particular sensitive to sub-voxel
 %           movements.
 %
-%     Michigan Image Reconstruction Toolbox (MIRT)
-%     (http://web.eecs.umich.edu/~fessler/code/index.html)
-%     from the group of Prof. J Fessler
-%           This is used to perform the NUFFT 3D gridding operation used to deal
-%           with the non-Cartesian k-space sampling after rotations have
-%           been applied.
-%
 % Usage:
 %%%%%%%%
 %
@@ -124,7 +117,14 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %
 %     
 %   
-% Matlab tools which are included (with 'assumed' permission, as I collected them online):
+% Matlab tools which are included:
+%
+%     NUFFT code from the Michigan Image Reconstruction Toolbox (MIRT)
+%     (http://web.eecs.umich.edu/~fessler/code/index.html)
+%     from the group of Prof. J Fessler
+%           This is used to perform the NUFFT 3D gridding operation used to deal
+%           with the non-Cartesian k-space sampling after rotations have
+%           been applied.
 %
 %     mapVBVD (from Philip Ehses) 
 % *** Note that this code is presumably 'Siemens-sensitive' as it is    ***
