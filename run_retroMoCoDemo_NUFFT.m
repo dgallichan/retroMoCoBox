@@ -30,7 +30,7 @@ run('addRetroMoCoBoxToPath.m')
 
 % The NUFFT uses the Michigan Image Reconstruction Toolbox (MIRT)
 % (http://web.eecs.umich.edu/~fessler/code/index.html)
-run('../mirt/setup.m')
+% This is now included directly in retroMoCoBox/mirt_nufft
 
 
 %% Create the image without MoCo
