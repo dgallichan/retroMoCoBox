@@ -5,8 +5,6 @@ function [gdata, st, newData] = applyRetroMC_nufft_2D(kdata_in, alignMats, align
 % faster than 3D, it's probably fine for the purposes of exploring
 % motion-corruption and quality metrics, etc.
 
-% run([getmatlabpath() '/../matlabdownloads/fessler/setup.m']);
-
 if nargin < 8
     kspaceCentre = size(kdata_in)/2 + 1;
 end
