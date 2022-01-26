@@ -36,7 +36,7 @@ $ git clone https://github.com/dgallichan/retroMoCoBox.git
 
 The only part of my code that is not included here is the FatNav-modification version of Philipp Ehses' `mapVBVD.m` code for reading the raw Siemens data into Matlab. Philipp's original code is freely available from the Siemens MR-IDEA online forum, but I have not included the FatNav-modified code here as it appears to be 'Siemens sensitive'. If you would like this code too, please [email me](mailto:gallichand@cardiff.ac.uk).
 
-I have included various open-source tools inside the toolbox - but you will need to separately download and install both the [Michigan Image Reconstruction Toolbox (MIRT) for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html) (used for the NUFFT) and [SPM 12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/) (used for the co-registration of the individual FatNav images to estimate the motion parameters).
+I have included various open-source tools inside the toolbox - including now also the NUFFT part of the [Michigan Image Reconstruction Toolbox (MIRT) for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html). If you want to use the code on actual FatNav data, you will also need to download [SPM 12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/) (used for the co-registration of the individual FatNav images to estimate the motion parameters).
 
 ---
 
