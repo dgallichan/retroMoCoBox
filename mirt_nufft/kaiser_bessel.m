@@ -128,8 +128,9 @@ if streq(alpha, 'best')
 %		if ir_is_octave % avoid annoying load warning
 %			warning('off', 'Octave:load-file-in-path', 'local')
 %		end
+% 
+        s = path_find_dir('nufft');
 		try
-			s = path_find_dir('nufft');
 			s = [s filesep 'param-data' filesep 'kaiser,m=0'];
 			s = load(s);
 			ii = find(J == s.Jlist);
@@ -139,7 +140,7 @@ if streq(alpha, 'best')
 			end
 			alpha = J * s.abest.zn(ii);
 		catch
-			warn(['could not open file "' s '" so using default alpha = 2.34 J which should be fine.'])
+			warnblah(['could not open file "' strrep(s,'\','\\') '" so using default alpha = 2.34 J which should be fine.'])
 			alpha = 2.34 * J;
 		end
 	end
