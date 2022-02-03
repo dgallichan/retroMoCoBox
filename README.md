@@ -38,6 +38,8 @@ The only part of my code that is not included here is the FatNav-modification ve
 
 I have included various open-source tools inside the toolbox - including now also the NUFFT part of the [Michigan Image Reconstruction Toolbox (MIRT) for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html). If you want to use the code on actual FatNav data, you will also need to download [SPM 12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/) (used for the co-registration of the individual FatNav images to estimate the motion parameters).
 
+For prettifying of the HTML report, I also used [ImageMagick](https://imagemagick.org/index.php) to create animated GIF files from the command line. _(Since version 7 of ImageMagick they changed their syntax from 'convert' to 'magick' - breaking the retroMoCoBox implementaion. I've opened an 'issue' here to remind me to fix this. In the mean-time you can either download a legacy version of ImageMagic or you can fix the code yourself!)._
+
 ---
 
 ### Demos
