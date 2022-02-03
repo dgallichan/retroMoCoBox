@@ -1,4 +1,4 @@
-function kdata_simMotion = apply_2DsimulatedMotion(kdata_in,mpars)
+function [kdata_simMotion, st] = apply_2DsimulatedMotion(kdata_in,mpars)
 
 Nres = size(mpars,2);
 alignMats = zeros(4,4,Nres);
