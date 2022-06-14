@@ -26,6 +26,9 @@ function out = GrappaReco3D_arb(sig,kernel,ws,stepSize,startPos)
 % and in some (albeit not very extensive...) tests it didn't actually make
 % any difference.
 %
+%
+% update 6/6/22 - danielg - remove cyclic boundary conditions as this
+% probably isn't actually a good idea!
 
 
 % Determination of kData-size
@@ -47,15 +50,15 @@ nzExt = nz+2*zBorder;
 sigIn = zeros( nyExt, nzExt, nc);
 sigIn(yBorder+1:end-yBorder, 1+zBorder:end-zBorder, :) = sig;
 	
-% do cyclic boundary conditions (but still excludes corners!)
-if yBorder>0
-    sigIn(1:yBorder,1+zBorder:end-zBorder,:) = sig(end-yBorder+1:end,:,:);
-    sigIn(end-yBorder+1:end,1+zBorder:end-zBorder,:) = sig(1:yBorder,:,:);
-end
-if zBorder>0
-    sigIn(1+yBorder:end-yBorder,1:zBorder,:) = sig(:,end-zBorder+1:end,:);
-    sigIn(1+yBorder:end-yBorder,end-zBorder+1:end,:) = sig(:,1:zBorder,:);
-end
+% % do cyclic boundary conditions (but still excludes corners!)
+% if yBorder>0
+%     sigIn(1:yBorder,1+zBorder:end-zBorder,:) = sig(end-yBorder+1:end,:,:);
+%     sigIn(end-yBorder+1:end,1+zBorder:end-zBorder,:) = sig(1:yBorder,:,:);
+% end
+% if zBorder>0
+%     sigIn(1+yBorder:end-yBorder,1:zBorder,:) = sig(:,end-zBorder+1:end,:);
+%     sigIn(1+yBorder:end-yBorder,end-zBorder+1:end,:) = sig(:,1:zBorder,:);
+% end
 
 sigOut = zeros(size(sigIn));
 
