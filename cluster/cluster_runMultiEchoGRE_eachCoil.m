@@ -1,4 +1,8 @@
-function cluster_runMultiEchoGRE_eachCoil(reconParsFile,iC)
+function cluster_runMultiEchoGRE_eachCoil(reconParsFile,iC,bSaveAll)
+
+if nargin < 3
+    bSaveAll = 0;
+end
 
 load(reconParsFile)
 
@@ -90,18 +94,24 @@ end
 % thiscoil_ims = permute(thiscoil_ims,[2 3 4 1]);
 % thiscoil_ims_corrected = permute(thiscoil_ims_corrected,[2 3 4 1]);
 
-% After motion-correction has been applied and we are working only in
-% image space we can afford to reduce the precision of the data, but it
-% needs to be normalised the same for each coil... It may not always be
-% true, but for the test data it looks like it is scaled on the order
-% of magnitude of one - so this should be OK
-thiscoil_mag = int16(4095*abs(thiscoil_ims));
-thiscoil_mag_corrected = int16(4095*abs(thiscoil_ims_corrected));
-
-if nEco > 1
-    thisphase_diff = int16((4095/(2*pi))*(angle(mean(thiscoil_ims(:,:,:,2:end).*conj(thiscoil_ims(:,:,:,1:end-1)),4))+pi) );
-    thisphase_diff_corrected =  int16((4095/(2*pi))*(angle(mean(thiscoil_ims_corrected(:,:,:,2:end).*conj(thiscoil_ims_corrected(:,:,:,1:end-1)),4))+pi));
-    save([tempNameRoots.finalImage '_' num2str(iC,'%.2d') '.mat'],'thiscoil_mag','thiscoil_mag_corrected','thisphase_diff','thisphase_diff_corrected');
+if bSaveAll % this uses more disk space, but can be plugged in more easily to stuff like ASPIRE coil combination / phase reconstruction
+    save([tempNameRoots.finalImage '_' num2str(iC,'%.2d') '.mat'],'thiscoil_ims','thiscoil_ims_corrected');
+    
 else
-    save([tempNameRoots.finalImage '_' num2str(iC,'%.2d') '.mat'],'thiscoil_mag','thiscoil_mag_corrected');
+
+    % After motion-correction has been applied and we are working only in
+    % image space we can afford to reduce the precision of the data, but it
+    % needs to be normalised the same for each coil... It may not always be
+    % true, but for the test data it looks like it is scaled on the order
+    % of magnitude of one - so this should be OK
+    thiscoil_mag = int16(4095*abs(thiscoil_ims));
+    thiscoil_mag_corrected = int16(4095*abs(thiscoil_ims_corrected));
+    
+    if nEco > 1
+        thisphase_diff = int16((4095/(2*pi))*(angle(mean(thiscoil_ims(:,:,:,2:end).*conj(thiscoil_ims(:,:,:,1:end-1)),4))+pi) );
+        thisphase_diff_corrected =  int16((4095/(2*pi))*(angle(mean(thiscoil_ims_corrected(:,:,:,2:end).*conj(thiscoil_ims_corrected(:,:,:,1:end-1)),4))+pi));
+        save([tempNameRoots.finalImage '_' num2str(iC,'%.2d') '.mat'],'thiscoil_mag','thiscoil_mag_corrected','thisphase_diff','thisphase_diff_corrected');
+    else
+        save([tempNameRoots.finalImage '_' num2str(iC,'%.2d') '.mat'],'thiscoil_mag','thiscoil_mag_corrected');
+    end
 end

@@ -14,7 +14,11 @@ addpath([retroMoCoPath '/cluster']); % add the cluster subfolder to the path
 if ~exist('swapDims_xyz','var')
     swapDims_xyz = [1 0 1]; % <-- seems to be correct for current FatNav ASPIRE protocol
 end
+if ~exist('bKeepGRAPPArecon','var')
+    bKeepGRAPPArecon = 0;
+end
 
 %%
 
-reconstructSiemensGREwithFatNavs_cluster(rawDataFile,'swapDims_xyz',swapDims_xyz,'CLUSTER_LOG_PATH',CLUSTER_LOG_PATH);
+reconstructSiemensGREwithFatNavs_cluster(rawDataFile,'swapDims_xyz',swapDims_xyz,'CLUSTER_LOG_PATH',CLUSTER_LOG_PATH,'bKeepGRAPPArecon',bKeepGRAPPArecon);
+
