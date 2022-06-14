@@ -3,7 +3,8 @@
 disp(['Attempting to reconstruct: ' rawDataFile]);
 
 run([getenv('RETROMOCOBOX_HOME') '/addRetroMoCoBoxToPath.m']);
-run([getenv('MIRT_HOME') '/setup.m']);
+% run([getenv('MIRT_HOME') '/setup.m']); % not needed now that NUFFT from
+% MIRT is included in retromocobox directly
 addpath(getenv('SPM_HOME'));
 CLUSTER_LOG_PATH = getenv('CLUSTER_LOG_PATH');
 
