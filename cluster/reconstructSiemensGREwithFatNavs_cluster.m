@@ -9,8 +9,8 @@ function reconstructSiemensGREwithFatNavs_cluster(rawDataFile, varargin)
 
 % bKeepReconInRAM, bFullParforRecon, coilCombineMethod - all ignored for this GRE script!!
 
-reconPars.retroMocoBoxVersion = '0.7.0dev';
-
+% reconPars.retroMocoBoxVersion = '0.7.0dev';
+reconPars.retroMocoBoxVersion = retroMocoBoxVersion; % get this from main repo definition
 
 
 %% Check SPM and Fessler's toolbox are on path
@@ -672,19 +672,22 @@ save(tempNameRoots.allReconPars,'iS','nc_keep','Hxyz','hxyz','nEco','reconPars',
 fid = fopen(tempNameRoots.clusterScript,'w');
 fprintf(fid,'#!/bin/bash\n');
 fprintf(fid,['#SBATCH --array 1-' num2str(nc) '\n']);
-fprintf(fid,'#SBATCH -p cubric-default\n');
+fprintf(fid,'#SBATCH -p cubric-centos7\n');
 fprintf(fid,'#SBATCH --job-name=GREreconHelper\n');
 fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconHelperArray_%%A_%%a.out\n']);
 fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconHelperArray_%%A_%%a.err\n']);
+fprintf(fid,'#SBATCH --ntasks 1\n'); 
 if nEco <= 10
-    fprintf(fid,['#SBATCH --ntasks ' num2str(nEco) '\n']); % only 7 echoes, so parfor only needs 7 threads
+    fprintf(fid,['#SBATCH --cpus-per-task ' num2str(nEco) '\n']); % only 7 echoes, so parfor only needs 7 threads
 else
-    fprintf(fid,'#SBATCH --ntasks 10\n'); 
+    fprintf(fid,'#SBATCH --cpus-per-task 10\n'); 
 end
-fprintf(fid,'#SBATCH --mem-per-cpu=32000M\n'); % MaxRSS showed requiring ~30 GB RAM for 336x336x192x7 data - I don't know why it still needs so much...
+%fprintf(fid,'#SBATCH --mem-per-cpu=32000M\n'); % MaxRSS showed requiring ~30 GB RAM for 336x336x192x7 data - I don't know why it still needs so much...
 %%%% I even tried switching around the parfor loop in cluster_runMultieEchoGRE_eachcoil to try to get the RAM usage down - I'm not sure if this is a bug in this version of MATLAB...
+fprintf(fid,'#SBATCH --mem=185G\n');  % try to prevent overdemanding RAM and getting cluster problems...
+fprintf(fid,'#SBATCH --begin=now');
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
-fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "cluster_runMultiEchoGRE_eachCoil(''' tempNameRoots.allReconPars ''',${SLURM_ARRAY_TASK_ID});exit;"\n']);
+fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "cluster_runMultiEchoGRE_eachCoil(''' tempNameRoots.allReconPars ''',${SLURM_ARRAY_TASK_ID},1);exit;"\n']);
 fclose(fid);
 
 disp('Launching batch job array for applying the motion correction...')
@@ -695,14 +698,17 @@ disp('Done.')
 fid = fopen(tempNameRoots.clusterScriptRecombine,'w');
 fprintf(fid,'#!/bin/bash\n');
 fprintf(fid,['#SBATCH --dependency=afterok:' jobnumber]); % wait for the array above to finish before starting the recombine
-fprintf(fid,'#SBATCH -p cubric-default\n');
+fprintf(fid,'#SBATCH -p cubric-centos7\n');
 fprintf(fid,'#SBATCH --job-name=GREreconRecombine\n');
 fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconRecombine_%%j.out\n']);
 fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconRecombine_%%j.err\n']);
-fprintf(fid,'#SBATCH --ntasks 10\n');
-fprintf(fid,'#SBATCH --mem-per-cpu=32000M\n'); % this one also exceeded memory limit when set to 16000
+fprintf(fid,'#SBATCH --ntasks 1\n');
+fprintf(fid,'#SBATCH --cpus-per-task 10\n');
+%fprintf(fid,'#SBATCH --mem-per-cpu=32000M\n'); % this one also exceeded memory limit when set to 16000
+fprintf(fid,'#SBATCH --mem=185G\n');  % try to prevent overdemanding RAM and getting cluster problems...
+fprintf(fid,'#SBATCH --begin=now');
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
-fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "reconParsFile = ''' tempNameRoots.allReconPars ''';cluster_combineCoils;exit;"\n']);
+fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "reconParsFile = ''' tempNameRoots.allReconPars ''';cluster_combineCoils_forASPIRE;exit;"\n']);
 fclose(fid);
 
 disp('Launching batch job array for applying the coil combination...')
@@ -717,7 +723,7 @@ fclose(fidHTML); % HTML needs closing and will be reopened in cleanup
 fid = fopen(tempNameRoots.clusterScriptCleanup,'w');
 fprintf(fid,'#!/bin/bash\n');
 fprintf(fid,['#SBATCH --dependency=afterok:' jobnumber2]); % wait for the recombine to finish before starting the cleanup
-fprintf(fid,'#SBATCH -p cubric-default\n');
+fprintf(fid,'#SBATCH -p cubric-centos7\n');
 fprintf(fid,'#SBATCH --job-name=GREreconCleanup\n');
 fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconCleanup_%%j.out\n']);
 fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconCleanup_%%j.err\n']);

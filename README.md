@@ -48,7 +48,7 @@ For prettifying of the HTML report, I also used [ImageMagick](https://imagemagic
 
 The simple demonstration code  uses a single volume of real data from our scanner to demonstrate how the measured motion parameters can be used to correct the 3D k-space. The translations correpond to a simple phase ramp in k-space, but the rotations move the sampling positions away from a simple Cartesian grid, so some form of gridding is necessary. This was implemented here using the [Michigan Image Reconstruction Toolbox (MIRT) for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html) - the necessary part of which is now included here in the 'mirt_nufft' folder.
 
-The data for the demo can be downloaded [here for the 1 mm dataset with large motion](http://goo.gl/ERULZA) (32 MB), [here for the 600 um dataset (medium motion)](http://goo.gl/wto1MK) (86 MB) and [here for the 1mm dataset with small motion](https://goo.gl/oEnLgQ) (32 MB).
+The data for the demo can be downloaded [here for the 1 mm dataset with large motion](https://bit.ly/retroData_2) (32 MB), [here for the 600 um dataset (medium motion)](https://bit.ly/retroData_3) (86 MB) and [here for the 1mm dataset with small motion](https://bit.ly/retroData_1) (32 MB).
 
 #### `run_retroMocoDemo_simulateMotion.m`
 
@@ -56,7 +56,7 @@ This script starts with any example volume (I found the [original Colin27 brain]
 
 #### `run_retroMocoDemo_FatNavRecon.m`
 
-This script loads an example of real 3D FatNavs data (15 volumes at 2mm resolution with 4x4 GRAPPA acceleration) and does the GRAPPA reconstruction. The example data [can be downloaded from here](https://goo.gl/1qYjsc) (186 MB).
+This script loads an example of real 3D FatNavs data (15 volumes at 2mm resolution with 4x4 GRAPPA acceleration) and does the GRAPPA reconstruction. The example data [can be downloaded from here](https://bit.ly/retroData_4) (186 MB).
 
 
 ---

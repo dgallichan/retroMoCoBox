@@ -3,7 +3,7 @@
 disp(['Attempting to reconstruct: ' rawDataFile]);
 
 run([getenv('RETROMOCOBOX_HOME') '/addRetroMoCoBoxToPath.m']);
-run([getenv('MIRT_HOME') '/setup.m']);
+%run([getenv('MIRT_HOME') '/setup.m']);
 addpath(getenv('SPM_HOME'));
 
 %% Haven't yet worked out a good way to feed these options from the command line launch for the cluster
