@@ -1,9 +1,18 @@
-function [gdata, st, newData] = applyRetroMC_nufft_2D(kdata_in, alignMats, alignDim, alignIndices, useTable, dataDims_mm, fullMatrixDims, kspaceCentre)
+function [gdata, st, newData] = applyRetroMC_nufft_2D(kdata_in, alignMats, alignDim, alignIndices, useTable, dataDims_mm, fullMatrixDims, kspaceCentre, cgIterations, oversampFactor)
 % rehash of main function to work on simulated 2D data
 %
 % This is a bit 'quick-and-dirty' implementation, but as 2D is so much
 % faster than 3D, it's probably fine for the purposes of exploring
 % motion-corruption and quality metrics, etc.
+
+if nargin < 10
+    oversampFactor = 1.5;
+end
+
+if nargin < 9
+    cgIterations = 1;
+end
+
 
 if nargin < 8
     kspaceCentre = size(kdata_in)/2 + 1;
@@ -86,7 +95,8 @@ clear kx ky nkx nky
 om = [crds.']*pi; % trajectory coords from -pi to pi
 Nd = [Nx Ny]; % image dimensions (N1,N2,...,Nd)
 Jd = [4 4];%	Jd [d]		# of neighbors used (in each direction)
-Kd = 2*Nd;%	Kd [d]		FFT sizes (should be >= N1,N2,...)
+% Kd = 2*Nd;%	Kd [d]		FFT sizes (should be >= N1,N2,...)
+Kd = round(oversampFactor*Nd);%	Kd 
 
 if useTable
     st = nufft_init(om, Nd, Jd, Kd,Nd/2,'table',2^useTable,'minmax:kb');
@@ -96,6 +106,18 @@ end
 
 clear crds kdata_in om
 
-gdata = nufft_adj_single(newData(:),st);
+if cgIterations==1    
+    gdata = nufft_adj_single(newData(:),st);
+else
+    if cgIterations==-1
+        % trick to skip applying the nufft if we just want to get at the st
+        % object
+        gdata = [];
+    else
+        disp('...Using CG recon version....')
+        E = newOperator(@(x) reshape(nufft(reshape(x,Nd),st),[],1), @(x) reshape(nufft_adj_single(reshape(x,[],1),st),[],1));
+        gdata = reshape(CGbasic(E,newData(:),'maxIters',cgIterations),Nd);
+    end
+end
 
  
