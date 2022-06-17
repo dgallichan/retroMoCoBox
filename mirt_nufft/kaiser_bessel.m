@@ -140,8 +140,7 @@ if streq(alpha, 'best')
 			end
 			alpha = J * s.abest.zn(ii);
 		catch
-%			warn(['could not open file "' strrep(s,'\','\\') '" so using default alpha = 2.34 J which should be fine.'])
-% // danielg - disable this warning as it ends up coming up a lot!
+			warn(['could not open file "' strrep(s,'\','\\') '" so using default alpha = 2.34 J which should be fine.'])
 			alpha = 2.34 * J;
 		end
 	end
