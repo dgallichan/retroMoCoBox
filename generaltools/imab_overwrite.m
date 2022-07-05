@@ -11,7 +11,7 @@ function imab_overwrite(filename, data, clims, bSep, noCols, cmap)
 %
 % noCols is no. of columns to use in Mosaic (only used for single volume)
 
-if nargin < 6; cmap = colormap('gray'); end
+if nargin < 6; cmap = repmat(linspace(0,1,64)',1,3); end
 if nargin < 5; noCols =[]; end
 if nargin < 4; bSep = 0; end
 if nargin < 3
