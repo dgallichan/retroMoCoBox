@@ -1,4 +1,4 @@
-function [gdata, st, newData] = applyRetroMC_nufft(kdata_in, alignMats, alignDim, alignIndices, useTable, dataDims_mm, fullMatrixDims, kspaceCentre, cgIterations, oversampFactor)
+function [gdata, st, newData, phaseTranslations] = applyRetroMC_nufft(kdata_in, alignMats, alignDim, alignIndices, useTable, dataDims_mm, fullMatrixDims, kspaceCentre, cgIterations, oversampFactor, bKeepPhaseTranslations)
 % The alignMats are a series of 4x4 (rigid-body) matrices describing the
 % motion, one for each set of k-space lines with the same motion parameters.
 % Displacements (4th column of alignMats) are in mm, or voxels if no 'dataDims_mm' are specified
@@ -28,6 +28,12 @@ function [gdata, st, newData] = applyRetroMC_nufft(kdata_in, alignMats, alignDim
 % - 25/8/17 - Added a 'trick' option so that if cgIterations is set to -1
 %             then the NUFFT is not applied. Useful if just trying to get
 %             at the st object.
+% - 20/6/22 - Add option to save out the phase associated with translations
+%             to allow faster re-application of the correction to multiple coils/echoes
+
+if nargin < 11
+    bKeepPhaseTranslations = 0;
+end
 
 if nargin < 10
     oversampFactor = 1.5;
@@ -98,6 +104,10 @@ kz = single(2*kz/Nz/dataDims_mm(3));
 nkx = kx; nky = ky; nkz = kz;
 
 newData = kdata_in;
+if bKeepPhaseTranslations
+    phaseTranslations = zeros(size(newData));
+end
+
 for iT = 1:Nt
     if length(alignDim)==1     
         switch alignDim
@@ -172,6 +182,10 @@ for iT = 1:Nt
     newVec = (alignMats(1:3,1:3,iT) * [kx(iLine) ky(iLine) kz(iLine)].' ).';
     nkx(iLine) = newVec(:,1); nky(iLine) = newVec(:,2); nkz(iLine) = newVec(:,3);
     newData(iLine) = newData(iLine).*exp(-1i*pi*( alignMats(1,4,iT)*kx(iLine) + alignMats(2,4,iT)*ky(iLine) + alignMats(3,4,iT)*kz(iLine)));
+    if bKeepPhaseTranslations
+        phaseTranslations(iLine) = alignMats(1,4,iT)*kx(iLine) + alignMats(2,4,iT)*ky(iLine) + alignMats(3,4,iT)*kz(iLine);
+    end
+    
     if Nt < 1000
         fprintf('.');
     else
