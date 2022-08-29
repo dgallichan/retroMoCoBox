@@ -546,6 +546,19 @@ disp('...............')
 disp('... Checking for ImageMagick...')
 testMagick = system('convert -version');
 if testMagick==0 % apparently a status of '0' means that everything is good...
+    magickFunc = 'convert';
+else
+    testMagickNew = system('magick -version');
+    if testMagickNew==0
+        magickFunc = 'magick';
+    else
+        magickFunc = -1;
+    end
+end
+    
+if isstr(magickFunc)
+    
+    
     disp('...............')
     disp('... ImageMagick found, you will get some animated gifs too...')
     disp('...............')
@@ -562,7 +575,7 @@ if testMagick==0 % apparently a status of '0' means that everything is good...
         ov1 = orthoview(thisOutIm,'drawIms',0);
         imab_overwrite([fatnavdir '/temp_mov_' num2str(iiOut,'%.3d') '.png'],ov1.oneIm,[0 climsMax]);
     end   
-    processString = ['convert -dispose 2 -delay 10 -loop 0 ' fatnavdir '/temp_mov_*.png ' fatnavdir '/a_mov_eachFatNav.gif'];
+    processString = [magickFunc ' -dispose 2 -delay 10 -loop 0 ' fatnavdir '/temp_mov_*.png ' fatnavdir '/a_mov_eachFatNav.gif'];
     system(processString);
     delete([fatnavdir '/temp_mov_*.png'])
     
@@ -571,7 +584,7 @@ if testMagick==0 % apparently a status of '0' means that everything is good...
         ov1 = orthoview(thisOutIm,'drawIms',0);
         imab_overwrite([fatnavdir '/temp_mov_' num2str(iiOut,'%.3d') '.png'],ov1.oneIm,[0 climsMax]);
     end
-    processString = ['convert -dispose 2 -delay 10 -loop 0 ' fatnavdir '/temp_mov_*.png ' fatnavdir '/a_mov_spm_eachFatNav.gif'];
+    processString = [magickFunc ' -dispose 2 -delay 10 -loop 0 ' fatnavdir '/temp_mov_*.png ' fatnavdir '/a_mov_spm_eachFatNav.gif'];
     system(processString);    
     delete([fatnavdir '/temp_mov_*.png'])
     

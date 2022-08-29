@@ -53,7 +53,7 @@ if reconPars.iRep > 1
     appendString = [appendString '_Rep' num2str(reconPars.iRep)];
 end
 
-outDir = [reconPars.outRoot '/hostrecon_' MIDstr appendString];
+outDir = [reconPars.outRoot '/MPRAGErecon_' MIDstr appendString];
 if ~exist(outDir,'dir')
     mkdir(outDir)
 end
@@ -64,7 +64,7 @@ if ~exist(htmlDir,'dir')
 end
 
 if isempty(reconPars.tempRoot)
-    reconPars.tempRoot = reconPars.outRoot;
+    reconPars.tempRoot = outDir;
 end
 tempDir = [reconPars.tempRoot '/temp_' MIDstr appendString];
 if ~exist(tempDir,'dir')
@@ -352,7 +352,7 @@ end
 %   motion-estimates
 
 [ACSims, timingReport_FatNavs, fatnavdir] = processFatNavs_GRAPPA4x4(twix_obj, ... 
-            reconPars.outRoot,'FatNavRes_mm',reconPars.FatNavRes_mm, 'iAve', reconPars.iAve, 'appendString', appendString);
+            outDir,'FatNavRes_mm',reconPars.FatNavRes_mm, 'iAve', reconPars.iAve, 'appendString', appendString);
 
 % And put stuff into the html report
 if exist(fatnavdir,'dir') % could have just kept the motion-parameters file...
@@ -412,7 +412,7 @@ end
 
 %% load moco parameters and align their orientation to the host data
 
-fitResult = load([reconPars.outRoot '/motion_parameters_spm_' MIDstr appendString '.mat']);
+fitResult = load([outDir '/motion_parameters_spm_' MIDstr appendString '.mat']);
 
 this_fitMat = fitResult.MPos_cent.mats;
 
@@ -1081,6 +1081,15 @@ switch nS
             system(processString);
             fprintf(fid,['INV1 image movie before/after correction:<br>\n']);
             fprintf(fid,['<img src="mov_INV1.gif"><br><br>\n']);
+        else
+            testMagickNew = system('magick -version'); % test for newer version of imageMagick (thanks to Sila Dokumaci!)
+            if testMagickNew==0 
+                processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
+                system(processString);
+                fprintf(fid,['INV1 image movie before/after correction:<br>\n']);
+                fprintf(fid,['<img src="mov_INV1.gif"><br><br>\n']);
+        end
+        
         end
         
     case 2
@@ -1103,6 +1112,16 @@ switch nS
             system(processString);
             fprintf(fid,['INV1 image movie before/after correction:<br>\n']);
             fprintf(fid,['<img src="mov_INV1.gif"><br><br>\n']);
+            testMagickNew = -1; % create this variable in case it needs to exist for code to run
+        else
+            testMagickNew = system('magick -version');  % test for newer version of imageMagick (thanks to Sila Dokumaci!)
+            if testMagickNew==0 
+                processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
+                system(processString);
+                fprintf(fid,['INV1 image movie before/after correction:<br>\n']);
+                fprintf(fid,['<img src="mov_INV1.gif"><br><br>\n']);
+        end
+        
         end
         
         ov1 = orthoview(mOut.all_ims(:,:,:,2),'drawIms',0);
@@ -1128,6 +1147,13 @@ switch nS
             fprintf(fid,['INV2 image movie before/after correction:<br>\n']);
             fprintf(fid,['<img src="mov_INV2.gif"><br><br>\n']);
             
+        elseif testMagickNew==0
+            processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2.png ' htmlDir '/INV2_corrected.png ' htmlDir '/mov_INV2.gif'];
+            system(processString);
+            processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/UNI.png ' htmlDir '/UNI_corrected.png ' htmlDir '/mov_UNI.gif'];
+            system(processString);
+            fprintf(fid,['INV2 image movie before/after correction:<br>\n']);
+            fprintf(fid,['<img src="mov_INV2.gif"><br><br>\n']);
         end
         
         fprintf(fid,['UNI image before correction:<br>\n']);
@@ -1135,7 +1161,7 @@ switch nS
         fprintf(fid,['UNI image after correction:<br>\n']);
         fprintf(fid,['<img src="UNI_corrected.png"><br><br>\n']);
         
-        if testMagick==0
+        if testMagick==0 || testMagickNew==0
             fprintf(fid,['UNI image movie before/after correction:<br>\n']);
             fprintf(fid,['<img src="mov_UNI.gif"><br><br>\n']);
         end
@@ -1173,6 +1199,12 @@ switch nS
                 
                 fprintf(fid,['INV2 MIP movie before/after correction:<br>\n']);
                 fprintf(fid,['<img src="mov_INV2_MIP.gif"><br><br>\n']);
+            elseif testMagickNew==0
+                processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2_MIP.png ' htmlDir '/INV2_corrected_MIP.png ' htmlDir '/mov_INV2_MIP.gif'];
+                system(processString);
+                
+                fprintf(fid,['INV2 MIP movie before/after correction:<br>\n']);
+                fprintf(fid,['<img src="mov_INV2_MIP.gif"><br><br>\n']);
             else
                 fprintf(fid,['INV2 MIP before correction:<br>\n']);
                 fprintf(fid,['<img src="INV2_MIP.png"><br><br>\n']);
@@ -1191,7 +1223,7 @@ switch nS
         else
             xi = round(Hxyz(1)/2+Hxyz(1)/10);
             yi = round(Hxyz(2)/2+Hxyz(2)/8: .9*Hxyz(2)); % arbitrary cut off points for zoom in y and z
-            zi = round(Hxyz(3)/2:Hxyz(3): .8*Hxyz(3)); 
+            zi = round(Hxyz(3)/2+Hxyz(3)/8: .8*Hxyz(3)); 
         end
         clim1 = percentile(mOut.all_ims(:,:,:,1),97);
         clim2 = percentile(mOut.all_ims(:,:,:,2),97);
@@ -1220,6 +1252,12 @@ switch nS
         export_fig([htmlDir '/zoom_corrected.png'])
         if testMagick==0
             processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_corrected.png ' htmlDir '/mov_zoom.gif'];
+            system(processString);
+            
+            fprintf(fid,['Sagittal zoom before/after correction:<br>\n']);
+            fprintf(fid,['<img src="mov_zoom.gif"><br><br>\n']);
+        elseif testMagickNew==0
+            processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_corrected.png ' htmlDir '/mov_zoom.gif'];
             system(processString);
             
             fprintf(fid,['Sagittal zoom before/after correction:<br>\n']);
