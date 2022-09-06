@@ -130,7 +130,7 @@ if reconPars.iRep > 1
     appendString = [appendString '_Rep' num2str(reconPars.iRep)];
 end
 
-outDir = [reconPars.outRoot '/hostrecon_' MIDstr appendString];
+outDir = [reconPars.outRoot '/GRErecon_' MIDstr appendString];
 if ~exist(outDir,'dir')
     mkdir(outDir)
 end
@@ -141,7 +141,7 @@ if ~exist(htmlDir,'dir')
 end
 
 if isempty(reconPars.tempRoot)
-    reconPars.tempRoot = reconPars.outRoot;
+    reconPars.tempRoot = outDir;
 end
 tempDir = [reconPars.tempRoot '/temp_' MIDstr appendString];
 if ~exist(tempDir,'dir')
@@ -399,7 +399,7 @@ end
 %   motion-estimates
 
 [ACSims, timingReport_FatNavs, fatnavdir] = processFatNavs_GRAPPA4x4(twix_obj, ... 
-            reconPars.outRoot,'FatNavRes_mm',reconPars.FatNavRes_mm, 'iAve', reconPars.iAve, 'appendString', appendString);
+            outDir,'FatNavRes_mm',reconPars.FatNavRes_mm, 'iAve', reconPars.iAve, 'appendString', appendString);
 
 % And put stuff into the html report
 if exist(fatnavdir,'dir') % could have just kept the motion-parameters file...
@@ -452,7 +452,7 @@ end
 
 %% load moco parameters and align their orientation to the host data
 
-fitResult = load([reconPars.outRoot '/motion_parameters_spm_' MIDstr appendString '.mat']);
+fitResult = load([outDir '/motion_parameters_spm_' MIDstr appendString '.mat']);
 
 this_fitMat = fitResult.MPos_cent.mats;
 
@@ -667,11 +667,12 @@ tempNameRoots.cleanupFiles = [tempDir '/tempCleanupPars_' MIDstr '.mat'];
 iS = 1; % GRE data has only one 'set'
 save(tempNameRoots.allReconPars,'iS','nc_keep','Hxyz','hxyz','nEco','reconPars','iC_keep','hrps','permutedims',...
 'fitMats_mm_toApply','alignDim','alignIndices','hostVoxDim_mm','kspaceCentre_xyz','tempNameRoots','MIDstr','outDir',...
-'RETROMOCOBOX_PATH','MIRT_PATH','SPM_PATH')
+'RETROMOCOBOX_PATH','MIRT_PATH','SPM_PATH','tempDir')
 
 fid = fopen(tempNameRoots.clusterScript,'w');
 fprintf(fid,'#!/bin/bash\n');
-fprintf(fid,['#SBATCH --array 1-' num2str(nc) '\n']);
+% fprintf(fid,['#SBATCH --array 1-' num2str(nc) '\n']);
+fprintf(fid,['#SBATCH --array 1-' num2str(nEco) '\n']);
 fprintf(fid,'#SBATCH -p cubric-centos7\n');
 fprintf(fid,'#SBATCH --job-name=GREreconHelper\n');
 fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconHelperArray_%%A_%%a.out\n']);
@@ -684,10 +685,12 @@ else
 end
 %fprintf(fid,'#SBATCH --mem-per-cpu=32000M\n'); % MaxRSS showed requiring ~30 GB RAM for 336x336x192x7 data - I don't know why it still needs so much...
 %%%% I even tried switching around the parfor loop in cluster_runMultieEchoGRE_eachcoil to try to get the RAM usage down - I'm not sure if this is a bug in this version of MATLAB...
-fprintf(fid,'#SBATCH --mem=185G\n');  % try to prevent overdemanding RAM and getting cluster problems...
-fprintf(fid,'#SBATCH --begin=now');
+fprintf(fid,'#SBATCH --mem=85G\n');  % 'seff' on jobid shows requiring around 27GB for 336x336x192x7 data or 80GB for 32 coils instead of 7 echoes
+fprintf(fid,'#SBATCH --begin=now\n');
+fprintf(fid,'#SBATCH --requeue\n');
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
-fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "cluster_runMultiEchoGRE_eachCoil(''' tempNameRoots.allReconPars ''',${SLURM_ARRAY_TASK_ID},1);exit;"\n']);
+% fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "cluster_runMultiEchoGRE_eachCoil(''' tempNameRoots.allReconPars ''',${SLURM_ARRAY_TASK_ID},1);exit;"\n']);
+fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "cluster_runMultiEchoGRE_eachEcho(''' tempNameRoots.allReconPars ''',${SLURM_ARRAY_TASK_ID});exit;"\n']);
 fclose(fid);
 
 disp('Launching batch job array for applying the motion correction...')
@@ -705,8 +708,10 @@ fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconRecombine_%%j.err\n']);
 fprintf(fid,'#SBATCH --ntasks 1\n');
 fprintf(fid,'#SBATCH --cpus-per-task 10\n');
 %fprintf(fid,'#SBATCH --mem-per-cpu=32000M\n'); % this one also exceeded memory limit when set to 16000
-fprintf(fid,'#SBATCH --mem=185G\n');  % try to prevent overdemanding RAM and getting cluster problems...
-fprintf(fid,'#SBATCH --begin=now');
+fprintf(fid,'#SBATCH --mem=140G\n');  
+% Here currently need at least enough to hold two full copies of full size
+% recon - but 'seff' showed as much as 129GB for 336x336x192x7 data
+fprintf(fid,'#SBATCH --begin=now\n');
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
 fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "reconParsFile = ''' tempNameRoots.allReconPars ''';cluster_combineCoils_forASPIRE;exit;"\n']);
 fclose(fid);
@@ -720,6 +725,7 @@ save(tempNameRoots.cleanupFiles,'htmlDir','startTime','timingReport_FatNavs','nc
     'reconPars','tempNameRoots','tempDir','outDir','nFatNavs','fatnavdir','RETROMOCOBOX_PATH','MIRT_PATH','SPM_PATH');
 fclose(fidHTML); % HTML needs closing and will be reopened in cleanup
 
+% setenv('MRITOOLS_HOME','/home/scedg10/code/mritools_Linux_3.4.3/bin/')
 fid = fopen(tempNameRoots.clusterScriptCleanup,'w');
 fprintf(fid,'#!/bin/bash\n');
 fprintf(fid,['#SBATCH --dependency=afterok:' jobnumber2]); % wait for the recombine to finish before starting the cleanup
@@ -728,9 +734,37 @@ fprintf(fid,'#SBATCH --job-name=GREreconCleanup\n');
 fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconCleanup_%%j.out\n']);
 fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconCleanup_%%j.err\n']);
 fprintf(fid,'#SBATCH --ntasks 1\n');
-fprintf(fid,'#SBATCH --mem-per-cpu=8000M\n');
+fprintf(fid,'#SBATCH --mem-per-cpu=32G\n');
+fprintf(fid,'#SBATCH --begin=now\n');
+
+% even though the following commands (romeo and mcpc3ds) aren't being launched from within
+% MATLAB, there still seemed to be some problems with library interference.
+% This workaround is listed here: https://github.com/korbinian90/ROMEO 
+fprintf(fid,['export LD_PRELOAD=' getenv('MRITOOLS_HOME') '/../lib/julia/libstdc++.so.6.0.29\n']);
+
+fprintf(fid,[getenv('MRITOOLS_HOME') '/mcpc3ds -p ' [tempDir '/GRE_5D_phs.nii'] ...
+          ' -m ' [tempDir '/GRE_5D_mag.nii'] ' -o ' [tempDir '/combined_noMoCo'] ...
+          ' -t [' num2str((twix_obj.hdr.Meas.alTE(1:nEco)/1000)) ']\n']);
+fprintf(fid,[getenv('MRITOOLS_HOME') '/mcpc3ds -p ' [tempDir '/GRE_5D_MoCo_phs.nii'] ...
+          ' -m ' [tempDir '/GRE_5D_MoCo_mag.nii'] ' -o ' [tempDir '/combined_MoCo'] ...
+          ' -t [' num2str((twix_obj.hdr.Meas.alTE(1:nEco)/1000)) ']\n']);
+fprintf(fid,[getenv('MRITOOLS_HOME') '/romeo -p ' [tempDir '/combined_noMoCo/combined_phase.nii']...
+          ' -m ' [tempDir '/combined_noMoCo/combined_mag.nii'] ' -o ' [tempDir '/combined_noMoCo/unwrapped.nii'] ...
+          ' -t [' num2str((twix_obj.hdr.Meas.alTE(1:nEco)/1000)) ']\n']);
+fprintf(fid,[getenv('MRITOOLS_HOME') '/romeo -p ' [tempDir '/combined_MoCo/combined_phase.nii']   ...
+          ' -m ' [tempDir '/combined_MoCo/combined_mag.nii']   ' -o ' [tempDir '/combined_MoCo/unwrapped.nii'] ...
+          ' -t [' num2str((twix_obj.hdr.Meas.alTE(1:nEco)/1000)) ']' ...
+          ' -B --write-phase-offsets\n']); % not sure exactly which of all outputs are the most useful
+
+% mcpc3ds and romeo leave NaNs outside the mask, so can use fslmaths to
+% remove these when copying to output location
+fprintf(fid,['fslmaths ' tempDir '/combined_noMoCo/combined_mag.nii -mul 1000 -nan ' outDir '/GRE_mag.nii -odt int\n']);
+fprintf(fid,['fslmaths ' tempDir '/combined_MoCo/combined_mag.nii -mul 1000 -nan ' outDir '/GRE_MoCo_mag.nii -odt int\n']);
+fprintf(fid,['fslmaths ' tempDir '/combined_noMoCo/unwrapped.nii -nan ' outDir '/GRE_phs_unwrapped.nii\n']);
+fprintf(fid,['fslmaths ' tempDir '/combined_MoCo/unwrapped.nii -nan ' outDir '/GRE_MoCo_phs_unwrapped.nii\n']);
+
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
-fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "cleanupFile = ''' tempNameRoots.cleanupFiles ''';cluster_cleanup;exit;"\n']);
+fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "cleanupFile = ''' tempNameRoots.cleanupFiles ''';cluster_cleanup_afterASPIRE;exit;"\n']);
 fclose(fid);
 
 disp('Launching batch job array for applying the cleanup...')
