@@ -770,10 +770,3 @@ fclose(fid);
 disp('Launching batch job array for applying the cleanup...')
 [status, sbatch_out] = system(['sbatch ' tempNameRoots.clusterScriptCleanup]); 
 disp('Done.')
-
-
-
-
-
-
-

@@ -1088,8 +1088,8 @@ switch nS
                 system(processString);
                 fprintf(fid,['INV1 image movie before/after correction:<br>\n']);
                 fprintf(fid,['<img src="mov_INV1.gif"><br><br>\n']);
-            end
-            
+        end
+        
         end
         
     case 2
@@ -1120,8 +1120,8 @@ switch nS
                 system(processString);
                 fprintf(fid,['INV1 image movie before/after correction:<br>\n']);
                 fprintf(fid,['<img src="mov_INV1.gif"><br><br>\n']);
-            end
-            
+        end
+        
         end
         
         ov1 = orthoview(mOut.all_ims(:,:,:,2),'drawIms',0);
