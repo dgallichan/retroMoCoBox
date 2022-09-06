@@ -54,6 +54,11 @@ The data for the demo can be downloaded [here for the 1 mm dataset with large mo
 
 This script starts with any example volume (I found the [original Colin27 brain](http://www.bic.mni.mcgill.ca/ServicesAtlases/Colin27) to be handy for this) and then simulates the motion artifacts caused by different motion profiles. By then attempting to apply motion-correction to this simulated data it is possible to explore how well retrospective correction can be expected to work in different motion regimes. In the case of very 'rough' motion the retrospective correction still has noticeable artifacts - which can be almost completely suppressed by using an iterative NUFFT operation instead of the single-step approach used by default. 
 
+#### `run_retroMocoDemo_simulate2Dmotion.m`
+
+For getting a better understanding of the way that motion creates different kinds of artifacts in MR-images, I have also added functionality to work entirely in 2D (3-DOF, with translations in x and y, plus rotations). This demo script should have everything you need to run it directly included in this repository (I even found it works OK in MATLAB online!) - and you can experiment with different motion patterns and different k-space trajectories. I've found it particularly useful for trying to develop intuition for what kinds of motion are expected to be more 'problematic' for the motion correction.
+
+
 #### `run_retroMocoDemo_FatNavRecon.m`
 
 This script loads an example of real 3D FatNavs data (15 volumes at 2mm resolution with 4x4 GRAPPA acceleration) and does the GRAPPA reconstruction. The example data [can be downloaded from here](https://bit.ly/retroData_4) (186 MB).
