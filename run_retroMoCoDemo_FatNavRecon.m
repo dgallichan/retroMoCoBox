@@ -15,7 +15,8 @@
 
 run('addRetroMoCoBoxToPath.m')
 
-load ../exampleData/exampleFatNavdata_15fatnavs.mat
+% load ../exampleData/exampleFatNavdata_15fatnavs.mat
+load /home/scedg10/data/exampleFatNavData/exampleFatNavdata_15fatnavs.mat
 
 %%
 
@@ -38,8 +39,8 @@ nc = size(ACSdata,2);
 
 ACSdata = squeeze(ACSdata);         
 ACSdata = permute(ACSdata,[4 3 1 2]);
-ACSdata(nx,ny,nz,1) = 0; % extend to full size
-ACSdata = circshift(ACSdata,double(round([nx/2-dataSize(4)/2 ny/2-dataSize(3)/2 0 0])));  
+ACSdata(nx,ny,nz,1) = 0; % extend to full size (for some reason z is also 64 instead of 128 for this ACSdata...)
+ACSdata = circshift(ACSdata,double(round([nx/2-dataSize(4)/2 ny/2-dataSize(3)/2 nz/4 0])));  
 % no idea why it should be necessary to put 'double' here - but I got the error 'invalid shift type: must be a finite, nonsparse, real integer vector
 
 [ox, oy, oz] = ndgrid(linspace(-1,1,nx),linspace(-1,1,ny),linspace(-1,1,nz));
