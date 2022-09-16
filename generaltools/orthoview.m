@@ -15,6 +15,8 @@ if size(vol,4) > 1
     vol = vol(:,:,:,1);
 end
 
+vol(isnan(vol)) = 0;
+
 if isempty(cvox)
    cvox = round(size(vol)/2);
 end
