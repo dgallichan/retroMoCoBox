@@ -3,7 +3,7 @@
 load(reconParsFile)
 
 run([RETROMOCOBOX_PATH '/addRetroMoCoBoxToPath.m']);
-run([MIRT_PATH '/setup.m']);
+% run([MIRT_PATH '/setup.m']);
 addpath(SPM_PATH);
 
 % parfor doesn't like some stuff... have to make it clear that they are

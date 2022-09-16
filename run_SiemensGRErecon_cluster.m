@@ -1,5 +1,15 @@
 % rawDataFile = ''; % <-- this variable should now be set in calling script for cluster submission
 
+if ~exist(rawDataFile,'file')
+    disp(['File ' rawDataFile ' not found, trying locally instead.'])
+    rawDataFile = fullfile(script_pwd,rawDataFile);
+    if ~exist(rawDataFile,'file')
+        disp(['Error: file ' rawDataFile ' not found either'])
+    else
+        disp(['File ' rawDataFile ' located!'])
+    end
+end
+
 disp(['Attempting to reconstruct: ' rawDataFile]);
 
 run([getenv('RETROMOCOBOX_HOME') '/addRetroMoCoBoxToPath.m']);
@@ -18,8 +28,11 @@ end
 if ~exist('bKeepGRAPPArecon','var')
     bKeepGRAPPArecon = 0;
 end
+if ~exist('outRoot','var')
+    outRoot = [];
+end
 
 %%
 
-reconstructSiemensGREwithFatNavs_cluster(rawDataFile,'swapDims_xyz',swapDims_xyz,'CLUSTER_LOG_PATH',CLUSTER_LOG_PATH,'bKeepGRAPPArecon',bKeepGRAPPArecon);
+reconstructSiemensGREwithFatNavs_cluster(rawDataFile,'swapDims_xyz',swapDims_xyz,'CLUSTER_LOG_PATH',CLUSTER_LOG_PATH,'bKeepGRAPPArecon',bKeepGRAPPArecon,'outRoot',outRoot);
 

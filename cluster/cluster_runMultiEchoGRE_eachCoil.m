@@ -7,7 +7,7 @@ end
 load(reconParsFile)
 
 run([RETROMOCOBOX_PATH '/addRetroMoCoBoxToPath.m']);
-run([MIRT_PATH '/setup.m']);
+% run([MIRT_PATH '/setup.m']);
 addpath(SPM_PATH);
 
 % if nEco <= 10

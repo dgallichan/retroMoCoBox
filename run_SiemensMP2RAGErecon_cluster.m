@@ -1,5 +1,15 @@
 % rawDataFile = '';  % <-- this must already be set before calling this script
 
+if ~exist(rawDataFile,'file')
+    disp(['File ' rawDataFile ' not found, trying locally instead.'])
+    rawDataFile = fullfile(script_pwd,rawDataFile);
+    if ~exist(rawDataFile,'file')
+        disp(['Error: file ' rawDataFile ' not found either'])
+    else
+        disp(['File ' rawDataFile ' located!'])
+    end
+end
+
 disp(['Attempting to reconstruct: ' rawDataFile]);
 
 run([getenv('RETROMOCOBOX_HOME') '/addRetroMoCoBoxToPath.m']);
