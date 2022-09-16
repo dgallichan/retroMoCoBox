@@ -7,7 +7,7 @@ if nargin < 3
     clims = [min(data(:)) max(data(:))];
 end
 
-if ( nargin < 2 | isempty(cmap) )
+if ( nargin < 2 || isempty(cmap) )
     cmap = repmat(linspace(0,1,64)',1,3);
 end
 
