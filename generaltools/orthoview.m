@@ -82,7 +82,7 @@ end
 if drawIms
     if useNewFig
         figure
-        set(gcf,'Position',[    50   720   950  340])
+        set(gcf,'Position',[    50   50   950  340])
     else
         clf
     end
