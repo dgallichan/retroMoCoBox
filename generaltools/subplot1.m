@@ -49,6 +49,8 @@ FontSDef    = 10;
 XScaleDef   = 'linear';
 YScaleDef   = 'linear';
 
+figHandleDef = [];
+
 % set default parameters
 Min    = MinDef;
 Max    = MaxDef;
@@ -59,6 +61,7 @@ FontS  = FontSDef;
 XScale = XScaleDef;
 YScale = YScaleDef;
 
+figHandle = figHandleDef;
 
 MoveFoc = 0;
 if (nargin==1),
@@ -88,6 +91,8 @@ elseif (nargin>2),
  	     XScale = varargin{I+1};
           case 'YScale'
  	     YScale = varargin{I+1};
+          case 'figHandle' % danielg
+         figHandle = varargin{I+1};                      
           otherwise
 	     error('Unknown keyword');
          end
@@ -102,146 +107,151 @@ end
 
 
 
-
-
-
-
 switch MoveFoc
- case 1
-    %--- move focus to subplot # ---
-    H    = get(gcf,'Children');
-%     Ptot = length(H);
-    iReject = [];
-    for iP = 1:length(H) %% danielg: try to fix for HG2
-        if strcmp(get(H(iP),'tag'),'Colorbar')
-            iReject = [iReject iP];
+    case 1
+        % danielg:
+        if isempty(figHandle)
+            figHandle = gcf;
         end
-    end
-    H(iReject) = [];
+        
+        %--- move focus to subplot # ---
+        H    = get(figHandle,'Children');
+        %     Ptot = length(H);
+        iReject = [];
+        for iP = 1:length(H) %% danielg: try to fix for HG2
+            if strcmp(get(H(iP),'tag'),'Colorbar')
+                iReject = [iReject iP];
+            end
+        end
+        H(iReject) = [];
+        
+        Ptot = sum(strcmp(get(H,'type'),'axes'));
+        if (length(M)==1),
+            M    = Ptot - M + 1;
+        elseif (length(M)==2),
+            %--- check for subplot size ---
+            Pos1  = get(H(1),'Position');
+            Pos1x = round(Pos1(1)*100)/100;
+            for Icheck=2:1:Ptot,
+                PosN  = get(H(Icheck),'Position');
+                PosNx = round(PosN(1)*100)/100;
+                if (PosNx==Pos1x),
+                    NumberOfCol = Icheck - 1;
+                    break;
+                end
+            end
+            NumberOfRow = Ptot./NumberOfCol;
+            
+            Row = M(1);
+            Col = M(2);
+            
+            M   = (Row-1).*NumberOfCol + Col;
+            M    = Ptot - M + 1;
+        else
+            error('Unknown option, undefined subplot index');
+        end
 
-    Ptot = sum(strcmp(get(H,'type'),'axes'));
-    if (length(M)==1),
-       M    = Ptot - M + 1; 
-    elseif (length(M)==2),
-       %--- check for subplot size ---
-       Pos1  = get(H(1),'Position');
-       Pos1x = round(Pos1(1)*100)/100;
-       for Icheck=2:1:Ptot,
-          PosN  = get(H(Icheck),'Position');
-          PosNx = round(PosN(1)*100)/100;
-          if (PosNx==Pos1x),
-             NumberOfCol = Icheck - 1;
-             break;
-          end
-       end
-       NumberOfRow = Ptot./NumberOfCol;
-
-       Row = M(1);
-       Col = M(2);
-
-       M   = (Row-1).*NumberOfCol + Col;
-       M    = Ptot - M + 1; 
-    else
-       error('Unknown option, undefined subplot index');
-    end
-
-if nargout > 0  hAxes = H(M);  else set(gcf,'CurrentAxes',H(M)); end
+        if nargout > 0  hAxes = H(M);  else set(figHandle,'CurrentAxes',H(M)); end
  
 
- case 0
-    %--- open subplots ---
-
-    Xmin   = Min(1);
-    Ymin   = Min(2);
-    Xmax   = Max(1);
-    Ymax   = Max(2);
-    Xgap   = Gap(1);
-    Ygap   = Gap(2);
-    
-    
-    Xsize  = (Xmax - Xmin)./N;
-    Ysize  = (Ymax - Ymin)./M;
-    
-    Xbox   = Xsize - Xgap;
-    Ybox   = Ysize - Ygap;
-    
-    
-    Ptot = M.*N;
-    
-    Hgcf = gcf;
-    clf;
-    fig(Hgcf);
-    for Pi=1:1:Ptot,
-       Row = ceil(Pi./N);
-       Col = Pi - (Row - 1)*N;
-
-       Xstart = Xmin + Xsize.*(Col - 1);
-       Ystart = Ymax - Ysize.*Row;
-
-       if nargout > 0
-           hAxes(Row,Col) = axes('position',[Xstart,Ystart,Xbox,Ybox]);
-       else
-           axes('position',[Xstart,Ystart,Xbox,Ybox]);
-       end
-
-%       subplot(M,N,Pi);
-%       hold on;
-       %set(gca,'position',[Xstart,Ystart,Xbox,Ybox]);
-       set(gca,'FontSize',FontS); 
-       
-       set(gca,'Tag',num2str(Pi));
-       
-       box on;
-       hold on;
-
-       switch XTickL
-        case 'Margin'
-           if (Row~=M),
-              %--- erase XTickLabel ---
-              set(gca,'XTickLabel',[]);
-           end
-        case 'All'
-           % do nothing
-        case 'None'
-           set(gca,'XTickLabel',[]);
-        otherwise
-           error('Unknown XTickL option');
-       end
-
-       switch YTickL
-        case 'Margin'
-           if (Col~=1),
-              %--- erase YTickLabel ---
-              set(gca,'YTickLabel',[]);
-           end    
-        case 'All'
-           % do nothing
-        case 'None'
-           set(gca,'YTickLabel',[]);
-        otherwise
-           error('Unknown XTickL option');
-       end
-
-       switch XScale
-        case 'linear'
-           set(gca,'XScale','linear');
-        case 'log'
-           set(gca,'XScale','log');
-        otherwise
-  	   error('Unknown XScale option');
-       end
-
-       switch YScale
-        case 'linear'
-           set(gca,'YScale','linear');
-        case 'log'
-           set(gca,'YScale','log');
-        otherwise
-  	   error('Unknown YScale option');
-       end
-
-    end
-
- otherwise
-    error('Unknown MoveFoc option');
+    case 0
+        %--- open subplots ---
+        
+        Xmin   = Min(1);
+        Ymin   = Min(2);
+        Xmax   = Max(1);
+        Ymax   = Max(2);
+        Xgap   = Gap(1);
+        Ygap   = Gap(2);
+        
+        
+        Xsize  = (Xmax - Xmin)./N;
+        Ysize  = (Ymax - Ymin)./M;
+        
+        Xbox   = Xsize - Xgap;
+        Ybox   = Ysize - Ygap;
+        
+        
+        Ptot = M.*N;
+        
+        if isempty(figHandle)
+            Hgcf = gcf;
+        else
+            Hgcf = figHandle;
+        end
+        clf;
+        fig(Hgcf);
+        for Pi=1:1:Ptot,
+            Row = ceil(Pi./N);
+            Col = Pi - (Row - 1)*N;
+            
+            Xstart = Xmin + Xsize.*(Col - 1);
+            Ystart = Ymax - Ysize.*Row;
+            
+            if nargout > 0
+                hAxes(Row,Col) = axes('position',[Xstart,Ystart,Xbox,Ybox]);
+            else
+                axes('position',[Xstart,Ystart,Xbox,Ybox]);
+            end
+            
+            %       subplot(M,N,Pi);
+            %       hold on;
+            %set(gca,'position',[Xstart,Ystart,Xbox,Ybox]);
+            set(gca,'FontSize',FontS);
+            
+            set(gca,'Tag',num2str(Pi));
+            
+            box on;
+            hold on;
+            
+            switch XTickL
+                case 'Margin'
+                    if (Row~=M),
+                        %--- erase XTickLabel ---
+                        set(gca,'XTickLabel',[]);
+                    end
+                case 'All'
+                    % do nothing
+                case 'None'
+                    set(gca,'XTickLabel',[]);
+                otherwise
+                    error('Unknown XTickL option');
+            end
+            
+            switch YTickL
+                case 'Margin'
+                    if (Col~=1),
+                        %--- erase YTickLabel ---
+                        set(gca,'YTickLabel',[]);
+                    end
+                case 'All'
+                    % do nothing
+                case 'None'
+                    set(gca,'YTickLabel',[]);
+                otherwise
+                    error('Unknown XTickL option');
+            end
+            
+            switch XScale
+                case 'linear'
+                    set(gca,'XScale','linear');
+                case 'log'
+                    set(gca,'XScale','log');
+                otherwise
+                    error('Unknown XScale option');
+            end
+            
+            switch YScale
+                case 'linear'
+                    set(gca,'YScale','linear');
+                case 'log'
+                    set(gca,'YScale','log');
+                otherwise
+                    error('Unknown YScale option');
+            end
+            
+        end
+        
+    otherwise
+        error('Unknown MoveFoc option');
 end

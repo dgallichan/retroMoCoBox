@@ -9,7 +9,9 @@ function timingReport = reconstructSiemensVolume(twix_obj,reconPars)
 % -- Sep 2022, gallichand@cardiff.ac.uk -> changed output suffix to 'MoCo'
 % instead of 'corrected' to be more specific about which correction this
 % is!
-
+%
+% -- June 2023, gallichand@cardiff.ac.uk -> tried to clean-up generation of
+% figure windows during running
 
 retroMocoBoxVersion = reconPars.retroMocoBoxVersion; % put this into the HTML for reference
 
@@ -38,8 +40,6 @@ end
 if reconPars.outRoot(1)=='~'  % SPM seems to have a 'thing' about the tilde...
     reconPars.outRoot = [getenv('HOME') reconPars.outRoot(2:end)];
 end
-
-figIndex = 999; % figure to use for outputs
 
 MIDstr = getMIDstr(reconPars.rawDataFile);
 
@@ -495,18 +495,20 @@ end
 %%
 ov1 = orthoview(ACSims(:,:,:,iAsymCoil),'drawIms',0,'mip',1,'clims',[0 max(abs(ACSims(:)))]);
 ov2 = orthoview(hostExampleVolume,'drawIms',0,'mip',0,'clims',[0 max(abs(hostExampleVolume(:)))]);
-fig(figIndex)
-clf
-set(gcf,'Position',[    22   594   702   473])
-subplot1(1,2)
-subplot1(1)
+hf = figure('Visible','off'); % make an invisible figure for all figure plots
+% to try to avoid stealing focus
+set(hf,'Position',[    22   594   702   473])
+hAx = subplot1(1,2,'figHandle',hf);
+subplot(hAx(1))
 imab(ov1.im1)
 title(['xy MIP of FatNav, coil ' num2str(iAsymCoil)])
-subplot1(2)
+subplot(hAx(2))
 imab(ov2.im1)
 title(['xy centre-slice of host GRAPPA recon, coil ' num2str(iAsymCoil)])
 colormap(gray)
 export_fig([htmlDir '/orientationCheck_xy.png']);
+close(hf);
+
 fprintf(fid,['Orientation check for left/right symmetry:<br>\n']);
 fprintf(fid,['<img src="orientationCheck_xy.png"><br><br>\n']);
 fprintf(fid,['(Both images above should have the brightest signal on the left of the image. If not, the orientation of the FatNavs is not correctly aligned with the host sequence)<br><br><br>\n']);
@@ -538,12 +540,14 @@ if exist([fatnavdir '/eachFatNav_001.nii'],'file')
     nShowY = min(FatNav_xyz(2),round(0.5*FatNav_xyz(2)*FOVxyz(2)/FatNav_FOVxyz(2))*2);
     nShowZ = min(FatNav_xyz(3),round(0.5*FatNav_xyz(3)*FOVxyz(3)/FatNav_FOVxyz(3))*2);
     
-    fig(figIndex)
-    orthoview(newFatIm([1:nShowX]-nShowX/2+FatNav_xyz(1)/2,[1:nShowY]-nShowY/2+FatNav_xyz(2)/2,[1:nShowZ]-nShowZ/2+FatNav_xyz(3)/2),'useNewFig',0);
+    hf = figure('Visible','off');
+    oOut = orthoview(newFatIm([1:nShowX]-nShowX/2+FatNav_xyz(1)/2,[1:nShowY]-nShowY/2+FatNav_xyz(2)/2,[1:nShowZ]-nShowZ/2+FatNav_xyz(3)/2),'useNewFig',0);
     set(gcf,'Position',[    50   720   950  340])
-    subplot1(2)
+    subplot(oOut.hAx(2))
     title({'First FatNav realigned to coordinate system of host sequence','xz'})
     export_fig([htmlDir '/orientationCheck_FatVolume.png'])
+    close(hf);
+    
     fprintf(fid,['Orientation check for host sequence slice rotation and positioning:<br>\n']);
     fprintf(fid,['<img src="orientationCheck_FatVolume.png"><br><br>\n']);
     fprintf(fid,['(The fat volume shown above should approximately correspond to the FOV chosen for the host sequence)<br><br><br>\n']);
@@ -1213,7 +1217,7 @@ switch nS
                 fprintf(fid,['INV2 MIP before correction:<br>\n']);
                 fprintf(fid,['<img src="INV2_MIP.png"><br><br>\n']);
                 fprintf(fid,['INV2 MIP after correction:<br>\n']);
-                fprintf(fid,['<img src="INV2_corrected_MIP.png"><br><br>\n']);
+                fprintf(fid,['<img src="INV2_' outputSuffix '_MIP.png"><br><br>\n']);
             end
             
         end
@@ -1235,25 +1239,32 @@ switch nS
         clim2c = percentile(mOut.all_ims_corrected(:,:,:,2),97);       
         clims_uni = [-.5 .5];
         
-        fig(figIndex)
-        clf
-        set(gcf,'Position',[   246   611   982   494])
-        subplot1(1,3)
-        subplot1(1)
+        hf = figure('Visible','off');
+        set(hf,'Position',[   246   611   982   494])
+        hAx = subplot1(1,3,'figHandle',hf);
+        subplot(hAx(1))
         imab(squeeze(mOut.all_ims(xi,yi,zi,1)),[0 clim1])
-        subplot1(2)
+        subplot(hAx(2))
         imab(squeeze(mOut.all_ims(xi,yi,zi,2)),[0 clim2])
-        subplot1(3)
+        subplot(hAx(3))
         imab(squeeze(mOut.all_uniImage(xi,yi,zi)),clims_uni)
         colormap(gray)
         export_fig([htmlDir '/zoom.png'])
-        subplot1(1)
+        close(hf);
+        
+        hf = figure('Visible','off');
+        set(hf,'Position',[   246   611   982   494])
+        hAx = subplot1(1,3,'figHandle',hf);
+        subplot(hAx(1))
         imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,1)),[0 clim1c])
-        subplot1(2)
+        subplot(hAx(2))
         imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,2)),[0 clim2c])
-        subplot1(3)
+        subplot(hAx(3))
         imab(squeeze(mOut.all_uniImage_corrected(xi,yi,zi)),clims_uni)
+        colormap(gray)
         export_fig([htmlDir '/zoom_' outputSuffix '.png'])
+        close(hf);
+        
         if testMagick==0
             processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_' outputSuffix '.png ' htmlDir '/mov_zoom.gif'];
             system(processString);

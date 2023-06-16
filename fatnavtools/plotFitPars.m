@@ -3,6 +3,9 @@ function ha = plotFitPars(fitPars,t,climsXYZ,climsRTP,isVertical)
 %
 % 16/3/16 - Added a little trick so that 'isVertical' can also be of the
 % form [handle1 handle2] for the two subplots to plot into
+%
+% 16/6/23 - New hack so that if 'isVertical' is a handle to an existing
+% figure, this will be used
 
 if size(fitPars,1)==4 && size(fitPars,2)==4 % assume affine matrices
     Amats = fitPars;
@@ -65,7 +68,7 @@ cOrder =    [      0         0    1.0000;...
     0.2500    0.2500    0.2500];
 
 if isnumeric(isVertical)
-    figure
+    figHandle = figure;
 end
 
 displacements = sqrt(sum(fitPars(1:3,:).^2,1));
@@ -74,20 +77,31 @@ RMS_displacement = sqrt(mean(displacements.^2));
 rotations = sqrt(sum(fitPars(4:6,:).^2,1));
 RMS_rot = sqrt(mean(rotations.^2));
 
-if isVertical(1)==1
-    set(gcf,'Pos',[              1810         498         726         480])
-    subplot1(2,1,'Gap',[0 .09],'Max',[.95 1])
-    ha.s1 = subplot1(1);
-    ha.s2 = subplot1(2);
-elseif isVertical(1)==0
+if isnumeric(isVertical(1)) && isVertical(1)==1
+    set(figHandle,'Pos',[              1810         498         726         480])
+    hAx = subplot1(2,1,'Gap',[0 .09],'Max',[.95 1],'figHandle',figHandle);
+    ha.s1 = hAx(1);
+    ha.s2 = hAx(2);
+elseif isnumeric(isVertical(1)) &&  isVertical(1)==0
     %%% Horizontal:
-    set(gcf,'Pos',[        1810         637        1534         341])
-    subplot1(1,2,'YTickL','All','Gap',[.05 0],'Min',[0.05 .2],'Max', [1 .9])
-    ha.s1 = subplot1(1);
-    ha.s2 = subplot1(2);
+    set(figHandle,'Pos',[        1810         637        1534         341])
+    hAx = subplot1(1,2,'YTickL','All','Gap',[.05 0],'Min',[0.05 .2],'Max', [1 .9],'figHandle',figHandle);
+    ha.s1 = hAx(1);
+    ha.s2 = hAx(2);
 else
-    ha.s1 = isVertical(1);
-    ha.s2 = isVertical(2);
+    switch length(isVertical)
+        case 1        
+            figHandle = isVertical;
+            set(figHandle,'Pos',[              1810         498         726         480])
+            hAx = subplot1(2,1,'Gap',[0 .09],'Max',[.95 1],'figHandle',figHandle);
+            ha.s1 = hAx(1);
+            ha.s2 = hAx(2);
+        case 2
+            ha.s1 = isVertical(1);
+            ha.s2 = isVertical(2);
+        otherwise
+            error('Wrong number of handles passed as ''isVertical''');
+    end
 end
 
 subplot(ha.s1)

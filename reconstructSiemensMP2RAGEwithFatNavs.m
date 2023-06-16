@@ -265,6 +265,8 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 %         - Added new input flag 'bKeepComplexImageData' to allow saving
 %           out of the complex data per coil as MATLAB files - before and
 %           after application of MoCo.
+%
+%  --> overall version notes now pushed to 'retroMocoBoxVersion.m')
 
 reconPars.retroMocoBoxVersion = retroMocoBoxVersion; % put this into the HTML for reference
 reconPars.rawDataFile = rawDataFile;

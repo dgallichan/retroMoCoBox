@@ -64,7 +64,7 @@ end
 %%
 
 
-figIndex = 999; % use this figure number for live 'show' of how things are going...
+% figIndex = 999; % use this figure number for live 'show' of how things are going...
 
 nread = twix_obj.image.dataSize(1);
 npe1 = twix_obj.image.dataSize(3);

@@ -18,7 +18,7 @@ function [ACSims, timingReport, fatnavdir] = processFatNavs_GRAPPA4x4(twix_obj, 
 %                       used as the reference for registration. Default is 1.
 %
 %   'showFigs'      - Choose whether or not to show progress to the screen
-%                     in a figure window. Default is true.
+%                     in a figure window. Default is false.
 %     
 %   'nVirtualCoilsFatNavs' - decide how many coil compressed virtual coils
 %                            to use for the FatNavs - default = all
@@ -95,7 +95,7 @@ end
 
 
 [indexOfFirstNav, bShowFigs, nVirtualCoilsFatNavs, FatNavRes_mm, nSliceNeighbours, bApplyNoseFix, iAve, appendString] = ...
-    process_options(varargin,'indexOfFirstNav',1,'showFigs',1,'nVirtualCoilsFatNavs',[],...
+    process_options(varargin,'indexOfFirstNav',1,'showFigs',0,'nVirtualCoilsFatNavs',[],...
                     'FatNavRes_mm',2,'nSliceNeighbours',0,'bApplyNoseFix',0, 'iAve', 1, 'appendString', '');
 
 %% For testing code without calling as function:
@@ -475,7 +475,7 @@ if nProcessedImages~=nT % assume images are there, but not the alignment of them
         sn(full_GRAPPArecons,[fatnavdir '/eachFatNav_' num2str(iT,'%.3d') '.nii'],FatNavRes_mm*[1 1 1]);
         
         if bShowFigs
-            fig(figIndex)
+            hf = fig(figIndex);
             orthoview(full_GRAPPArecons,'useNewFig',0);
             set(gcf,'Position',[    50   720   950  340]);
             subplot1(1)
@@ -491,6 +491,11 @@ if nProcessedImages~=nT % assume images are there, but not the alignment of them
     timingReport.eachFatNav = timingEachFatNav;
     
 end
+
+if bShowFigs
+    close(hf)
+end
+
 
 %% Do registration
    
@@ -535,9 +540,10 @@ save([outRoot '/motion_parameters_spm_' MIDstr appendString '.mat'],'MPos','fitp
      
 %%
 
-fig(figIndex);
-plotFitPars(fitpars_cent);
+hf = figure('Visible','off');
+ha = plotFitPars(fitpars_cent,[],[],[],hf);
 export_fig([fatnavdir '/a_FatNav_MoCoPars_' MIDstr '.png'])
+close(hf);
 
 
 %% make gif movies of before and after alignment (requires ImageMagick to make the GIF)

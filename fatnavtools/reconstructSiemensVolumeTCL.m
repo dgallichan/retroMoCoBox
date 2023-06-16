@@ -41,8 +41,6 @@ if reconPars.outRoot(1)=='~'  % SPM seems to have a 'thing' about the tilde...
     reconPars.outRoot = [getenv('HOME') reconPars.outRoot(2:end)];
 end
 
-figIndex = 999; % figure to use for outputs
-
 MIDstr = getMIDstr(reconPars.rawDataFile);
 
 filterFrac = 0.05; % used when 'lowres' coil combination method is selected (not default..)
@@ -1091,8 +1089,7 @@ switch nS
         clim2c = percentile(mOut.all_ims_corrected(:,:,:,2),97);       
         clims_uni = [-.5 .5];
         
-        fig(figIndex)
-        clf
+        hf = figure;
         set(gcf,'Position',[   246   611   982   494])
         subplot1(1,3)
         subplot1(1)
@@ -1103,6 +1100,10 @@ switch nS
         imab(squeeze(mOut.all_uniImage(xi,yi,zi)),clims_uni)
         colormap(gray)
         export_fig([htmlDir '/zoom.png'])
+        close(hf)
+        
+        hf = figure;
+        set(gcf,'Position',[   246   611   982   494])
         subplot1(1)
         imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,1)),[0 clim1c])
         subplot1(2)
@@ -1110,6 +1111,8 @@ switch nS
         subplot1(3)
         imab(squeeze(mOut.all_uniImage_corrected(xi,yi,zi)),clims_uni)
         export_fig([htmlDir '/zoom_corrected.png'])
+        close(hf)
+        
         if testMagick==0
             processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_corrected.png ' htmlDir '/mov_zoom.gif'];
             system(processString);

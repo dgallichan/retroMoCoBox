@@ -86,16 +86,16 @@ if drawIms
     else
         clf
     end
-    subplot1(1,3)
-    subplot1(1)
+    hAx = subplot1(1,3);
+    subplot(hAx(1))
     imab(gs(out.im1,0,interpFact),irange(:)')
     set(gca,'DataAspectRatio',[vdims(2) vdims(1) 1]);
     if useTitles, title('xy'); end;
-    subplot1(2)
+    subplot(hAx(2))
     imab(gs(out.im2,0,interpFact),irange(:)')
     set(gca,'DataAspectRatio',[vdims(3) vdims(1) 1]);
     if useTitles, title('xz'); end;
-    subplot1(3)
+    subplot(hAx(3))
     imab(gs(out.im3,0,interpFact),irange(:)')
     set(gca,'DataAspectRatio',[vdims(3) vdims(2) 1]);
     if useTitles, title('yz'); end;
@@ -104,6 +104,8 @@ if drawIms
         hc = colorbar;
         set(hc,'Position',[    0.9389    0.159    0.0200    0.726])
     end
+    
+    out.hAx = hAx;
 end
 
 matDims = size(vol);
