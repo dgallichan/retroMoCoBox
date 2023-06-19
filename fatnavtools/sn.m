@@ -9,7 +9,12 @@ end
 
 if nargin < 4
     szData = size(data);
-    origin = szData(1:3)/2+1;
+    switch length(szData)
+        case 3
+            origin = szData(1:3)/2+1;
+        case 2
+            origin = [szData(1:2)/2+1 1];
+    end
 end
 
 temphdr = make_nii(data,voxdims,origin);
