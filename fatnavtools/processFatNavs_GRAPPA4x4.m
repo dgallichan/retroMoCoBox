@@ -379,6 +379,13 @@ if nProcessedImages~=nT % assume images are there, but not the alignment of them
     all_grapW = zeros(gx*gy*nc,((Ax*Ay)-1)*nc,128);
     zMax = nz; % don't need to go outside the brain... would save time to detect the top of the brain here - but could be difficult to make robust...
     
+    nSrc = sum(grapKernel(:)==1);
+    nTarg = sum(grapKernel(:)==0.5);
+    
+    % switch to using sparse-matrix-based GRAPPA method:
+    [spMatACS_src, spMatACS_targ] = GrappaCalib3D_arb_idx([size(ACSdata,1),size(ACSdata,2),nc],grapKernel);
+    
+    
     tic
     disp('... Calculating GRAPPA weights ....')
     parfor iZ = 1:zMax
@@ -390,17 +397,29 @@ if nProcessedImages~=nT % assume images are there, but not the alignment of them
             for this_iZ = iZ-nSliceNeighbours:iZ+nSliceNeighbours
                 if this_iZ > 1 && this_iZ <= nz
                     thisACS = squeeze(ACSdata(:,:,this_iZ,:));
-                    [~, this_src, this_targ] = GrappaCalib3D_arb(thisACS,grapKernel,0,0);
+%                     [~, this_src, this_targ] = GrappaCalib3D_arb(thisACS,grapKernel,0,0);
+
+                    this_src  = reshape(spMatACS_src *reshape(double(thisACS),[],nc),[],nc*nSrc);
+                    this_targ = reshape(spMatACS_targ*reshape(double(thisACS),[],nc),[],nc*nTarg);
+                    
                     src = [src; this_src];
                     targ = [targ; this_targ];
+                    
                 end
             end
             
-            all_grapW(:,:,iZ) = pinv(src)*targ;
+%             all_grapW(:,:,iZ) = pinv(src)*targ;
+            all_grapW(:,:,iZ) = lsqminnorm(src,targ);
+
             
         else
             thisACS = squeeze(ACSdata(:,:,iZ,:));
-            all_grapW(:,:,iZ) = GrappaCalib3D_arb(thisACS,grapKernel,0,1);
+            src  = reshape(spMatACS_src *reshape(double(thisACS),[],nc),[],nc*nSrc);
+            targ = reshape(spMatACS_targ*reshape(double(thisACS),[],nc),[],nc*nTarg);
+                         
+%             all_grapW(:,:,iZ) = GrappaCalib3D_arb(thisACS,grapKernel,0,1);
+            all_grapW(:,:,iZ) = lsqminnorm(src,targ);
+
         end
         
         fprintf('.');
@@ -418,6 +437,10 @@ if nProcessedImages~=nT % assume images are there, but not the alignment of them
     
     timingEachFatNav  = zeros(nT,1);
     timeBeforeFatNavs = clock;
+    
+    [spMat_src, spMat_targ] = GrappaReco3D_arb_idx([nx,ny,nc],grapKernel,stepSize,startPos);
+
+    
     
     parfor iT = indexOfFirstNav:nT
         
@@ -453,8 +476,11 @@ if nProcessedImages~=nT % assume images are there, but not the alignment of them
             thisfatnavdata = squeeze(fatnavdata(:,:,iZ,:));
             thisfatnavdata(nx,ny,1) = 0;
             
-            grapK = GrappaReco3D_arb(thisfatnavdata,grapKernel,all_grapW(:,:,iZ),stepSize,startPos);
-            
+%             grapK = GrappaReco3D_arb(thisfatnavdata,grapKernel,all_grapW(:,:,iZ),stepSize,startPos);
+            grapK = reshape(spMat_src * double(reshape(thisfatnavdata,[],nc)),[],nc*nSrc); 
+            grapK = reshape(spMat_targ'*reshape(grapK*all_grapW(:,:,iZ),[],nc),[nx,ny,nc]);
+            grapK = grapK + thisfatnavdata;
+
             f1 = tukey(nx,.7,.3); f2 = tukey(ny,.8,.3);
             grapK = bsxfun(@times,grapK,f1.');
             grapK = bsxfun(@times,grapK,f2);

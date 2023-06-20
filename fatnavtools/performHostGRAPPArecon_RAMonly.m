@@ -130,6 +130,13 @@ if gy == 1,    starty = 2; else  starty = 2 + (floor(gy/2) - 1) * Ay; end
 grapKernel(startx:startx+Ax-2, starty:starty+Ay-2) = 0.5;
 grapKernel(startx:startx+Ax-1, starty:starty+Ay-2) = 0.5;
 grapKernel(startx:startx+Ax-2, starty:starty+Ay-1) = 0.5;
+
+nSrc = sum(grapKernel(:)==1);
+nTarg = sum(grapKernel(:)==0.5);
+
+[spMatACS_src, spMatACS_targ] = GrappaCalib3D_arb_idx([nACS1,nACS2,nc],grapKernel);
+
+
 %%%
 
 
@@ -172,8 +179,14 @@ tic
 disp('..............')
 disp('...Now doing GRAPPA on each ''slice'' in the readout direction...')
 
+
+startX = squeeze(find(allData(1,1,:,1,1,1,1,1,1,1),1,'first'));
+[spMat_src, spMat_targ] = GrappaReco3D_arb_idx([npe1,npe2,nc],grapKernel,[Ax 1],[startX 1]);
+
+
 parfor iS = 1:nread 
-    
+%     for iS = 1:nread 
+
     for iEco = 1:nEco
         
         for iSet = 1:nSet
@@ -188,7 +201,7 @@ parfor iS = 1:nread
             thisdata = squeeze(allData(iS,:,:,:,1,1,1,iEco,1,iSet));           
             thisdata = permute(thisdata,[2 3 1]);
             
-            startX = find(thisdata(:,1,1),1,'first');            
+%             startX = find(thisdata(:,1,1),1,'first');            
             
             if nSliceNeighbours > 0
                 
@@ -199,7 +212,9 @@ parfor iS = 1:nread
                         thisACSdataFull = squeeze(ACSdata(this_iS,:,:,:,1,1,1,iEco,1,iSet));
                         thisACSdataFull = permute(thisACSdataFull,[2 3 1]);
                         thisACSdata = thisACSdataFull([1:nACS1]-floor(nACS1/2)+floor(nACSmeas1/2),iPE2,:);
-                        [~, this_src, this_targ] = GrappaCalib3D_arb(thisACSdata,grapKernel,0,0);
+%                         [~, this_src, this_targ] = GrappaCalib3D_arb(thisACSdata,grapKernel,0,0);
+                        this_src = reshape(spMatACS_src*reshape(double(thisACSdata),[],nc),[],nc*nSrc);
+                        this_targ = reshape(spMatACS_targ*reshape(double(thisACSdata),[],nc),[],nc*nTarg);
                         src = [src; this_src];
                         targ = [targ; this_targ];
                     end
@@ -221,12 +236,23 @@ parfor iS = 1:nread
                 thisACSdataFull = permute(thisACSdataFull,[2 3 1]); % this permute is necessary for my GRAPPA code, but may not be the fastest approach...
                 thisACSdata = thisACSdataFull([1:nACS1]-floor(nACS1/2)+floor(nACSmeas1/2),iPE2,:);
                 
-                thisGrapW = GrappaCalib3D_arb(thisACSdata,grapKernel,lambda,1);
+%                 thisGrapW = GrappaCalib3D_arb(thisACSdata,grapKernel,lambda,1);
+                src = reshape(spMatACS_src*reshape(double(thisACSdata),[],nc),[],nc*nSrc);
+                targ = reshape(spMatACS_targ*reshape(double(thisACSdata),[],nc),[],nc*nTarg);
+                if (lambda)
+                    lambdaApply = lambda*norm(src(:));
+                    thisGrapW  = pinv(src'*src + lambdaApply^2*eye(size(src,2))) * src' * targ;
+                else
+                    thisGrapW = pinv(src)*targ;
+                end
+
             end           
             
             
-            thisGrapRecon = GrappaReco3D_arb(thisdata,grapKernel,thisGrapW,[Ax 1],[startX 1]);
-            
+%             thisGrapRecon = GrappaReco3D_arb(thisdata,grapKernel,thisGrapW,[Ax 1],[startX 1]);
+            thisGrapRecon = reshape(spMat_src * double(reshape(thisdata,[],nc)),[],nc*nSrc);
+            thisGrapRecon = reshape(spMat_targ' * double(reshape(thisGrapRecon*thisGrapW,[],nc)),[npe1,npe2,nc]);
+            thisGrapRecon = thisGrapRecon + thisdata;
             
             %
             % and put the ACS lines back in
