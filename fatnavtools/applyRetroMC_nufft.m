@@ -183,7 +183,7 @@ for iT = 1:Nt
     nkx(iLine) = newVec(:,1); nky(iLine) = newVec(:,2); nkz(iLine) = newVec(:,3);
     newData(iLine) = newData(iLine).*exp(-1i*pi*( alignMats(1,4,iT)*kx(iLine) + alignMats(2,4,iT)*ky(iLine) + alignMats(3,4,iT)*kz(iLine)));
     if bKeepPhaseTranslations
-        phaseTranslations(iLine) = alignMats(1,4,iT)*kx(iLine) + alignMats(2,4,iT)*ky(iLine) + alignMats(3,4,iT)*kz(iLine);
+        phaseTranslations(iLine) = exp(-1i*pi*(alignMats(1,4,iT)*kx(iLine) + alignMats(2,4,iT)*ky(iLine) + alignMats(3,4,iT)*kz(iLine)));
     end
     
     if Nt < 1000

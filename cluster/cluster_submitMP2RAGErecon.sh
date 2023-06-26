@@ -49,10 +49,10 @@ echo "#SBATCH -p cubric-centos7" >> ${tempfile}
 echo "#SBATCH -o ${CLUSTER_LOG_PATH}/MP2RAGE_FatNavs_%j.out" >> ${tempfile}
 echo "#SBATCH -e ${CLUSTER_LOG_PATH}/MP2RAGE_FatNavs_%j.err" >> ${tempfile}
 echo "#SBATCH --mem=160G" >> ${tempfile}
-echo "#SBATCH --cpus-per-task 10" >> ${tempfile}
+echo "#SBATCH --cpus-per-task 12" >> ${tempfile}
 echo "#SBATCH --ntasks 1" >> ${tempfile}
 echo "cd ${RETROMOCOBOX_HOME}" >> ${tempfile}
-echo "matlab -nodisplay -nodesktop -nosplash -r \"rawDataFile='${inputfile}';outRoot='${outRoot}';swapDims_xyz = [0 0 1]; FatNavRes_mm = 2; script_pwd = '${PWD}';run_SiemensMP2RAGErecon_cluster;exit;\"" >> ${tempfile}
+echo "matlab2021a -nodisplay -nodesktop -nosplash -r \"rawDataFile='${inputfile}';outRoot='${outRoot}';swapDims_xyz = [0 0 1]; FatNavRes_mm = 2; script_pwd = '${PWD}';run_SiemensMP2RAGErecon_cluster;exit;\"" >> ${tempfile}
 
 echo " "
 echo " "

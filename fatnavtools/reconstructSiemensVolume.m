@@ -12,6 +12,9 @@ function timingReport = reconstructSiemensVolume(twix_obj,reconPars)
 %
 % -- June 2023, gallichand@cardiff.ac.uk -> tried to clean-up generation of
 % figure windows during running
+%
+% -- June 2023, gallichand@cardiff.ac.uk -> small speed-up in NUFFT
+% distribution across coils (and sets) by precalculating NUFFT object
 
 retroMocoBoxVersion = reconPars.retroMocoBoxVersion; % put this into the HTML for reference
 
@@ -884,6 +887,10 @@ if ~reconPars.bFullParforRecon
     
 else % the much faster version with much hungrier RAM requirements:
     
+    % generate the st object for NUFFT and precalculate the phase offsets
+    [~,st,~, phaseTranslations] = applyRetroMC_nufft(zeros(hxyz'),fitMats_mm_toApply,alignDim,alignIndices,11,...
+    hostVoxDim_mm,Hxyz,kspaceCentre_xyz,-1,1.5,1);
+    
     parfor iC = 1:nc_keep
         
         thiscoil_ims = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
@@ -927,7 +934,8 @@ else % the much faster version with much hungrier RAM requirements:
             thisData = ifft3s(thisData)*prod(hxyz);
             
             tic
-            thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+%             thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+            thisData_corrected =  nufft_adj_single(newData(:).*phaseTranslations(:),st);
             timingReport_applyMoco(iC,iS) = toc;
             
             if nS > 1
