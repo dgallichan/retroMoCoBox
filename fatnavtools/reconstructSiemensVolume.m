@@ -15,6 +15,9 @@ function timingReport = reconstructSiemensVolume(twix_obj,reconPars)
 %
 % -- June 2023, gallichand@cardiff.ac.uk -> small speed-up in NUFFT
 % distribution across coils (and sets) by precalculating NUFFT object
+%
+% -- July 2023, gallichand@cardiff.ac.uk -> add option to use gpuNUFFT
+% instead of NUFFT - reconPars.bUseGPU = 1;
 
 retroMocoBoxVersion = reconPars.retroMocoBoxVersion; % put this into the HTML for reference
 
@@ -25,6 +28,12 @@ if ~isfield(reconPars,'iAve')
 end
 if ~isfield(reconPars,'iRep')
     reconPars.iRep = 1;
+end
+if ~isfield(reconPars,'bUseGPU')
+    reconPars.bUseGPU = 0;
+end
+if ~isfield(reconPars,'outFolderPrefix')
+    reconPars.outFolderPrefix = 'MPRAGErecon';
 end
 
 outputSuffix = 'MoCo';
@@ -60,7 +69,7 @@ if reconPars.iRep > 1
     appendString = [appendString '_Rep' num2str(reconPars.iRep)];
 end
 
-outDir = [reconPars.outRoot '/MPRAGErecon_' MIDstr appendString];
+outDir = [reconPars.outRoot '/' reconPars.outFolderPrefix '_' MIDstr appendString];
 if ~exist(outDir,'dir')
     mkdir(outDir)
 end
@@ -633,7 +642,7 @@ fprintf('... Performing NUFFT on each volume to apply motion correction paramete
 
 %%% Declare all the variables
 
-if ~reconPars.bFullParforRecon
+if ~reconPars.bFullParforRecon 
     
     if ~reconPars.bKeepReconInRAM
         tempFile = [tempDir '/tempReconData_' MIDstr '.mat'];
@@ -704,8 +713,17 @@ end
 
 %% Apply the motion-correction
 
-if ~reconPars.bFullParforRecon
+if ~reconPars.bFullParforRecon 
 
+    % generate the st object for NUFFT and precalculate the phase offsets
+    if reconPars.bUseGPU
+        [~,FT,~, phaseTranslations] = applyRetroMC_gpunufft(zeros(hxyz'),fitMats_mm_toApply,alignDim,alignIndices,11,...
+            hostVoxDim_mm,Hxyz,kspaceCentre_xyz,-1,reconPars.NUFFTosf,1);
+    else
+        [~,st,~, phaseTranslations] = applyRetroMC_nufft(zeros(hxyz'),fitMats_mm_toApply,alignDim,alignIndices,11,...
+            hostVoxDim_mm,Hxyz,kspaceCentre_xyz,-1,reconPars.NUFFTosf,1);
+    end
+    
     for iC = 1:nc_keep           
         
         mOut.thiscoil_ims = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
@@ -713,6 +731,7 @@ if ~reconPars.bFullParforRecon
         
         for iS = 1:nS
         
+            tic
             fprintf(['Reconstructing coil ' num2str(iC) ' of ' num2str(nc_keep) ', set ' num2str(iS) '\n']);
             
             if useGRAPPAforHost
@@ -753,15 +772,24 @@ if ~reconPars.bFullParforRecon
             
             thisData = ifft3s(thisData)*prod(hxyz);
             
-            tic
-            thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
-            % the multi-CPU (parfor) version of the NUFFT can be called with a
-            % negative value for the 'useTable' input:
-            %    thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,-11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
-            % However, in my latest tests (September 2016) I found that it was
-            % actually slower for the current NUFFT parameters than the
-            % non-parallelized version, so I've disabled it again as a
-            % default...
+      
+%             thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+%             % the multi-CPU (parfor) version of the NUFFT can be called with a
+%             % negative value for the 'useTable' input:
+%             %    thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,-11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+%             % However, in my latest tests (September 2016) I found that it was
+%             % actually slower for the current NUFFT parameters than the
+%             % non-parallelized version, so I've disabled it again as a
+%             % default...
+            
+            if reconPars.bUseGPU
+                thisData_corrected = FT' * (newData(:).*phaseTranslations(:));
+                disp('GPU version')
+            else
+                thisData_corrected =  nufft_adj_single(newData(:).*phaseTranslations(:),st);
+            end
+            
+            
             timingReport_applyMoco(iC,iS) = toc;
             
             if nS > 1
@@ -887,10 +915,10 @@ if ~reconPars.bFullParforRecon
     
 else % the much faster version with much hungrier RAM requirements:
     
-    % generate the st object for NUFFT and precalculate the phase offsets
+    % generate the st object for NUFFT and precalculate the phase offsets    
     [~,st,~, phaseTranslations] = applyRetroMC_nufft(zeros(hxyz'),fitMats_mm_toApply,alignDim,alignIndices,11,...
-    hostVoxDim_mm,Hxyz,kspaceCentre_xyz,-1,1.5,1);
-    
+        hostVoxDim_mm,Hxyz,kspaceCentre_xyz,-1,reconPars.NUFFTosf,1);
+
     parfor iC = 1:nc_keep
         
         thiscoil_ims = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
@@ -934,7 +962,7 @@ else % the much faster version with much hungrier RAM requirements:
             thisData = ifft3s(thisData)*prod(hxyz);
             
             tic
-%             thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
+            %             thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
             thisData_corrected =  nufft_adj_single(newData(:).*phaseTranslations(:),st);
             timingReport_applyMoco(iC,iS) = toc;
             

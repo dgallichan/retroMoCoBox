@@ -38,6 +38,18 @@ end
 if ~exist('outRoot','var')
     outRoot = [];
 end
+if ~exist('bUseGPU','var')
+    bUseGPU = 0;
+end
+if ~exist('outFolderPrefix','var')
+    outFolderPrefix = 'MPRAGE';
+end
+if ~exist('parpoolSize','var')
+    parpoolSize = 12;
+end
+if ~exist('NUFFTosf','var')
+    NUFFTosf = 1.5;
+end
 
 %%
 dir(rawDataFile)
@@ -46,6 +58,6 @@ dir(rawDataFile)
 reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,'FatNavRes_mm',FatNavRes_mm,...
     'bGRAPPAinRAM',1,'bKeepReconInRAM',1,'bFullParforRecon',bFullParforRecon,'swapDims_xyz',swapDims_xyz,'bKeepFatNavs',0,...
     'bKeepGRAPPArecon',bKeepGRAPPArecon,'bLinParSwap',bLinParSwap,'bKeepComplexImageData',bKeepComplexImageData,...
-    'outRoot',outRoot);
+    'outRoot',outRoot,'bUseGPU',bUseGPU,'outFolderPrefix',outFolderPrefix,'parpoolSize',parpoolSize,'NUFFTosf',NUFFTosf);
 
 

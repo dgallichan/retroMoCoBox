@@ -287,10 +287,10 @@ end
 
 [reconPars.outRoot, reconPars.tempRoot, reconPars.bLinParSwap, reconPars.bGRAPPAinRAM, reconPars.bKeepGRAPPArecon, reconPars.bKeepReconInRAM, reconPars.bFullParforRecon,...
     reconPars.coilCombineMethod, reconPars.FatNavRes_mm, reconPars.swapDims_xyz, reconPars.bZipNIFTIs, reconPars.bKeepFatNavs,reconPars.bKeepPatientInfo,...
-    reconPars.bKeepComplexImageData] = process_options(varargin,...
+    reconPars.bKeepComplexImageData,reconPars.outFolderPrefix,reconPars.bUseGPU, reconPars.parpoolSize, reconPars.NUFFTosf] = process_options(varargin,...
     'outRoot',[],'tempRoot',[],'bLinParSwap',0,'bGRAPPAinRAM',0,'bKeepGRAPPArecon',0,'bKeepReconInRAM',0,...
     'bFullParforRecon',0,'coilCombineMethod','default','FatNavRes_mm',[],'swapDims_xyz',[0 0 1],'bZipNIFTIs',1,'bKeepFatNavs',0,'bKeepPatientInfo',1,...
-    'bKeepComplexImageData',0);
+    'bKeepComplexImageData',0,'outFolderPrefix','MPRAGE','bUseGPU',0,'parpoolSize',12,'NUFFTosf',1.5);
 
 
 %%
@@ -299,6 +299,21 @@ if reconPars.bFullParforRecon && ~reconPars.bKeepReconInRAM
     disp('Error - you asked for the full parfor option (bFullParforRecon), but not to do the recon in RAM (bKeepReconInRAM)')
     return
 end
+
+if reconPars.bFullParforRecon && reconPars.bUseGPU
+    disp('Error - you asked for the full parfor option (bFullParforRecon), AND to use GPU (bUseGPU). These are mutually exclusive')
+    return
+end
+
+%% Create a parpool if it doesn't exist already
+
+isPool = gcp('nocreate');
+if isempty(isPool)
+    c = parcluster('local');
+    parpool(min([reconPars.parpoolSize c.NumWorkers]));
+end
+
+
 
 %% Disply pie chart of current breakdown of reconstruction time
 

@@ -86,8 +86,12 @@ else
    idxMap = alignIndices;
    Nt = max(idxMap(:));
    if (Nt~=size(alignMats,3))
-       disp('Error: the length of the alignMats should match the indices in idxMap')
-       return
+       if Nt > size(alignMats,3)
+           disp('Error: the length of the alignMats should match the indices in idxMap')
+           return
+       else
+           disp('Warning: the length of the alignMats should match the indices in idxMap')
+       end
    end      
 end
 
