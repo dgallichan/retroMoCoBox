@@ -310,7 +310,8 @@ end
 isPool = gcp('nocreate');
 if isempty(isPool)
     c = parcluster('local');
-    parpool(min([reconPars.parpoolSize c.NumWorkers]));
+    c.NumWorkers = reconPars.parpoolSize;
+    c.parpool(c.NumWorkers);
 end
 
 
