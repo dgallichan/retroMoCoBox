@@ -9,11 +9,13 @@ end
 
 if nargin < 4
     szData = size(data);
-    switch length(szData)
-        case 3
+    switch length(szData)            
+        case {3,4}
             origin = szData(1:3)/2+1;
         case 2
             origin = [szData(1:2)/2+1 1];
+        otherwise
+            error('Origin gets wrong size...')
     end
 end
 
