@@ -326,23 +326,23 @@ timeToCreateParpool = toc;
 % Here benchmarked on server allowing parpool size of 64 CPUs and 360 GB
 % RAM, testing 600 um and 1000 um data. 25/10/23
 % 
-t_TotalTime = timingReport.totalTime; % seconds
-t_ParseRaw = timingReport.parseRawDataFile;
-t_reconFatNavs = timingReport.timingReport_FatNavs.allFatNavs;
-t_SPMrealign = timingReport.timingReport_FatNavs.SPMalignment;
-t_GRAPPArecon = timingReport.timingReport_hostRecon.GRAPPArecon;
-t_NUFFT = timingReport.timingReport_totalTimeApplyMoco;
-t_post = timingReport.postProcessing;
-t_other = t_TotalTime - t_ParseRaw - t_reconFatNavs - t_SPMrealign -t_GRAPPArecon - t_NUFFT - t_post;
-
-figure(1001)
-% set(gcf,'Position',[    88   415   588   506])
-clf
-pie([t_other t_post t_ParseRaw t_reconFatNavs t_SPMrealign t_GRAPPArecon t_NUFFT ],{'Other','Post-processing','Parse raw data file','Reconstruct FatNavs','SPM realign FatNavs','GRAPPA recon for host','NUFFT'})
-title({'Current breakdown of full reconstruction pipeline on 1 mm data', ['total = ' num2str(t_TotalTime/60,'%.1f') ' mins, running on 64 CPUs with 360 GB RAM'],char(datetime)})
-export_fig('processingTimeBreakdown_1mm_64CPUs_360GB_RAM.png')
-% title({'Current breakdown of full reconstruction pipeline on 600 um data', ['total = ' num2str(t_TotalTime/60,'%.1f') ' mins, running on 64 CPUs with 360 GB RAM'],char(datetime)})
-% export_fig('processingTimeBreakdown_600um_64CPUs_360GB_RAM.png')
+% t_TotalTime = timingReport.totalTime; % seconds
+% t_ParseRaw = timingReport.parseRawDataFile;
+% t_reconFatNavs = timingReport.timingReport_FatNavs.allFatNavs;
+% t_SPMrealign = timingReport.timingReport_FatNavs.SPMalignment;
+% t_GRAPPArecon = timingReport.timingReport_hostRecon.GRAPPArecon;
+% t_NUFFT = timingReport.timingReport_totalTimeApplyMoco;
+% t_post = timingReport.postProcessing;
+% t_other = t_TotalTime - t_ParseRaw - t_reconFatNavs - t_SPMrealign -t_GRAPPArecon - t_NUFFT - t_post;
+% 
+% figure(1001)
+% % set(gcf,'Position',[    88   415   588   506])
+% clf
+% pie([t_other t_post t_ParseRaw t_reconFatNavs t_SPMrealign t_GRAPPArecon t_NUFFT ],{'Other','Post-processing','Parse raw data file','Reconstruct FatNavs','SPM realign FatNavs','GRAPPA recon for host','NUFFT'})
+% title({'Current breakdown of full reconstruction pipeline on 1 mm data', ['total = ' num2str(t_TotalTime/60,'%.1f') ' mins, running on 64 CPUs with 360 GB RAM'],char(datetime)})
+% export_fig('processingTimeBreakdown_1mm_64CPUs_360GB_RAM.png')
+% % title({'Current breakdown of full reconstruction pipeline on 600 um data', ['total = ' num2str(t_TotalTime/60,'%.1f') ' mins, running on 64 CPUs with 360 GB RAM'],char(datetime)})
+% % export_fig('processingTimeBreakdown_600um_64CPUs_360GB_RAM.png')
 
 
           
