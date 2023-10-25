@@ -18,6 +18,9 @@ function timingReport = reconstructSiemensVolume(twix_obj,reconPars)
 %
 % -- July 2023, gallichand@cardiff.ac.uk -> add option to use gpuNUFFT
 % instead of NUFFT - reconPars.bUseGPU = 1;
+%
+% -- Oct 2023, gallichand@cardiff.ac.uk -> add timing report as output, and
+% include the post-processing time as well
 
 retroMocoBoxVersion = reconPars.retroMocoBoxVersion; % put this into the HTML for reference
 
@@ -1331,6 +1334,7 @@ end
 %% And put a timing report into the html
 
 stopTime = clock;
+timingReport_postProcessing = etime(stopTime,tFinish_applyMoco);
 totalTime = etime(stopTime,startTime)/60/60;
 totalTime_hrs = floor(totalTime);
 if totalTime_hrs > 0
@@ -1405,7 +1409,7 @@ timingReport.timingReport_FatNavs = timingReport_FatNavs;
 timingReport.timingReport_hostRecon = timingReport_hostRecon;
 timingReport.avgTimeApplyMocoPerVolume = avgTimeApplyMocoPerVolume;
 timingReport.timingReport_totalTimeApplyMoco = timingReport_totalTimeApplyMoco;
-
+timingReport.postProcessing = timingReport_postProcessing;
 
 end
 
