@@ -1,5 +1,5 @@
-function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
-% function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
+function timingReport = reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
+% function timingReport = reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 % 
 % Dependencies:
 %%%%%%%%%%%%%%%
@@ -271,6 +271,10 @@ function reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
 reconPars.retroMocoBoxVersion = retroMocoBoxVersion; % put this into the HTML for reference
 reconPars.rawDataFile = rawDataFile;
 
+%%
+
+startTime = clock;
+
 %% Check SPM and Fessler's toolbox are on path
 
 if ~exist('spm.m','file') % could also check version, but that's more effort...
@@ -307,42 +311,43 @@ end
 
 %% Create a parpool if it doesn't exist already
 
+tic
 isPool = gcp('nocreate');
 if isempty(isPool)
     c = parcluster('local');
     c.NumWorkers = reconPars.parpoolSize;
     c.parpool(c.NumWorkers);
 end
-
+timeToCreateParpool = toc;
 
 
 %% Disply pie chart of current breakdown of reconstruction time
 
-% % Here benchmarked on server allowing parpool size of 12 CPUs and 96 Gb
-% % RAM, testing 600 um data
+% Here benchmarked on server allowing parpool size of 64 CPUs and 360 GB
+% RAM, testing 600 um and 1000 um data. 25/10/23
 % 
-% t_TotalTime = 24;
-% t_ParseRaw = 86/60;
-% t_reconFatNavs = 332/60;
-% t_SPMrealign = 61/60;
-% t_GRAPPArecon = 6;
-% t_NUFFT = 8;
-% t_other = t_TotalTime - t_ParseRaw - t_reconFatNavs - t_SPMrealign - t_NUFFT;
-% 
-% figure(1001)
+t_TotalTime = timingReport.totalTime; % seconds
+t_ParseRaw = timingReport.parseRawDataFile;
+t_reconFatNavs = timingReport.timingReport_FatNavs.allFatNavs;
+t_SPMrealign = timingReport.timingReport_FatNavs.SPMalignment;
+t_GRAPPArecon = timingReport.timingReport_hostRecon.GRAPPArecon;
+t_NUFFT = timingReport.timingReport_totalTimeApplyMoco;
+t_post = timingReport.postProcessing;
+t_other = t_TotalTime - t_ParseRaw - t_reconFatNavs - t_SPMrealign -t_GRAPPArecon - t_NUFFT - t_post;
+
+figure(1001)
 % set(gcf,'Position',[    88   415   588   506])
-% clf
-% pie([t_other t_ParseRaw t_reconFatNavs t_SPMrealign t_GRAPPArecon t_NUFFT],{'Other','Parse raw data file','Reconstruct FatNavs','SPM realign FatNavs','GRAPPA recon for host','NUFFT'})
-% title({'Current breakdown of full reconstruction pipeline on 600 um data', ['total = ' num2str(t_TotalTime) ' mins, running on 12 CPUs with 96 Gb RAM'],char(datetime)})
-% fontScale(1.4)
-% export_fig('processingTimeBreakdown.png')
+clf
+pie([t_other t_post t_ParseRaw t_reconFatNavs t_SPMrealign t_GRAPPArecon t_NUFFT ],{'Other','Post-processing','Parse raw data file','Reconstruct FatNavs','SPM realign FatNavs','GRAPPA recon for host','NUFFT'})
+title({'Current breakdown of full reconstruction pipeline on 1 mm data', ['total = ' num2str(t_TotalTime/60,'%.1f') ' mins, running on 64 CPUs with 360 GB RAM'],char(datetime)})
+export_fig('processingTimeBreakdown_1mm_64CPUs_360GB_RAM.png')
+% title({'Current breakdown of full reconstruction pipeline on 600 um data', ['total = ' num2str(t_TotalTime/60,'%.1f') ' mins, running on 64 CPUs with 360 GB RAM'],char(datetime)})
+% export_fig('processingTimeBreakdown_600um_64CPUs_360GB_RAM.png')
 
 
           
 
-%%
 
-startTime = clock;
 
 
 %% Make raw data object (parses file, but does not load into RAM)
@@ -427,7 +432,7 @@ totalTime_hrs = floor(totalTime);
 if totalTime_hrs > 0
     totalTime_mins = round(rem(totalTime,totalTime_hrs)*60);
 else
-    totalTime_mins = round(totalTime*60);
+    totalTime_mins = round(totalTime*60,2);
 end
 
 fprintf('*************************************************************\n')
@@ -435,6 +440,9 @@ fprintf('***** reconstructSiemensMP2RAGEwithFatNavs.m completed! *****\n')
 fprintf('*************************************************************\n')
 fprintf(['Total reconstruction time: ' num2str(totalTime_hrs) ' hours, ' num2str(totalTime_mins) ' mins\n']);
 
+timingReport.totalTime = etime(stopTime,startTime);
+timingReport.parseRawDataFile = timingReport_parseRawDataFile;
+timingReport.timeToCreateParpool = timeToCreateParpool;
 %%
 
 
