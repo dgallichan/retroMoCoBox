@@ -38,7 +38,7 @@ The only part of my code that is not included here is the FatNav-modification ve
 
 I have included various open-source tools inside the toolbox - including now also the NUFFT part of the [Michigan Image Reconstruction Toolbox (MIRT) for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html). If you want to use the code on actual FatNav data, you will also need to download [SPM 12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/) (used for the co-registration of the individual FatNav images to estimate the motion parameters).
 
-For prettifying of the HTML report, I also used [ImageMagick](https://imagemagick.org/index.php) to create animated GIF files from the command line. _(Since version 7 of ImageMagick they changed their syntax from 'convert' to 'magick' - breaking the retroMoCoBox implementaion. I've opened an 'issue' here to remind me to fix this. In the mean-time you can either download a legacy version of ImageMagic or you can fix the code yourself!)._
+For prettifying of the HTML report, I also used [ImageMagick](https://imagemagick.org/index.php) to create animated GIF files from the command line. 
 
 ---
 
@@ -70,7 +70,7 @@ This script loads an example of real 3D FatNavs data (15 volumes at 2mm resoluti
 
 `reconstructSiemensMP2RAGEwithFatNavs.m`
 
-This is the code we currently use for the complete reconstruction pipeline, starting from the raw data. The full script will probably only be useful if you already have the MP2RAGE with FatNavs pulse sequence. If you have a 7T Siemens system and are interested in obtaining a C2P version of the sequence - [please let me know](mailto:gallichand@cardiff.ac.uk). If you are interested in using it for 3T, it is also available for VB17 and VE11B/C - and hopefully some other baselines soon. If you don't have a 3D FatNavs sequence, perhaps some parts of the pipeline are also useful for other research. 
+This is the code we currently use for the complete reconstruction pipeline, starting from the raw data. The full script will probably only be useful if you already have the MP2RAGE with FatNavs pulse sequence. If you have a 7T Siemens system and are interested in obtaining a C2P version of the sequence - [please let me know](mailto:gallichand@cardiff.ac.uk). If you are interested in using it for 3T, it is also available for VB17 and VE11B/C/E - and hopefully some other baselines soon. If you don't have a 3D FatNavs sequence, perhaps some parts of the pipeline are also useful for other research. 
 
 The full script takes rather a long time to run (from around 10 mins through to several hours, depending on the number of CPUs you have and the size of the dataset, as well as the amount of RAM you have available) as it has to do the full reconstruction of the raw data (which typically also requires a GRAPPA reconstruction of the 3D dataset) and then perform the motion-correction step for each RF channel and each inversion time of the MP2RAGE scan. 
 
