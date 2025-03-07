@@ -191,7 +191,7 @@ if ~reconPars.bKeepGRAPPArecon
     end
 end
 
-if reconPars.bZipNIFTIs
+if reconPars.bZipNIFTIs && ~isempty(dir([outDir '/*.nii']))
     gzip([outDir '/*.nii']);
     delete([outDir '/*.nii']);
 end

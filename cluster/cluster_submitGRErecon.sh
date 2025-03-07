@@ -19,10 +19,15 @@ if [ $# -lt 1 ];then
 	echo ""
 	echo "IMPORTANT:"
 	echo "Before running you will need to make sure that you set"
-	echo "the RETROMOCOBOX_HOME and MRITOOLS_HOME environment variables"
-	echo ""
+	echo "the RETROMOCOBOX_HOME environment variable (and also ASPIRE_HOME"
+	echo "if you are using ASPIRE)."
+	echo "Alternatively, these can be set by manually editing this script and"
+	echo "specifying them below this text in the .sh file itself."
 	exit 1;
 fi
+
+# export RETROMOCOBOX_HOME=/home/scedg10/retroMoCoBox
+export ASPIRE_HOME=/home/scedg10/matlab_cubric/ASPIRE
 
 inputfile=$1
 
@@ -43,17 +48,16 @@ if [[ -z "${RETROMOCOBOX_HOME}" ]]; then
     exit 1;
 fi
 
-if [[ -z "${MRITOOLS_HOME}" ]]; then
+if [[ -z "${ASPIRE_HOME}" ]]; then
     echo ""
     echo "ERROR: before running this script please ensure your have set"
-    echo "the MRITOOLS_HOME variable to point to your local version"
-    echo "of the mritools software (for ASPIRE / ROMEO processing)."
-	echo ""
+    echo "the ASPIRE_HOME variable to point to your local version"
+    echo "of the ASPIRE matlab code. This can be set to a dummy value"
+    echo "if your data is not multi-echo."
+    echo ""
     exit 1;
 fi
 
-# export RETROMOCOBOX_HOME=/home/scedg10/retroMoCoBox
-# export MRITOOLS_HOME=/home/scedg10/code/mritools_Linux_3.4.3/bin
 
 export SPM_HOME=/cubric/software/spm.versions/spm12
 
@@ -64,15 +68,15 @@ tempfile="$(mktemp)"
 
 echo "#!/bin/bash" > ${tempfile}
 echo "#SBATCH --job-name=GREFatNavs" >> ${tempfile}
-echo "#SBATCH -p cubric-centos7" >> ${tempfile}
+# echo "#SBATCH -p cubric-centos7" >> ${tempfile}
+echo "#SBATCH -p cubric-rocky8" >> ${tempfile}
 echo "#SBATCH -o ${CLUSTER_LOG_PATH}/GRE_FatNavs_%j.out" >> ${tempfile}
 echo "#SBATCH -e ${CLUSTER_LOG_PATH}/GRE_FatNavs_%j.err" >> ${tempfile}
-echo "#SBATCH --mem=160G" >> ${tempfile}
-echo "#SBATCH --cpus-per-task 10" >> ${tempfile}
+echo "#SBATCH --mem=80G" >> ${tempfile}
+echo "#SBATCH --cpus-per-task 12" >> ${tempfile}
 echo "#SBATCH --ntasks 1" >> ${tempfile}
 echo "cd ${RETROMOCOBOX_HOME}" >> ${tempfile}
-echo "matlab -nodisplay -nodesktop -nosplash -r \"rawDataFile='${inputfile}';outRoot='${outRoot}';swapDims_xyz = [0 0 1];bKeepGRAPPArecon=0;script_pwd = '${PWD}';run_SiemensGRErecon_cluster;exit;\"" >> ${tempfile}
-
+echo "matlab -nodisplay -nodesktop -nosplash -r \"rawDataFile='${inputfile}';outRoot='${outRoot}';swapDims_xyz = [0 0 1];bKeepGRAPPArecon=0;parpoolSize = 6;script_pwd = '${PWD}';ASPIRE_HOME='${ASPIRE_HOME}';run_SiemensGRErecon_cluster;exit;\"" >> ${tempfile}
 echo " "
 echo " "
 echo "Creating this temporary file to process your data:"

@@ -52,7 +52,7 @@ echo "#SBATCH --mem=160G" >> ${tempfile}
 echo "#SBATCH --cpus-per-task 12" >> ${tempfile}
 echo "#SBATCH --ntasks 1" >> ${tempfile}
 echo "cd ${RETROMOCOBOX_HOME}" >> ${tempfile}
-echo "matlab2021a -nodisplay -nodesktop -nosplash -r \"rawDataFile='${inputfile}';outRoot='${outRoot}';swapDims_xyz = [0 0 1]; FatNavRes_mm = 2; script_pwd = '${PWD}';run_SiemensMP2RAGErecon_cluster;exit;\"" >> ${tempfile}
+echo "matlab2021a -nodisplay -nodesktop -nosplash -r \"rawDataFile='${inputfile}';outRoot='${outRoot}';swapDims_xyz = [0 0 1]; FatNavRes_mm = 2; bKeepFatNavs = 0; script_pwd = '${PWD}';run_SiemensMP2RAGErecon_cluster;exit;\"" >> ${tempfile}
 
 echo " "
 echo " "

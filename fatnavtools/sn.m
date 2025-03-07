@@ -10,7 +10,7 @@ end
 if nargin < 4
     szData = size(data);
     switch length(szData)            
-        case {3,4}
+        case {3,4,5}
             origin = szData(1:3)/2+1;
         case 2
             origin = [szData(1:2)/2+1 1];

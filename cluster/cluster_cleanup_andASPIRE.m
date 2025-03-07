@@ -1,12 +1,14 @@
 load(cleanupFile)
 
 run([RETROMOCOBOX_PATH '/addRetroMoCoBoxToPath.m']);
-% run([MIRT_PATH '/setup.m']);
 addpath(SPM_PATH);
 
+run([ASPIRE_HOME '/aspire_startup.m']);
+
 %% Run ASPIRE on both noMoCo and MoCo
-% (might need to replace this with the command-line (Julia-based) version
-% so that users don't need to also download ASPIRE...)
+
+
+
 
 data.read_dir = tempDir;
 data.filename_mag = fullfile(data.read_dir, 'GRE_5D_mag.nii'); % 5D NIfTI input (x,y,z,eco,cha)
@@ -17,7 +19,8 @@ data.write_dir = fullfile(tempDir,'ASPIRE_noMoCo');
 data.poCalculator = AspirePoCalculator; % AspireBipolarPoCalculator('non-linear correction') for bipolar acquisitions (at least 3 echoes)
 data.smoother = NanGaussianSmoother; % NanGaussianSmoother, GaussianBoxSmoother (=default)
 
-data.processing_option = 'all_at_once'; % all_at_once, slice_by_slice (slice_by_slice requires fslmerge)
+% data.processing_option = 'all_at_once'; % all_at_once, slice_by_slice (slice_by_slice requires fslmerge)
+data.processing_option = 'slice_by_slice';
 
 % run ASPIRE
 tic;
@@ -58,7 +61,7 @@ fidHTML = fopen([htmlDir '/index.html'],'a');
 
 all_ims = rn([outDir '/GRE_mag.nii']);
 all_ims = all_ims(:,:,:,1); % keep just first echo
-all_ims_corrected = rn([outDir '/GRE_corrected.nii']);
+all_ims_corrected = rn([outDir '/GRE_MoCo_mag.nii']);
 all_ims_corrected = all_ims_corrected(:,:,:,1);
 
 ov1 = orthoview(all_ims,'drawIms',0);
@@ -112,6 +115,11 @@ fclose(fidHTML);
  
 % clear temporary
 if ~reconPars.bKeepGRAPPArecon
+    fclose('all'); % ASPIRE currently doesn't close files properly
+    delete([tempDir '/GRE_*.nii'])
+    rmdir([tempDir '/matlab_tmp*'],'s')
+    rmdir([tempDir '/ASPIRE_*'],'s');
+    
     if ~isempty(tempNameRoots.grappaRecon_1DFFT)
         delete([tempNameRoots.grappaRecon_1DFFT '*.mat']);
     end

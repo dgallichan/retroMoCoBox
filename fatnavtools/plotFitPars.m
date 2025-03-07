@@ -78,13 +78,13 @@ rotations = sqrt(sum(fitPars(4:6,:).^2,1));
 RMS_rot = sqrt(mean(rotations.^2));
 
 if isnumeric(isVertical(1)) && isVertical(1)==1
-    set(figHandle,'Pos',[              1810         498         726         480])
+    set(figHandle,'Pos',[              50         50         726         480])
     hAx = subplot1(2,1,'Gap',[0 .09],'Max',[.95 1],'figHandle',figHandle);
     ha.s1 = hAx(1);
     ha.s2 = hAx(2);
 elseif isnumeric(isVertical(1)) &&  isVertical(1)==0
     %%% Horizontal:
-    set(figHandle,'Pos',[        1810         637        1534         341])
+    set(figHandle,'Pos',[        50         50        1534         341])
     hAx = subplot1(1,2,'YTickL','All','Gap',[.05 0],'Min',[0.05 .2],'Max', [1 .9],'figHandle',figHandle);
     ha.s1 = hAx(1);
     ha.s2 = hAx(2);
@@ -92,7 +92,7 @@ else
     switch length(isVertical)
         case 1        
             figHandle = isVertical;
-            set(figHandle,'Pos',[              1810         498         726         480])
+            set(figHandle,'Pos',[              50         50         726         480])
             hAx = subplot1(2,1,'Gap',[0 .09],'Max',[.95 1],'figHandle',figHandle);
             ha.s1 = hAx(1);
             ha.s2 = hAx(2);

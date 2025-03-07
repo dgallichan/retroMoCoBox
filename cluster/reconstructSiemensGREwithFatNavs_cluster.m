@@ -2,10 +2,10 @@ function reconstructSiemensGREwithFatNavs_cluster(rawDataFile, varargin)
 
 [reconPars.outRoot, reconPars.tempRoot, reconPars.bLinParSwap, reconPars.bGRAPPAinRAM, reconPars.bKeepGRAPPArecon, reconPars.bKeepReconInRAM, reconPars.bFullParforRecon,...
     reconPars.coilCombineMethod, reconPars.FatNavRes_mm, reconPars.swapDims_xyz, reconPars.bZipNIFTIs, reconPars.bKeepFatNavs,reconPars.bKeepPatientInfo,...
-    CLUSTER_LOG_PATH] = process_options(varargin,...
+    CLUSTER_LOG_PATH, ASPIRE_HOME, reconPars.parpoolSize] = process_options(varargin,...
     'outRoot',[],'tempRoot',[],'bLinParSwap',0,'bGRAPPAinRAM',0,'bKeepGRAPPArecon',0,'bKeepReconInRAM',0,...
     'bFullParforRecon',0,'coilCombineMethod','default','FatNavRes_mm',[],'swapDims_xyz',[0 0 1],'bZipNIFTIs',1,'bKeepFatNavs',0,'bKeepPatientInfo',1,...
-    'CLUSTER_LOG_PATH','~');
+    'CLUSTER_LOG_PATH','~','ASPIRE_HOME',[],'parpoolSize',10);
 
 % bKeepReconInRAM, bFullParforRecon, coilCombineMethod - all ignored for this GRE script!!
 
@@ -653,8 +653,8 @@ end
 % finish)
 
 RETROMOCOBOX_PATH = fileparts(which('addRetroMoCoBoxToPath.m'));
-mirtpath = fileparts(which('nufft.m'));
-MIRT_PATH = [mirtpath '/../'];
+% mirtpath = fileparts(which('nufft.m'));
+% MIRT_PATH = [mirtpath '/../'];
 SPM_PATH = fileparts(which('spm.m')); 
 
 tempNameRoots.allReconPars = [tempDir '/tempAllReconPars_' MIDstr '.mat'];
@@ -667,25 +667,27 @@ tempNameRoots.cleanupFiles = [tempDir '/tempCleanupPars_' MIDstr '.mat'];
 iS = 1; % GRE data has only one 'set'
 save(tempNameRoots.allReconPars,'iS','nc_keep','Hxyz','hxyz','nEco','reconPars','iC_keep','hrps','permutedims',...
 'fitMats_mm_toApply','alignDim','alignIndices','hostVoxDim_mm','kspaceCentre_xyz','tempNameRoots','MIDstr','outDir',...
-'RETROMOCOBOX_PATH','MIRT_PATH','SPM_PATH','tempDir')
+'RETROMOCOBOX_PATH','SPM_PATH','tempDir')
 
 fid = fopen(tempNameRoots.clusterScript,'w');
 fprintf(fid,'#!/bin/bash\n');
-% fprintf(fid,['#SBATCH --array 1-' num2str(nc) '\n']);
-fprintf(fid,['#SBATCH --array 1-' num2str(nEco) '\n']);
+% fprintf(fid,['#SBATCH --array 1-' num2str(nEco) '\n']);
+fprintf(fid,['#SBATCH --array 1-' num2str(nEco) '%%1\n']); % use the %%1 to specify that only one can run at once for now to try to avoid parfor/job array problems
 fprintf(fid,'#SBATCH -p cubric-centos7\n');
 fprintf(fid,'#SBATCH --job-name=GREreconHelper\n');
 fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconHelperArray_%%A_%%a.out\n']);
 fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconHelperArray_%%A_%%a.err\n']);
 fprintf(fid,'#SBATCH --ntasks 1\n'); 
-if nEco <= 10
-    fprintf(fid,['#SBATCH --cpus-per-task ' num2str(nEco) '\n']); % only 7 echoes, so parfor only needs 7 threads
-else
-    fprintf(fid,'#SBATCH --cpus-per-task 10\n'); 
-end
+% if nEco <= 10
+%     fprintf(fid,['#SBATCH --cpus-per-task ' num2str(nEco) '\n']); % only 7 echoes, so parfor only needs 7 threads
+% else
+%     fprintf(fid,'#SBATCH --cpus-per-task 10\n'); 
+% end
+fprintf(fid,'#SBATCH --cpus-per-task 12\n'); 
+
 %fprintf(fid,'#SBATCH --mem-per-cpu=32000M\n'); % MaxRSS showed requiring ~30 GB RAM for 336x336x192x7 data - I don't know why it still needs so much...
 %%%% I even tried switching around the parfor loop in cluster_runMultieEchoGRE_eachcoil to try to get the RAM usage down - I'm not sure if this is a bug in this version of MATLAB...
-fprintf(fid,'#SBATCH --mem=85G\n');  % 'seff' on jobid shows requiring around 27GB for 336x336x192x7 data or 80GB for 32 coils instead of 7 echoes
+fprintf(fid,'#SBATCH --mem=180G\n');  % 'seff' on jobid shows requiring around 27GB for 336x336x192x7 data or 80GB for 32 coils instead of 7 echoes
 fprintf(fid,'#SBATCH --begin=now\n');
 fprintf(fid,'#SBATCH --requeue\n');
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
@@ -700,15 +702,15 @@ disp('Done.')
 
 fid = fopen(tempNameRoots.clusterScriptRecombine,'w');
 fprintf(fid,'#!/bin/bash\n');
-fprintf(fid,['#SBATCH --dependency=afterok:' jobnumber]); % wait for the array above to finish before starting the recombine
-fprintf(fid,'#SBATCH -p cubric-centos7\n');
+fprintf(fid,['#SBATCH --dependency=afterany:' jobnumber]); % wait for the array above to finish before starting the recombine
+fprintf(fid,'#SBATCH -p cubric-a100\n');
 fprintf(fid,'#SBATCH --job-name=GREreconRecombine\n');
 fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconRecombine_%%j.out\n']);
 fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconRecombine_%%j.err\n']);
 fprintf(fid,'#SBATCH --ntasks 1\n');
-fprintf(fid,'#SBATCH --cpus-per-task 10\n');
+fprintf(fid,'#SBATCH --cpus-per-task 12\n');
 %fprintf(fid,'#SBATCH --mem-per-cpu=32000M\n'); % this one also exceeded memory limit when set to 16000
-fprintf(fid,'#SBATCH --mem=140G\n');  
+fprintf(fid,'#SBATCH --mem=320G\n');  
 % Here currently need at least enough to hold two full copies of full size
 % recon - but 'seff' showed as much as 129GB for 336x336x192x7 data
 fprintf(fid,'#SBATCH --begin=now\n');
@@ -722,13 +724,13 @@ jobnumber2 = sbatch_out(21:end); % after the text 'Submitted batch job ..'
 disp('Done.')
 
 save(tempNameRoots.cleanupFiles,'htmlDir','startTime','timingReport_FatNavs','nc_keep','nEco', ...
-    'reconPars','tempNameRoots','tempDir','outDir','nFatNavs','fatnavdir','RETROMOCOBOX_PATH','MIRT_PATH','SPM_PATH');
+    'reconPars','tempNameRoots','tempDir','outDir','nFatNavs','fatnavdir','RETROMOCOBOX_PATH','ASPIRE_HOME','SPM_PATH');
 fclose(fidHTML); % HTML needs closing and will be reopened in cleanup
 
 % setenv('MRITOOLS_HOME','/home/scedg10/code/mritools_Linux_3.4.3/bin/')
 fid = fopen(tempNameRoots.clusterScriptCleanup,'w');
 fprintf(fid,'#!/bin/bash\n');
-fprintf(fid,['#SBATCH --dependency=afterok:' jobnumber2]); % wait for the recombine to finish before starting the cleanup
+fprintf(fid,['#SBATCH --dependency=afterany:' jobnumber2]); % wait for the recombine to finish before starting the cleanup
 fprintf(fid,'#SBATCH -p cubric-centos7\n');
 fprintf(fid,'#SBATCH --job-name=GREreconCleanup\n');
 fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconCleanup_%%j.out\n']);
@@ -736,35 +738,8 @@ fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconCleanup_%%j.err\n']);
 fprintf(fid,'#SBATCH --ntasks 1\n');
 fprintf(fid,'#SBATCH --mem-per-cpu=32G\n');
 fprintf(fid,'#SBATCH --begin=now\n');
-
-% even though the following commands (romeo and mcpc3ds) aren't being launched from within
-% MATLAB, there still seemed to be some problems with library interference.
-% This workaround is listed here: https://github.com/korbinian90/ROMEO 
-fprintf(fid,['export LD_PRELOAD=' getenv('MRITOOLS_HOME') '/../lib/julia/libstdc++.so.6.0.29\n']);
-
-fprintf(fid,[getenv('MRITOOLS_HOME') '/mcpc3ds -p ' [tempDir '/GRE_5D_phs.nii'] ...
-          ' -m ' [tempDir '/GRE_5D_mag.nii'] ' -o ' [tempDir '/combined_noMoCo'] ...
-          ' -t [' num2str((twix_obj.hdr.Meas.alTE(1:nEco)/1000)) ']\n']);
-fprintf(fid,[getenv('MRITOOLS_HOME') '/mcpc3ds -p ' [tempDir '/GRE_5D_MoCo_phs.nii'] ...
-          ' -m ' [tempDir '/GRE_5D_MoCo_mag.nii'] ' -o ' [tempDir '/combined_MoCo'] ...
-          ' -t [' num2str((twix_obj.hdr.Meas.alTE(1:nEco)/1000)) ']\n']);
-fprintf(fid,[getenv('MRITOOLS_HOME') '/romeo -p ' [tempDir '/combined_noMoCo/combined_phase.nii']...
-          ' -m ' [tempDir '/combined_noMoCo/combined_mag.nii'] ' -o ' [tempDir '/combined_noMoCo/unwrapped.nii'] ...
-          ' -t [' num2str((twix_obj.hdr.Meas.alTE(1:nEco)/1000)) ']\n']);
-fprintf(fid,[getenv('MRITOOLS_HOME') '/romeo -p ' [tempDir '/combined_MoCo/combined_phase.nii']   ...
-          ' -m ' [tempDir '/combined_MoCo/combined_mag.nii']   ' -o ' [tempDir '/combined_MoCo/unwrapped.nii'] ...
-          ' -t [' num2str((twix_obj.hdr.Meas.alTE(1:nEco)/1000)) ']' ...
-          ' -B --write-phase-offsets\n']); % not sure exactly which of all outputs are the most useful
-
-% mcpc3ds and romeo leave NaNs outside the mask, so can use fslmaths to
-% remove these when copying to output location
-fprintf(fid,['fslmaths ' tempDir '/combined_noMoCo/combined_mag.nii -mul 1000 -nan ' outDir '/GRE_mag.nii -odt int\n']);
-fprintf(fid,['fslmaths ' tempDir '/combined_MoCo/combined_mag.nii -mul 1000 -nan ' outDir '/GRE_MoCo_mag.nii -odt int\n']);
-fprintf(fid,['fslmaths ' tempDir '/combined_noMoCo/unwrapped.nii -nan ' outDir '/GRE_phs_unwrapped.nii\n']);
-fprintf(fid,['fslmaths ' tempDir '/combined_MoCo/unwrapped.nii -nan ' outDir '/GRE_MoCo_phs_unwrapped.nii\n']);
-
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
-fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "cleanupFile = ''' tempNameRoots.cleanupFiles ''';cluster_cleanup_afterASPIRE;exit;"\n']);
+fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "cleanupFile = ''' tempNameRoots.cleanupFiles ''';cluster_cleanup_andASPIRE;exit;"\n']);
 fclose(fid);
 
 disp('Launching batch job array for applying the cleanup...')

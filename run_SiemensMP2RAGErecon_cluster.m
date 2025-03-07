@@ -50,13 +50,16 @@ end
 if ~exist('NUFFTosf','var')
     NUFFTosf = 1.5;
 end
+if ~exist('bKeepFatNavs','var')
+    bKeepFatNavs = 0;
+end
 
 %%
 dir(rawDataFile)
 %%
 
 reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,'FatNavRes_mm',FatNavRes_mm,...
-    'bGRAPPAinRAM',1,'bKeepReconInRAM',1,'bFullParforRecon',bFullParforRecon,'swapDims_xyz',swapDims_xyz,'bKeepFatNavs',0,...
+    'bGRAPPAinRAM',1,'bKeepReconInRAM',1,'bFullParforRecon',bFullParforRecon,'swapDims_xyz',swapDims_xyz,'bKeepFatNavs',bKeepFatNavs,...
     'bKeepGRAPPArecon',bKeepGRAPPArecon,'bLinParSwap',bLinParSwap,'bKeepComplexImageData',bKeepComplexImageData,...
     'outRoot',outRoot,'bUseGPU',bUseGPU,'outFolderPrefix',outFolderPrefix,'parpoolSize',parpoolSize,'NUFFTosf',NUFFTosf);
 

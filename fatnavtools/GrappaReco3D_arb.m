@@ -42,6 +42,8 @@ kernelsize_z = size(kernel,2);
 noOfSrcPoints = size(ySrcVc,1);
 noOfTargPoints = size(yTargVc,1);
 
+nc_out = size(ws,2)/noOfTargPoints;
+
 % create a border with zeros around sig-matrix
 yBorder = ceil(kernelsize_y/stepSize(1))*stepSize(1); zBorder = ceil(kernelsize_z/stepSize(2))*stepSize(2);
 % yBorder = 0; zBorder=0;
@@ -60,7 +62,8 @@ sigIn(yBorder+1:end-yBorder, 1+zBorder:end-zBorder, :) = sig;
 %     sigIn(1+yBorder:end-yBorder,end-zBorder+1:end,:) = sig(:,1:zBorder,:);
 % end
 
-sigOut = zeros(size(sigIn));
+% sigOut = zeros(size(sigIn));
+sigOut = zeros(size(sigIn,1),size(sigIn,2),nc_out);
 
     
 for iStart = 1:size(startPos,1)     
@@ -72,7 +75,7 @@ for iStart = 1:size(startPos,1)
                 tmp_srcMx(i,:) = tmpMx(ySrcVc(i),zSrcVc(i),:);
             end
             src = reshape(tmp_srcMx, 1, nc*noOfSrcPoints);
-            tmpMx = reshape(src*ws,[noOfTargPoints nc]);
+            tmpMx = reshape(src*ws,[noOfTargPoints nc_out]);
             for i=1:noOfTargPoints
                 sigOut(yind-1+yTargVc(i),zind-1+zTargVc(i),:) = tmpMx(i,:);
             end                      
@@ -80,12 +83,16 @@ for iStart = 1:size(startPos,1)
     end
 end
 
-% put the original data back in place in the output
-out = sig;
-
-% now add in the new values where they have been calculated (overwriting if
-% they overlap)
-sigOut = sigOut( yBorder+1:yBorder+ny, zBorder+1:zBorder+nz, :);
-mask_sigOut = zeros(size(sigOut));
-mask_sigOut(sigOut~=0) = 1;
-out = out.*(1-mask_sigOut) + sigOut;
+if nc == nc_out    
+    % put the original data back in place in the output
+    out = sig;
+    
+    % now add in the new values where they have been calculated (overwriting if
+    % they overlap)
+    sigOut = sigOut( yBorder+1:yBorder+ny, zBorder+1:zBorder+nz, :);
+    mask_sigOut = zeros(size(sigOut));
+    mask_sigOut(sigOut~=0) = 1;
+    out = out.*(1-mask_sigOut) + sigOut;
+else
+    out = sigOut( yBorder+1:yBorder+ny, zBorder+1:zBorder+nz, :);
+end

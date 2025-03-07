@@ -17,6 +17,10 @@ run([getenv('RETROMOCOBOX_HOME') '/addRetroMoCoBoxToPath.m']);
 % MIRT is included in retromocobox directly
 addpath(getenv('SPM_HOME'));
 CLUSTER_LOG_PATH = getenv('CLUSTER_LOG_PATH');
+if ~exist('ASPIRE_HOME','var')
+    ASPIRE_HOME = [];
+end
+disp(['ASPIRE_HOME is set as: ' ASPIRE_HOME]);
 
 %%
 
@@ -31,8 +35,10 @@ end
 if ~exist('outRoot','var')
     outRoot = [];
 end
-
+if ~exist('parpoolSize','var')
+    parpoolSize = 10;
+end
 %%
 
-reconstructSiemensGREwithFatNavs_cluster(rawDataFile,'swapDims_xyz',swapDims_xyz,'CLUSTER_LOG_PATH',CLUSTER_LOG_PATH,'bKeepGRAPPArecon',bKeepGRAPPArecon,'outRoot',outRoot);
-
+reconstructSiemensGREwithFatNavs_cluster(rawDataFile,'swapDims_xyz',swapDims_xyz,'CLUSTER_LOG_PATH',CLUSTER_LOG_PATH,'bKeepGRAPPArecon',bKeepGRAPPArecon,'outRoot',outRoot,'ASPIRE_HOME',ASPIRE_HOME,'parpoolSize',parpoolSize);
+% reconstructSiemensGREwithFatNavs_cluster_debugClusterDependency(rawDataFile,'swapDims_xyz',swapDims_xyz,'CLUSTER_LOG_PATH',CLUSTER_LOG_PATH,'bKeepGRAPPArecon',bKeepGRAPPArecon,'outRoot',outRoot,'ASPIRE_HOME',ASPIRE_HOME,'parpoolSize',parpoolSize);
