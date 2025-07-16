@@ -703,14 +703,16 @@ disp('Done.')
 fid = fopen(tempNameRoots.clusterScriptRecombine,'w');
 fprintf(fid,'#!/bin/bash\n');
 fprintf(fid,['#SBATCH --dependency=afterany:' jobnumber]); % wait for the array above to finish before starting the recombine
-fprintf(fid,'#SBATCH -p cubric-a100\n');
+%fprintf(fid,'#SBATCH -p cubric-a100\n');
+fprintf(fid,'#SBATCH -p cubric-rapids\n');
 fprintf(fid,'#SBATCH --job-name=GREreconRecombine\n');
 fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconRecombine_%%j.out\n']);
 fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconRecombine_%%j.err\n']);
 fprintf(fid,'#SBATCH --ntasks 1\n');
-fprintf(fid,'#SBATCH --cpus-per-task 12\n');
+fprintf(fid,'#SBATCH --cpus-per-task 10\n');
 %fprintf(fid,'#SBATCH --mem-per-cpu=32000M\n'); % this one also exceeded memory limit when set to 16000
-fprintf(fid,'#SBATCH --mem=320G\n');  
+%fprintf(fid,'#SBATCH --mem=320G\n');
+fprintf(fid,'#SBATCH --mem=160G\n');    
 % Here currently need at least enough to hold two full copies of full size
 % recon - but 'seff' showed as much as 129GB for 336x336x192x7 data
 fprintf(fid,'#SBATCH --begin=now\n');
