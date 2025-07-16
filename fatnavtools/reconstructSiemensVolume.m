@@ -142,10 +142,14 @@ end
 if isfield(twix_obj.hdr.MeasYaps,'tReferenceImage0') % some files apparently might not even have this field...
     iDot = strfind(char(twix_obj.hdr.MeasYaps.tReferenceImage0),'.'); % some versions seem to create a char already, others not...
     thisDateString = char(twix_obj.hdr.MeasYaps.tReferenceImage0);
-    if strcmp(thisDateString(iDot(end)+(1:6)),'300000') % it seems sometimes this 300000 is present, then the year is only two digits...
-        fprintf(fid,['<strong>Date of scan:</strong> ' local_reformatDateString(['20' thisDateString(iDot(end)+6+(1:6))]) '<br>\n']);
-    else
-        fprintf(fid,['<strong>Date of scan:</strong> ' local_reformatDateString(thisDateString(iDot(end)+(1:8))) '<br>\n']);
+    try
+        if strcmp(thisDateString(iDot(end)+(1:6)),'300000') % it seems sometimes this 300000 is present, then the year is only two digits...
+            fprintf(fid,['<strong>Date of scan:</strong> ' local_reformatDateString(['20' thisDateString(iDot(end)+6+(1:6))]) '<br>\n']);
+        else
+            fprintf(fid,['<strong>Date of scan:</strong> ' local_reformatDateString(thisDateString(iDot(end)+(1:8))) '<br>\n']);
+        end
+    catch
+        fprintf(fid,['<strong>Date of scan:</strong> unable to read from file <br>\n']);
     end
 end
 
@@ -171,7 +175,11 @@ else
             case 3
                 fprintf(fid,['<strong>Patient Sex:</strong> Other<br>\n']);
         end
-        fprintf(fid,['<strong>Patient date of birth:</strong> ' local_reformatDateString(num2str(twix_obj.hdr.Config.PatientBirthDay)) '<br>\n']);
+        try
+            fprintf(fid,['<strong>Patient date of birth:</strong> ' local_reformatDateString(num2str(twix_obj.hdr.Config.PatientBirthDay)) '<br>\n']);
+        catch
+            fprintf(fid,['<strong>Patient date of birth:</strong> ' twix_obj.hdr.Config.PatientBirthDay '<br>\n']);
+        end
         
     else
         fprintf(fid,['<strong>Patient Info:</strong> Anonymised<br>\n']);
