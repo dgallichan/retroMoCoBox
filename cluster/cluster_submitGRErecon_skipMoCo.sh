@@ -77,7 +77,7 @@ echo "#SBATCH --mem=80G" >> ${tempfile}
 echo "#SBATCH --cpus-per-task 12" >> ${tempfile}
 echo "#SBATCH --ntasks 1" >> ${tempfile}
 echo "cd ${RETROMOCOBOX_HOME}" >> ${tempfile}
-echo "matlab -nodisplay -nodesktop -nosplash -r \"rawDataFile='${inputfile}';outRoot='${outRoot}';swapDims_xyz = [0 0 1];bKeepGRAPPArecon=0;parpoolSize = 6;script_pwd = '${PWD}';ASPIRE_HOME='${ASPIRE_HOME}';run_SiemensGRErecon_cluster_noMoCo;exit;\"" >> ${tempfile}
+echo "matlab -nodisplay -nodesktop -nosplash -r \"rawDataFile='${inputfile}';outRoot='${outRoot}';swapDims_xyz = [0 0 1];bKeepGRAPPArecon=0;parpoolSize = 6;script_pwd = '${PWD}';ASPIRE_HOME='${ASPIRE_HOME}';run_SiemensGRErecon_cluster_skipMoCo;exit;\"" >> ${tempfile}
 echo " "
 echo " "
 echo "Creating this temporary file to process your data:"
