@@ -729,13 +729,17 @@ fprintf(fid,'#SBATCH --mem=160G\n');
 % recon - but 'seff' showed as much as 129GB for 336x336x192x7 data
 fprintf(fid,'#SBATCH --begin=now\n');
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
-fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "reconParsFile = ''' tempNameRoots.allReconPars ''';cluster_combineCoils_forASPIRE;exit;"\n']);
+fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "reconParsFile = ''' tempNameRoots.allReconPars ''';cluster_combineCoils_forASPIRE_skipMoCo;exit;"\n']);
 fclose(fid);
 
 disp('Launching batch job array for applying the coil combination...')
 [status, sbatch_out] = system(['sbatch ' tempNameRoots.clusterScriptRecombine]); 
 jobnumber2 = sbatch_out(21:end); % after the text 'Submitted batch job ..'
 disp('Done.')
+
+% skip_MoCo version - make sure these variables exist
+timingReport_FatNavs = [];
+fatnavdir = [];
 
 save(tempNameRoots.cleanupFiles,'htmlDir','startTime','timingReport_FatNavs','nc_keep','nEco', ...
     'reconPars','tempNameRoots','tempDir','outDir','nFatNavs','fatnavdir','RETROMOCOBOX_PATH','ASPIRE_HOME','SPM_PATH');
@@ -753,7 +757,7 @@ fprintf(fid,'#SBATCH --ntasks 1\n');
 fprintf(fid,'#SBATCH --mem-per-cpu=32G\n');
 fprintf(fid,'#SBATCH --begin=now\n');
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
-fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "cleanupFile = ''' tempNameRoots.cleanupFiles ''';cluster_cleanup_andASPIRE;exit;"\n']);
+fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "cleanupFile = ''' tempNameRoots.cleanupFiles ''';cluster_cleanup_andASPIRE_skipMoCo;exit;"\n']);
 fclose(fid);
 
 disp('Launching batch job array for applying the cleanup...')
