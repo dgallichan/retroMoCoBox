@@ -682,7 +682,9 @@ save(tempNameRoots.allReconPars,'iS','nc_keep','Hxyz','hxyz','nEco','reconPars',
 fid = fopen(tempNameRoots.clusterScript,'w');
 fprintf(fid,'#!/bin/bash\n');
 % fprintf(fid,['#SBATCH --array 1-' num2str(nEco) '\n']);
-fprintf(fid,['#SBATCH --array 1-' num2str(nEco) '%%1\n']); % use the %%1 to specify that only one can run at once for now to try to avoid parfor/job array problems
+% fprintf(fid,['#SBATCH --array 1-' num2str(nEco) '%%1\n']); % use the %%1 to specify that only one can run at once for now to try to avoid parfor/job array problems
+fprintf(fid,['#SBATCH --array 1-' num2str(nEco) '\n']);
+
 fprintf(fid,'#SBATCH -p cubric-centos7\n');
 fprintf(fid,'#SBATCH --job-name=GREreconHelper\n');
 fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconHelperArray_%%A_%%a.out\n']);
@@ -749,12 +751,16 @@ fclose(fidHTML); % HTML needs closing and will be reopened in cleanup
 fid = fopen(tempNameRoots.clusterScriptCleanup,'w');
 fprintf(fid,'#!/bin/bash\n');
 fprintf(fid,['#SBATCH --dependency=afterany:' jobnumber2]); % wait for the recombine to finish before starting the cleanup
-fprintf(fid,'#SBATCH -p cubric-centos7\n');
+% fprintf(fid,'#SBATCH -p cubric-centos7\n');
+fprintf(fid,'#SBATCH -p cubric-rocky8\n');
 fprintf(fid,'#SBATCH --job-name=GREreconCleanup\n');
 fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconCleanup_%%j.out\n']);
 fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconCleanup_%%j.err\n']);
-fprintf(fid,'#SBATCH --ntasks 1\n');
-fprintf(fid,'#SBATCH --mem-per-cpu=32G\n');
+% fprintf(fid,'#SBATCH --ntasks 1\n');
+% fprintf(fid,'#SBATCH --mem-per-cpu=32G\n');
+fprintf(fid,'#SBATCH --ntasks=1\n');
+fprintf(fid,'#SBATCH --cpus-per-task=8\n');
+fprintf(fid,'#SBATCH --mem=80G\n');
 fprintf(fid,'#SBATCH --begin=now\n');
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
 fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "cleanupFile = ''' tempNameRoots.cleanupFiles ''';cluster_cleanup_andASPIRE_skipMoCo;exit;"\n']);
