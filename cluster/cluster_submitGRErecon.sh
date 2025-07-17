@@ -19,9 +19,8 @@ if [ $# -lt 1 ];then
 	echo ""
 	echo "IMPORTANT:"
 	echo "Before running you will need to make sure that you set"
-	echo "the RETROMOCOBOX_HOME environment variable (and also ASPIRE_HOME"
-	echo "if you are using ASPIRE)."
-	echo "Alternatively, these can be set by manually editing this script and"
+	echo "the RETROMOCOBOX_HOME environment variable and also ASPIRE_HOME"
+	echo "by manually editing this script and"
 	echo "specifying them below this text in the .sh file itself."
 	exit 1;
 fi
@@ -37,25 +36,6 @@ if [ $# -lt 2 ];then
 else
 	outRoot=$2
     export CLUSTER_LOG_PATH=${outRoot}/clusterlogs
-fi
-
-if [[ -z "${RETROMOCOBOX_HOME}" ]]; then
-    echo ""
-    echo "ERROR: before running this script please ensure your have set"
-    echo "the RETROMOCOBOX_HOME variable to point to your local version"
-    echo "of the retroMoCoBox MATLAB tools."
-	echo ""
-    exit 1;
-fi
-
-if [[ -z "${ASPIRE_HOME}" ]]; then
-    echo ""
-    echo "ERROR: before running this script please ensure your have set"
-    echo "the ASPIRE_HOME variable to point to your local version"
-    echo "of the ASPIRE matlab code. This can be set to a dummy value"
-    echo "if your data is not multi-echo."
-    echo ""
-    exit 1;
 fi
 
 

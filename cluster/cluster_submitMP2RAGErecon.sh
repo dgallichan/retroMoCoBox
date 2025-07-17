@@ -11,7 +11,7 @@ if [ $# -lt 1 ];then
 	echo ""
 	echo "IMPORTANT:"
 	echo "Before running you will need to make sure that you set"
-	echo "the RETROMOCOBOX_HOME environment variable"
+	echo "the RETROMOCOBOX_HOME environment variable manually within this script itself!"
 	echo ""
 	exit 1;
 fi
@@ -24,15 +24,6 @@ if [ $# -lt 2 ];then
 else
 	outRoot=$2
     export CLUSTER_LOG_PATH=${outRoot}/clusterlogs
-fi
-
-if [[ -z "${RETROMOCOBOX_HOME}" ]]; then
-    echo ""
-    echo "ERROR: before running this script please ensure your have set"
-    echo "the RETROMOCOBOX_HOME variable to point to your local version"
-    echo "of the retroMoCoBox MATLAB tools."
-	echo ""
-    exit 1;
 fi
 
 export RETROMOCOBOX_HOME=/home/scedg10/retroMoCoBox
