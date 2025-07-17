@@ -35,7 +35,8 @@ if [[ -z "${RETROMOCOBOX_HOME}" ]]; then
     exit 1;
 fi
 
-#export RETROMOCOBOX_HOME=/home/scedg10/retroMoCoBox
+export RETROMOCOBOX_HOME=/home/scedg10/retroMoCoBox
+
 export SPM_HOME=/cubric/software/spm.versions/spm12
 
 # if 'cluster log path' folder doesn't exist already, create it:

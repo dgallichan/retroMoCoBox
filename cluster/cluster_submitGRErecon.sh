@@ -26,7 +26,7 @@ if [ $# -lt 1 ];then
 	exit 1;
 fi
 
-# export RETROMOCOBOX_HOME=/home/scedg10/retroMoCoBox
+export RETROMOCOBOX_HOME=/home/scedg10/retroMoCoBox
 export ASPIRE_HOME=/home/scedg10/matlab_cubric/ASPIRE
 
 inputfile=$1
