@@ -43,8 +43,8 @@ disp(['Files written to: ' data.write_dir]);
 % run(Aspire(data2));
 % aspireTime = secs2hms(toc); 
 
-disp(['Whole calculation took: ' aspireTime]);
-disp(['Files written to: ' data2.write_dir]);
+%disp(['Whole calculation took: ' aspireTime]);
+%disp(['Files written to: ' data2.write_dir]);
 
 %% Copy ASPIRE output to be main GRE recon
 
@@ -101,7 +101,7 @@ else
 end
 
 fprintf(fidHTML,['<h4>Total reconstruction time: ' num2str(totalTime_hrs) ' hours, ' num2str(totalTime_mins) ' mins</h4>\n']);
-fprintf(fidHTML,['<strong>Calculate GRAPPA weights for FatNavs: </strong>' num2str(round(timingReport_FatNavs.calculateGRAPPAweights)) ' seconds.<br>\n']);
+%fprintf(fidHTML,['<strong>Calculate GRAPPA weights for FatNavs: </strong>' num2str(round(timingReport_FatNavs.calculateGRAPPAweights)) ' seconds.<br>\n']);
 % fprintf(fidHTML,['<strong>Reconstruct FatNavs: </strong>' num2str(nFatNavs) 'x ' num2str(round(mean(timingReport_FatNavs.eachFatNav))) ' seconds. Total time (possibly parallelized!): = ' num2str(round(timingReport_FatNavs.allFatNavs)) ' seconds. <br>\n']);
 % fprintf(fidHTML,['<strong>Align FatNavs using SPM: </strong>' num2str(round(timingReport_FatNavs.SPMalignment)) ' seconds.<br>\n']);
 % fprintf(fidHTML,['<strong>Application of retrospective motion-correction: </strong>' num2str(round(timingReport_totalTimeApplyMoco/60)) ' minutes\n']); % <--- not passed through currently in cluster mode
