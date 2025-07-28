@@ -488,7 +488,10 @@ switch baseOrientation
         tiltTheta = acos(allNormals(2))*180/pi;
         thisRot = euler2rmat(tiltTheta,0,0);
     case 3 % Sagittal
-        thisRot = euler2rmat(dInPlaneRot*180/pi,0,0);
+%         thisRot = euler2rmat(dInPlaneRot*180/pi,0,0); % <-- 25/7/25 - looks like this line that I've had in for a while might be wrong...!
+        % try replacing with a copy of lines from Cor and Tra
+        tiltTheta = acos(allNormals(3))*180/pi;
+        thisRot = euler2rmat(tiltTheta,0,0);
 end
 
 % and account for rotation of slices...
@@ -671,8 +674,8 @@ save(tempNameRoots.allReconPars,'iS','nc_keep','Hxyz','hxyz','nEco','reconPars',
 
 fid = fopen(tempNameRoots.clusterScript,'w');
 fprintf(fid,'#!/bin/bash\n');
-% fprintf(fid,['#SBATCH --array 1-' num2str(nEco) '\n']);
-fprintf(fid,['#SBATCH --array 1-' num2str(nEco) '%%1\n']); % use the %%1 to specify that only one can run at once for now to try to avoid parfor/job array problems
+fprintf(fid,['#SBATCH --array 1-' num2str(nEco) '\n']);
+% fprintf(fid,['#SBATCH --array 1-' num2str(nEco) '%%1\n']); % use the %%1 to specify that only one can run at once for now to try to avoid parfor/job array problems
 fprintf(fid,'#SBATCH -p cubric-centos7\n');
 fprintf(fid,'#SBATCH --job-name=GREreconHelper\n');
 fprintf(fid,['#SBATCH -o ' CLUSTER_LOG_PATH '/GREreconHelperArray_%%A_%%a.out\n']);

@@ -22,8 +22,8 @@ data.write_dir = fullfile(tempDir,'ASPIRE_noMoCo');
 data.poCalculator = AspirePoCalculator; % AspireBipolarPoCalculator('non-linear correction') for bipolar acquisitions (at least 3 echoes)
 data.smoother = NanGaussianSmoother; % NanGaussianSmoother, GaussianBoxSmoother (=default)
 
-data.processing_option = 'all_at_once'; % all_at_once, slice_by_slice (slice_by_slice requires fslmerge)
-% data.processing_option = 'slice_by_slice';
+%data.processing_option = 'all_at_once'; % all_at_once, slice_by_slice (slice_by_slice requires fslmerge)
+data.processing_option = 'slice_by_slice';
 
 % run ASPIRE
 tic;
@@ -162,9 +162,9 @@ if reconPars.bZipNIFTIs
     delete([outDir '/*.nii']);
 end
 
-if ~reconPars.bKeepFatNavs
-    rmdir(fatnavdir,'s')
-end
+% if ~reconPars.bKeepFatNavs
+%     rmdir(fatnavdir,'s')
+% end
     
 
 

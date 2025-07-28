@@ -760,7 +760,7 @@ fprintf(fid,['#SBATCH -e ' CLUSTER_LOG_PATH '/GREreconCleanup_%%j.err\n']);
 % fprintf(fid,'#SBATCH --mem-per-cpu=32G\n');
 fprintf(fid,'#SBATCH --ntasks=1\n');
 fprintf(fid,'#SBATCH --cpus-per-task=8\n');
-fprintf(fid,'#SBATCH --mem=80G\n');
+fprintf(fid,'#SBATCH --mem=40G\n');
 fprintf(fid,'#SBATCH --begin=now\n');
 fprintf(fid,['cd ' RETROMOCOBOX_PATH '/cluster\n']);
 fprintf(fid,['matlab -nodisplay -nodesktop -nosplash -r "cleanupFile = ''' tempNameRoots.cleanupFiles ''';cluster_cleanup_andASPIRE_skipMoCo;exit;"\n']);
