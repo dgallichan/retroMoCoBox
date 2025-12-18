@@ -4,7 +4,7 @@
 ## Retro-MoCo-Box
 
 
-Matlab toolbox for retrospective motion-correction of 3D MRI k-space data - as used for my work using 3D FatNavs to obtain the motion information. You can read more about FatNavs on [my research website](http://www.cardiff.ac.uk/people/view/507850-gallichan-daniel).
+Matlab toolbox for retrospective motion-correction of 3D MRI k-space data - as used for my work using 3D FatNavs to obtain the motion information. You can read more about FatNavs on [my research website](https://profiles.cardiff.ac.uk/staff/gallichand).
 
 
 Used in:
