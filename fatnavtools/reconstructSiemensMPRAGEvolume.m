@@ -1623,7 +1623,7 @@ if reconPars.bZipNIFTIs
     delete([outDir '/*.nii']);
 end
 
-if ~reconPars.bKeepFatNavs
+if ~reconPars.bKeepFatNavs && nFatNavs > 0
     rmdir(fatnavdir,'s')
 end
     
