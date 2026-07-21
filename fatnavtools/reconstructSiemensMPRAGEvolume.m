@@ -1052,6 +1052,8 @@ else % the much faster version with much hungrier RAM requirements:
     % generate the st object for NUFFT and precalculate the phase offsets    
     [~,st,~, phaseTranslations] = applyRetroMC_nufft(zeros(hrps'),fitMats_mm_toApply,alignDim_rps,alignIndices,11,...
         hostVoxDim_mm_rps,Hrps,kspaceCentre_rps,-1,reconPars.NUFFTosf,1);
+    else
+        phaseTranslations = [];
     end
     
     parfor iC = 1:nc_keep
