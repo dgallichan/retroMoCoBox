@@ -348,7 +348,12 @@ else
     thisLine = squeeze(twix_obj.imageWithRefscan(1,1,:,1,1,1,1,1,1,1,1,1));
     iSamp = find(thisLine);
 end
-nFatNavs = twix_obj.FatNav.dataSize(9)/twix_obj.image.NAve;
+
+if isfield(twix_obj,'FatNav')
+    nFatNavs = twix_obj.FatNav.dataSize(9)/twix_obj.image.NAve;
+else
+    nFatNavs = 0; % presumably wasn't actually a FatNav scan!
+end
 
 fprintf(fidHTML,['<br><br><br>No. of FatNavs: ' num2str(nFatNavs) '<br>\n']);
 fprintf(fidHTML,['No. of measured lines in host sequence: ' num2str(length(iSamp)) '<br>\n']);
@@ -363,58 +368,59 @@ end
 % - First reconstruct each FatNav, then co-register using SPM to obtain
 %   motion-estimates
 
-[ACSims, timingReport_FatNavs, fatnavdir] = processFatNavs_GRAPPA4x4(twix_obj, ... 
-            outDir,'FatNavRes_mm',reconPars.FatNavRes_mm, 'iAve', reconPars.iAve, ...
-            'appendString', appendString,'bSwapHandedness',reconPars.bSwapFatNavHandedness,...
-            'bApplyNoseCircshift',reconPars.bApplyFatNavNoseCircshift,...
-            'bUseNeckMasking',reconPars.bApplyFatNavNeckMasking);
-
-% And put stuff into the html report
-if exist(fatnavdir,'dir') % could have just kept the motion-parameters file...
-    imdims = 2*[304 128];
-    fprintf(fidHTML,['<h4>FatNavs</h4>\n']);
-
-    if exist([fatnavdir '/a_FatNav_MoCoPars_' MIDstr '.png'],'file')
-        copyfile([fatnavdir '/a_FatNav_MoCoPars_' MIDstr '.png'],[htmlDir '/motion_parameters.png']);
-        fprintf(fidHTML,['Estimated motion parameters:<br>\n']);
-        fprintf(fidHTML,['<img src="motion_parameters.png"><br><br>\n']);
-    end
-    if exist([fatnavdir '/a_FatNav_ACSim_' MIDstr '.png'],'file')
-        copyfile([fatnavdir '/a_FatNav_ACSim_' MIDstr '.png'],[htmlDir '/ACSim.png']);
-        fprintf(fidHTML,['<br><br>FatNav ACS image:<br>\n']);
-        fprintf(fidHTML,['<img src="ACSim.png" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));        
-    end
-    if exist([fatnavdir '/a_FatNav_NoseCircshift_' MIDstr '.png'],'file')
-        copyfile([fatnavdir '/a_FatNav_NoseCircshift_' MIDstr '.png'],...
-            [htmlDir '/a_FatNav_NoseCircshift_' MIDstr '.png']);
-        fprintf(fidHTML,['The FatNavs have been automatically circularly shifted in the y-direction to attempt to account for a non-isocentre head position (seemingly common at ultra-high fields) which causes the nose to wrap and could affect apparent motion parameters:<br>\n']);
-        fprintf(fidHTML,['<img src="a_FatNav_NoseCircshift_' MIDstr '.png"><br><br>\n']);
-    end
-    if exist([fatnavdir '/a_FatNav_ACSim_' MIDstr '_channelCut.png'],'file')
-        copyfile([fatnavdir '/a_FatNav_ACSim_' MIDstr '_channelCut.png'],[htmlDir '/ACSim_channelCut.png']);
-        fprintf(fidHTML,['ACS image (after removing neck channels from 64ch coil):<br>\n']);
-        fprintf(fidHTML,['<img src="ACSim_channelCut.png" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
-    end
-    if exist([fatnavdir '/a_mov_eachFatNav.gif'],'file')
-        copyfile([fatnavdir '/a_mov_eachFatNav.gif'],[htmlDir '/mov_eachFatNav.gif'])
-        fprintf(fidHTML,['15 example FatNavs covering complete scan:<br>\n']);
-        fprintf(fidHTML,['<img src="mov_eachFatNav.gif" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
-    end
-    if exist([fatnavdir '/a_mov_spm_eachFatNav.gif'],'file')
-        copyfile([fatnavdir '/a_mov_spm_eachFatNav.gif'],[htmlDir '/mov_spm_eachFatNav.gif'])
-        fprintf(fidHTML,['And after rigid-body registration using SPM:<br>\n']);
-        fprintf(fidHTML,['<img src="mov_spm_eachFatNav.gif" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
-    end
-    if exist([fatnavdir '/a_FatNav_NeckMask_' MIDstr '.png'],'file')
-        copyfile([fatnavdir '/a_FatNav_NeckMask_' MIDstr '.png'],...
-            [htmlDir '/a_FatNav_NeckMask_' MIDstr '.png']);
-        fprintf(fidHTML,['An automatic masking was applied to attempt to restrict registration to rigid regions of the FatNav:<br>\n']);
-        fprintf(fidHTML,['<img src="a_FatNav_NeckMask_' MIDstr '.png" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)*2));
-    end
-        
+if nFatNavs > 0
+    [ACSims, timingReport_FatNavs, fatnavdir] = processFatNavs_GRAPPA4x4(twix_obj, ...
+        outDir,'FatNavRes_mm',reconPars.FatNavRes_mm, 'iAve', reconPars.iAve, ...
+        'appendString', appendString,'bSwapHandedness',reconPars.bSwapFatNavHandedness,...
+        'bApplyNoseCircshift',reconPars.bApplyFatNavNoseCircshift,...
+        'bUseNeckMasking',reconPars.bApplyFatNavNeckMasking);
     
+    % And put stuff into the html report
+    if exist(fatnavdir,'dir') % could have just kept the motion-parameters file...
+        imdims = 2*[304 128];
+        fprintf(fidHTML,['<h4>FatNavs</h4>\n']);
+        
+        if exist([fatnavdir '/a_FatNav_MoCoPars_' MIDstr '.png'],'file')
+            copyfile([fatnavdir '/a_FatNav_MoCoPars_' MIDstr '.png'],[htmlDir '/motion_parameters.png']);
+            fprintf(fidHTML,['Estimated motion parameters:<br>\n']);
+            fprintf(fidHTML,['<img src="motion_parameters.png"><br><br>\n']);
+        end
+        if exist([fatnavdir '/a_FatNav_ACSim_' MIDstr '.png'],'file')
+            copyfile([fatnavdir '/a_FatNav_ACSim_' MIDstr '.png'],[htmlDir '/ACSim.png']);
+            fprintf(fidHTML,['<br><br>FatNav ACS image:<br>\n']);
+            fprintf(fidHTML,['<img src="ACSim.png" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
+        end
+        if exist([fatnavdir '/a_FatNav_NoseCircshift_' MIDstr '.png'],'file')
+            copyfile([fatnavdir '/a_FatNav_NoseCircshift_' MIDstr '.png'],...
+                [htmlDir '/a_FatNav_NoseCircshift_' MIDstr '.png']);
+            fprintf(fidHTML,['The FatNavs have been automatically circularly shifted in the y-direction to attempt to account for a non-isocentre head position (seemingly common at ultra-high fields) which causes the nose to wrap and could affect apparent motion parameters:<br>\n']);
+            fprintf(fidHTML,['<img src="a_FatNav_NoseCircshift_' MIDstr '.png"><br><br>\n']);
+        end
+        if exist([fatnavdir '/a_FatNav_ACSim_' MIDstr '_channelCut.png'],'file')
+            copyfile([fatnavdir '/a_FatNav_ACSim_' MIDstr '_channelCut.png'],[htmlDir '/ACSim_channelCut.png']);
+            fprintf(fidHTML,['ACS image (after removing neck channels from 64ch coil):<br>\n']);
+            fprintf(fidHTML,['<img src="ACSim_channelCut.png" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
+        end
+        if exist([fatnavdir '/a_mov_eachFatNav.gif'],'file')
+            copyfile([fatnavdir '/a_mov_eachFatNav.gif'],[htmlDir '/mov_eachFatNav.gif'])
+            fprintf(fidHTML,['15 example FatNavs covering complete scan:<br>\n']);
+            fprintf(fidHTML,['<img src="mov_eachFatNav.gif" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
+        end
+        if exist([fatnavdir '/a_mov_spm_eachFatNav.gif'],'file')
+            copyfile([fatnavdir '/a_mov_spm_eachFatNav.gif'],[htmlDir '/mov_spm_eachFatNav.gif'])
+            fprintf(fidHTML,['And after rigid-body registration using SPM:<br>\n']);
+            fprintf(fidHTML,['<img src="mov_spm_eachFatNav.gif" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
+        end
+        if exist([fatnavdir '/a_FatNav_NeckMask_' MIDstr '.png'],'file')
+            copyfile([fatnavdir '/a_FatNav_NeckMask_' MIDstr '.png'],...
+                [htmlDir '/a_FatNav_NeckMask_' MIDstr '.png']);
+            fprintf(fidHTML,['An automatic masking was applied to attempt to restrict registration to rigid regions of the FatNav:<br>\n']);
+            fprintf(fidHTML,['<img src="a_FatNav_NeckMask_' MIDstr '.png" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)*2));
+        end
+        
+        
+    end
 end
-
 
 %% Make iFFT of host ACS for rapid orientation check without waiting for GRAPPA to finish
 
@@ -456,93 +462,96 @@ end
 
 %% load moco parameters and align their orientation to the host data
 
-fitResult = load([outDir '/motion_parameters_spm_' MIDstr appendString '.mat']);
-
-this_fitMat = fitResult.MPos_cent.mats;
-
-% Account for the fact that the host sequence may not have been acquired at
-% isocentre:
-%%% danielg: June 26 - attempt to 'fix' this code using moveFrame approach
-A_fatnav2host = eye(4);
-% add rotations:
-A_fatnav2host(1:3,1:3) = rotAndShift.RotMat*reconPars.extraFlipMat1;
-% and translations:
-A_fatnav2host(1:3,4) = -rotAndShift.RotMat*reconPars.extraFlipMat1*...
-    (reconPars.extraPositionOffsetSignFlips(:).*rotAndShift.Shifts_SagCorTra(:)); 
-
-% it doesn't make sense to me to create a new matrix here, but when I was
-% debugging I was getting desparate. Leaving in here 'just in case'...
-A_fatnav2host_forMats = reconPars.extraFlipMat2*A_fatnav2host;
-
-this_fitMat_mm = moveFrame(this_fitMat,A_fatnav2host_forMats);
-
-if exist([fatnavdir '/eachFatNav_001.nii'],'file')
+if nFatNavs > 0
+    fitResult = load([outDir '/motion_parameters_spm_' MIDstr appendString '.mat']);
     
-   %
-    fileTest1 = [fatnavdir '/test1.nii'];
-    fileTest2 = [fatnavdir '/test2.nii'];
-    copyfile([fatnavdir '/eachFatNav_001.nii'],fileTest1);
-    copyfile([fatnavdir '/eachFatNav_001.nii'],fileTest2);
+    this_fitMat = fitResult.MPos_cent.mats;
     
-    % attempt to use SPM directly to put FatNav into Host RPS space
-    V_source = spm_vol_nifti(fileTest1);    
-    V_virtual = spm_vol_nifti(fileTest2);
+    % Account for the fact that the host sequence may not have been acquired at
+    % isocentre:
+    %%% danielg: June 26 - attempt to 'fix' this code using moveFrame approach
+    A_fatnav2host = eye(4);
+    % add rotations:
+    A_fatnav2host(1:3,1:3) = rotAndShift.RotMat*reconPars.extraFlipMat1;
+    % and translations:
+    A_fatnav2host(1:3,4) = -rotAndShift.RotMat*reconPars.extraFlipMat1*...
+        (reconPars.extraPositionOffsetSignFlips(:).*rotAndShift.Shifts_SagCorTra(:));
     
-    % also use niftiread functions to get header as this is (slightly)
-    % different to SPM's header...
-    nii = load_untouch_nii(fileTest1);
+    % it doesn't make sense to me to create a new matrix here, but when I was
+    % debugging I was getting desparate. Leaving in here 'just in case'...
+    A_fatnav2host_forMats = reconPars.extraFlipMat2*A_fatnav2host;
     
+    this_fitMat_mm = moveFrame(this_fitMat,A_fatnav2host_forMats);
     
-    % Change the dimensions (number of voxels) to alter your FOV
-    V_virtual.dim = round(FOVrps.' / reconPars.FatNavRes_mm);
-
-    %  Calculate centering shift caused purely by the FOV dimension change
-    orig_center  = V_source.dim / 2;
-    new_center   = V_virtual.dim / 2;
-    shift_voxels = ( new_center - orig_center);
+    if exist([fatnavdir '/eachFatNav_001.nii'],'file')
+        
+        %
+        fileTest1 = [fatnavdir '/test1.nii'];
+        fileTest2 = [fatnavdir '/test2.nii'];
+        copyfile([fatnavdir '/eachFatNav_001.nii'],fileTest1);
+        copyfile([fatnavdir '/eachFatNav_001.nii'],fileTest2);
+        
+        % attempt to use SPM directly to put FatNav into Host RPS space
+        V_source = spm_vol_nifti(fileTest1);
+        V_virtual = spm_vol_nifti(fileTest2);
+        
+        % also use niftiread functions to get header as this is (slightly)
+        % different to SPM's header...
+        nii = load_untouch_nii(fileTest1);
+        
+        
+        % Change the dimensions (number of voxels) to alter your FOV
+        V_virtual.dim = round(FOVrps.' / reconPars.FatNavRes_mm);
+        
+        %  Calculate centering shift caused purely by the FOV dimension change
+        orig_center  = V_source.dim / 2;
+        new_center   = V_virtual.dim / 2;
+        shift_voxels = ( new_center - orig_center);
+        
+        % Convert voxel shift to mm using the original voxel spacing
+        shift_mm = reconPars.FatNavRes_mm * shift_voxels';
+        
+        % Account for any nosecircshift in the fatnav
+        shift_nose_mm = (nii.hdr.hist.srow_y(4) + ((V_source.dim(2)/2)*reconPars.FatNavRes_mm)); % srow_y is -ve, so this finds diff
+        %     A_shiftNose = eye(4);
+        %     A_shiftNose(2,4) = -shift_nose_mm;
+        
+        %     V_source.mat = A_fatnav2host * A_shiftNose * V_source.mat;
+        
+        V_source.mat = A_fatnav2host * V_source.mat;
+        
+        V_source.mat(1:3, 4) = V_source.mat(1:3, 4) + shift_mm;
+        
+        V_source.mat(2, 4) = V_source.mat(2, 4) + shift_nose_mm;
+        
+        % Pass both headers to spm_reslice.
+        spm_reslice([V_virtual, V_source], struct('mask',false,'mean',false,'interp',1,'which',1,'wrap',[1 1 1],'prefix',''));
+        
+        newFatIm = rn(fileTest1);
+        
+        hf = figure('Visible','off');
+        
+        oOut = orthoview(newFatIm,'useNewFig',0);
+        %
+        set(gcf,'Position',[    50   50   950  540])
+        subplot(oOut.hAx(1))
+        title('Read/Phase')
+        ylabel('First FatNav realigned to Host RPS')
+        subplot(oOut.hAx(2))
+        title('Read/Slice')
+        subplot(oOut.hAx(3))
+        title('Phase/Slice')
+        export_fig([htmlDir '/orientationCheck_FatVolume.png'])
+        %
+        close(hf);
+        
+        fprintf(fidHTML,['Orientation check for host sequence slice rotation and positioning:<br>\n']);
+        fprintf(fidHTML,['<img src="orientationCheck_FatVolume.png"><br><br>\n']);
+        fprintf(fidHTML,['(The fat volume shown above should approximately correspond to the FOV chosen for the host sequence in the "native RPS" coords shown above that)<br><br><br>\n']);
+    end
+    disp('Ims done')
     
-    % Convert voxel shift to mm using the original voxel spacing
-    shift_mm = reconPars.FatNavRes_mm * shift_voxels';
-    
-    % Account for any nosecircshift in the fatnav    
-    shift_nose_mm = (nii.hdr.hist.srow_y(4) + ((V_source.dim(2)/2)*reconPars.FatNavRes_mm)); % srow_y is -ve, so this finds diff
-%     A_shiftNose = eye(4);
-%     A_shiftNose(2,4) = -shift_nose_mm; 
-    
-%     V_source.mat = A_fatnav2host * A_shiftNose * V_source.mat;
- 
-    V_source.mat = A_fatnav2host * V_source.mat;
- 
-    V_source.mat(1:3, 4) = V_source.mat(1:3, 4) + shift_mm;
-    
-    V_source.mat(2, 4) = V_source.mat(2, 4) + shift_nose_mm;
-    
-    % Pass both headers to spm_reslice. 
-    spm_reslice([V_virtual, V_source], struct('mask',false,'mean',false,'interp',1,'which',1,'wrap',[1 1 1],'prefix',''));
-    
-    newFatIm = rn(fileTest1);
-  
-    hf = figure('Visible','off');
-    
-    oOut = orthoview(newFatIm,'useNewFig',0);
-    %
-    set(gcf,'Position',[    50   50   950  540])
-    subplot(oOut.hAx(1))
-    title('Read/Phase')
-    ylabel('First FatNav realigned to Host RPS')
-    subplot(oOut.hAx(2))
-    title('Read/Slice')
-    subplot(oOut.hAx(3))
-    title('Phase/Slice')
-    export_fig([htmlDir '/orientationCheck_FatVolume.png'])
-    %
-    close(hf);
-    
-    fprintf(fidHTML,['Orientation check for host sequence slice rotation and positioning:<br>\n']);
-    fprintf(fidHTML,['<img src="orientationCheck_FatVolume.png"><br><br>\n']);
-    fprintf(fidHTML,['(The fat volume shown above should approximately correspond to the FOV chosen for the host sequence in the "native RPS" coords shown above that)<br><br><br>\n']);
 end
-disp('Ims done')
 
 %% Do GRAPPA (if necessary) for the host sequence
 % Note that this can use rather a lot of hard-disk space, as the raw data
@@ -582,148 +591,152 @@ end
 % left/right matching
 % - find the coil which has the biggest asymmetry left > right, and see if it
 % is on the same side in both the FatNavs and the host data
-nc_FatNavs = size(ACSims,4);
-asymData_left = sum(reshape(abs(ACSims(1:floor(FatNavDims_xyz(1)/2),:,:,:)),[],nc_FatNavs),1);
-asymData_right = sum(reshape(abs(ACSims(ceil(FatNavDims_xyz(1)/2):FatNavDims_xyz(1),:,:,:)),[],nc_FatNavs),1);
-asymFactor = asymData_left./asymData_right;
-iAsymCoil = find(asymFactor==max(asymFactor),1);
 
-if useGRAPPAforHost
-    if reconPars.bGRAPPAinRAM 
-        hostExampleVolume = squeeze(mOutGRAPPA.grappaRecon_1DFFT(:,iAsymCoil,:,:,nS));
-    else
-        hostExampleVolume = zeros(hrps.');
-        for iReadSlice = 1:hrps(1) % virtual 'slices' in the readout direction            
-            tempData = load([tempNameRoots.grappaRecon_1DFFT '_' num2str(iReadSlice) '_1_' num2str(nS) '.mat']);
-            hostExampleVolume(iReadSlice,:,:) = reshape(tempData.outData(1,iAsymCoil,:,:),[1 hrps(2) hrps(3)]);
+if nFatNavs > 0
+    
+    nc_FatNavs = size(ACSims,4);
+    asymData_left = sum(reshape(abs(ACSims(1:floor(FatNavDims_xyz(1)/2),:,:,:)),[],nc_FatNavs),1);
+    asymData_right = sum(reshape(abs(ACSims(ceil(FatNavDims_xyz(1)/2):FatNavDims_xyz(1),:,:,:)),[],nc_FatNavs),1);
+    asymFactor = asymData_left./asymData_right;
+    iAsymCoil = find(asymFactor==max(asymFactor),1);
+    
+    if useGRAPPAforHost
+        if reconPars.bGRAPPAinRAM
+            hostExampleVolume = squeeze(mOutGRAPPA.grappaRecon_1DFFT(:,iAsymCoil,:,:,nS));
+        else
+            hostExampleVolume = zeros(hrps.');
+            for iReadSlice = 1:hrps(1) % virtual 'slices' in the readout direction
+                tempData = load([tempNameRoots.grappaRecon_1DFFT '_' num2str(iReadSlice) '_1_' num2str(nS) '.mat']);
+                hostExampleVolume(iReadSlice,:,:) = reshape(tempData.outData(1,iAsymCoil,:,:),[1 hrps(2) hrps(3)]);
+            end
         end
-    end   
-    hostExampleVolume = ifft1s(ifft1s(hostExampleVolume,2),3);
-else
-    hostExampleVolume = squeeze(twix_obj.image(:,iAsymCoil,:,:,1,reconPars.iAve,1,1,reconPars.iRep,nS));
-    hostExampleVolume = ifft3s(hostExampleVolume);
-end
-
-
-% ov1 = orthoview(ACSims(:,:,:,iAsymCoil),'drawIms',0,'mip',1,'clims',[0 max(abs(ACSims(:)))]);
-% ov2 = orthoview(hostExampleVolume,'drawIms',0,'mip',0,'clims',[0 max(abs(hostExampleVolume(:)))]);
-
-% Use SPM technique to put FatNav ACS image (single asymmetric coil only)
-% into Host RPS space:
-fileTest1 = [fatnavdir '/test1.nii'];
-fileTest2 = [fatnavdir '/test2.nii'];   
-sn(abs(ACSims(:,:,:,iAsymCoil)),fileTest1,reconPars.FatNavRes_mm*[1 1 1])
-
-copyfile(fileTest1,fileTest2);
-
-% attempt to use SPM directly to put FatNav into Host RPS space
-V_source = spm_vol_nifti(fileTest1);
-V_virtual = spm_vol_nifti(fileTest2);
-
-% Change the dimensions (number of voxels) to alter your FOV
-%     V_virtual.dim = FatNavDims_HostRPS;
-V_virtual.dim = round(FOVrps.' / reconPars.FatNavRes_mm);
-
-%  Calculate centering shift caused purely by the FOV dimension change
-orig_center  = V_source.dim / 2;
-new_center   = V_virtual.dim / 2;
-shift_voxels = ( new_center - orig_center);
-
-% Convert voxel shift to mm using the original voxel spacing
-shift_mm = reconPars.FatNavRes_mm * shift_voxels';
-
-% Note that ACSim wouldn't have the nose circshift applied, so no need to
-% correct here as above
-V_source.mat = A_fatnav2host * V_source.mat;
-V_source.mat(1:3, 4) = V_source.mat(1:3, 4) + shift_mm;
-
-% Pass both headers to spm_reslice. 
-spm_reslice([V_virtual, V_source], struct('mask',false,'mean',false,'interp',1,'which',1,'wrap',[0 0 0],'prefix',''));
-
-
-newFatImAsym = rn(fileTest1);
-
-ov1 = orthoview(newFatImAsym,'drawIms',0,'mip',1,'clims',[0 max(abs(ACSims(:)))]);
-ov2 = orthoview(hostExampleVolume,'drawIms',0,'mip',1,'clims',[0 max(abs(hostExampleVolume(:)))]);
-
-hf = figure('Visible','off'); % make an invisible figure for all figure plots
-% to try to avoid stealing focus
-set(hf,'Position',[    22   594   702   473])
-hAx = subplot1(2,1,'figHandle',hf);
-subplot(hAx(1))
-imab(ov1.oneIm,[0 .5*max(ov1.oneIm(:))])
-ylabel({'MIP of FatNav', 'in Host RPS space' , ['coil ' num2str(iAsymCoil)]})
-subplot(hAx(2))
-imab(ov2.oneIm,[0 .5*max(ov2.oneIm(:))])
-ylabel({'MIP of Host', 'GRAPPA recon' , [ 'coil ' num2str(iAsymCoil)]})
-export_fig([htmlDir '/orientationCheck_xy.png']);
-close(hf);
-
-fprintf(fidHTML,['Orientation check for left/right symmetry:<br>\n']);
-fprintf(fidHTML,['<img src="orientationCheck_xy.png"><br><br>\n']);
-fprintf(fidHTML,['(Both images above should have the brightest signal in the same places on the images. If not, the orientation of the FatNavs is not correctly aligned with the host sequence)<br><br><br>\n']);
-
-
-%% FatNavs are not acquired concurrently with the MP2RAGE data, so in the 
-% case of 'brittle' motion it may be especially beneficial to average
-% neighbouring motion estimates rather than taking the one from the same TR
-% (which, in the pulse sequence, is actually closer in time to the
-% following MP2RAGE data)
-
-rotTrans = rotmat2euler(this_fitMat_mm(1:3,1:3,:));
-rotTrans(4:6,:) = squeeze(this_fitMat_mm(1:3,4,:));
-
-newRotTrans = [rotTrans(:,1) (rotTrans(:,1:end-1)+rotTrans(:,2:end))/2];
-
-this_fitMat_mm = zeros(size(this_fitMat_mm));
-this_fitMat_mm(4,4,:) = 1;
+        hostExampleVolume = ifft1s(ifft1s(hostExampleVolume,2),3);
+    else
+        hostExampleVolume = squeeze(twix_obj.image(:,iAsymCoil,:,:,1,reconPars.iAve,1,1,reconPars.iRep,nS));
+        hostExampleVolume = ifft3s(hostExampleVolume);
+    end
     
-this_fitMat_mm(1:3,1:3,:) = euler2rmat(newRotTrans(1:3,:));
-this_fitMat_mm(1:3,4,:) = newRotTrans(4:6,:);
     
-
-
-%% If GRAPPA was used in the 'slow' PE direction then the motion parameters will need to be interpolated to have values throughout k-space
-
-
-
-% if accelerated in fatnav direction, then motion needs to be interpolated
-% for the gaps
-if nFatNavs ~= hrps(alignDim_rps)
+    % ov1 = orthoview(ACSims(:,:,:,iAsymCoil),'drawIms',0,'mip',1,'clims',[0 max(abs(ACSims(:)))]);
+    % ov2 = orthoview(hostExampleVolume,'drawIms',0,'mip',0,'clims',[0 max(abs(hostExampleVolume(:)))]);
+    
+    % Use SPM technique to put FatNav ACS image (single asymmetric coil only)
+    % into Host RPS space:
+    fileTest1 = [fatnavdir '/test1.nii'];
+    fileTest2 = [fatnavdir '/test2.nii'];
+    sn(abs(ACSims(:,:,:,iAsymCoil)),fileTest1,reconPars.FatNavRes_mm*[1 1 1])
+    
+    copyfile(fileTest1,fileTest2);
+    
+    % attempt to use SPM directly to put FatNav into Host RPS space
+    V_source = spm_vol_nifti(fileTest1);
+    V_virtual = spm_vol_nifti(fileTest2);
+    
+    % Change the dimensions (number of voxels) to alter your FOV
+    %     V_virtual.dim = FatNavDims_HostRPS;
+    V_virtual.dim = round(FOVrps.' / reconPars.FatNavRes_mm);
+    
+    %  Calculate centering shift caused purely by the FOV dimension change
+    orig_center  = V_source.dim / 2;
+    new_center   = V_virtual.dim / 2;
+    shift_voxels = ( new_center - orig_center);
+    
+    % Convert voxel shift to mm using the original voxel spacing
+    shift_mm = reconPars.FatNavRes_mm * shift_voxels';
+    
+    % Note that ACSim wouldn't have the nose circshift applied, so no need to
+    % correct here as above
+    V_source.mat = A_fatnav2host * V_source.mat;
+    V_source.mat(1:3, 4) = V_source.mat(1:3, 4) + shift_mm;
+    
+    % Pass both headers to spm_reslice.
+    spm_reslice([V_virtual, V_source], struct('mask',false,'mean',false,'interp',1,'which',1,'wrap',[0 0 0],'prefix',''));
+    
+    
+    newFatImAsym = rn(fileTest1);
+    
+    ov1 = orthoview(newFatImAsym,'drawIms',0,'mip',1,'clims',[0 max(abs(ACSims(:)))]);
+    ov2 = orthoview(hostExampleVolume,'drawIms',0,'mip',1,'clims',[0 max(abs(hostExampleVolume(:)))]);
+    
+    hf = figure('Visible','off'); % make an invisible figure for all figure plots
+    % to try to avoid stealing focus
+    set(hf,'Position',[    22   594   702   473])
+    hAx = subplot1(2,1,'figHandle',hf);
+    subplot(hAx(1))
+    imab(ov1.oneIm,[0 .5*max(ov1.oneIm(:))])
+    ylabel({'MIP of FatNav', 'in Host RPS space' , ['coil ' num2str(iAsymCoil)]})
+    subplot(hAx(2))
+    imab(ov2.oneIm,[0 .5*max(ov2.oneIm(:))])
+    ylabel({'MIP of Host', 'GRAPPA recon' , [ 'coil ' num2str(iAsymCoil)]})
+    export_fig([htmlDir '/orientationCheck_xy.png']);
+    close(hf);
+    
+    fprintf(fidHTML,['Orientation check for left/right symmetry:<br>\n']);
+    fprintf(fidHTML,['<img src="orientationCheck_xy.png"><br><br>\n']);
+    fprintf(fidHTML,['(Both images above should have the brightest signal in the same places on the images. If not, the orientation of the FatNavs is not correctly aligned with the host sequence)<br><br><br>\n']);
+    
+    
+    
+    %% FatNavs are not acquired concurrently with the MP2RAGE data, so in the
+    % case of 'brittle' motion it may be especially beneficial to average
+    % neighbouring motion estimates rather than taking the one from the same TR
+    % (which, in the pulse sequence, is actually closer in time to the
+    % following MP2RAGE data)
+    
     rotTrans = rotmat2euler(this_fitMat_mm(1:3,1:3,:));
     rotTrans(4:6,:) = squeeze(this_fitMat_mm(1:3,4,:));
     
-    rotTrans_interp = interp1(iSamp,rotTrans.',1:hrps(alignDim_rps)).';
-    startIndex = iSamp(1);
-    % copy in values at edges of k-space to avoid extrapolation errors
-    if startIndex > 1
-        rotTrans_interp(:,1:startIndex-1) = repmat(rotTrans_interp(:,startIndex),[1 startIndex-1]);
+    newRotTrans = [rotTrans(:,1) (rotTrans(:,1:end-1)+rotTrans(:,2:end))/2];
+    
+    this_fitMat_mm = zeros(size(this_fitMat_mm));
+    this_fitMat_mm(4,4,:) = 1;
+    
+    this_fitMat_mm(1:3,1:3,:) = euler2rmat(newRotTrans(1:3,:));
+    this_fitMat_mm(1:3,4,:) = newRotTrans(4:6,:);
+    
+    
+    
+    %% If GRAPPA was used in the 'slow' PE direction then the motion parameters will need to be interpolated to have values throughout k-space
+    
+    
+    
+    % if accelerated in fatnav direction, then motion needs to be interpolated
+    % for the gaps
+    if nFatNavs ~= hrps(alignDim_rps)
+        rotTrans = rotmat2euler(this_fitMat_mm(1:3,1:3,:));
+        rotTrans(4:6,:) = squeeze(this_fitMat_mm(1:3,4,:));
+        
+        rotTrans_interp = interp1(iSamp,rotTrans.',1:hrps(alignDim_rps)).';
+        startIndex = iSamp(1);
+        % copy in values at edges of k-space to avoid extrapolation errors
+        if startIndex > 1
+            rotTrans_interp(:,1:startIndex-1) = repmat(rotTrans_interp(:,startIndex),[1 startIndex-1]);
+        end
+        endIndex = iSamp(end);
+        if endIndex < hrps(alignDim_rps)
+            rotTrans_interp(:,endIndex+1:end) = repmat(rotTrans_interp(:,endIndex),[1 hrps(alignDim_rps)-endIndex]);
+        end
+        
+        this_fitMat_mm_interp = zeros(4,4,hrps(alignDim_rps));
+        this_fitMat_mm_interp(4,4,:) = 1;
+        
+        this_fitMat_mm_interp(1:3,1:3,:) = euler2rmat(rotTrans_interp(1:3,:));
+        this_fitMat_mm_interp(1:3,4,:) = rotTrans_interp(4:6,:);
+        
+        fitMats_mm_toApply = this_fitMat_mm_interp;
+        
+    else
+        fitMats_mm_toApply = this_fitMat_mm;
+        fitMats_mm_toApply(4,4,:) = 1;
     end
-    endIndex = iSamp(end);
-    if endIndex < hrps(alignDim_rps)
-        rotTrans_interp(:,endIndex+1:end) = repmat(rotTrans_interp(:,endIndex),[1 hrps(alignDim_rps)-endIndex]);
-    end
     
-    this_fitMat_mm_interp = zeros(4,4,hrps(alignDim_rps));
-    this_fitMat_mm_interp(4,4,:) = 1;
     
-    this_fitMat_mm_interp(1:3,1:3,:) = euler2rmat(rotTrans_interp(1:3,:));
-    this_fitMat_mm_interp(1:3,4,:) = rotTrans_interp(4:6,:);
     
-    fitMats_mm_toApply = this_fitMat_mm_interp;
+    % make it so that centre of k-space is not 'moved' (accounting for partial Fourier):
+    fitMats_mm_toApply = recentre_affmats(fitMats_mm_toApply,kspaceCentre_rps(alignDim_rps));
+    alignIndices = 1:hrps(alignDim_rps);
     
-else
-    fitMats_mm_toApply = this_fitMat_mm;
-    fitMats_mm_toApply(4,4,:) = 1;
 end
-
-
-
-% make it so that centre of k-space is not 'moved' (accounting for partial Fourier):
-fitMats_mm_toApply = recentre_affmats(fitMats_mm_toApply,kspaceCentre_rps(alignDim_rps));
-alignIndices = 1:hrps(alignDim_rps);
-
-
 
 %% Prepare for the retrospective motion-correction of the host sequence
 tStart_applyMoco = clock;
@@ -731,7 +744,9 @@ tStart_applyMoco = clock;
 timingReport_applyMoco = zeros(nc,nS); % store the time to reconstruct each volume with the NUFFT
 
 fprintf('............\n')
-fprintf('... Performing NUFFT on each volume to apply motion correction parameters\n');
+if nFatNavs > 0
+    fprintf('... Performing NUFFT on each volume to apply motion correction parameters\n');
+end
 
 
 %%% Declare all the variables
@@ -809,13 +824,15 @@ end
 
 if ~reconPars.bFullParforRecon 
 
-    % generate the st object for NUFFT and precalculate the phase offsets
-    if reconPars.bUseGPU
-        [~,FT,~, phaseTranslations] = applyRetroMC_gpunufft(zeros(hrps'),fitMats_mm_toApply,alignDim_rps,alignIndices,11,...
-            hostVoxDim_mm_rps,Hrps,kspaceCentre_rps,-1,reconPars.NUFFTosf,1);
-    else
-        [~,st,~, phaseTranslations] = applyRetroMC_nufft(zeros(hrps'),fitMats_mm_toApply,alignDim_rps,alignIndices,11,...
-            hostVoxDim_mm_rps,Hrps,kspaceCentre_rps,-1,reconPars.NUFFTosf,1);
+    if nFatNavs > 0
+        % generate the st object for NUFFT and precalculate the phase offsets
+        if reconPars.bUseGPU
+            [~,FT,~, phaseTranslations] = applyRetroMC_gpunufft(zeros(hrps'),fitMats_mm_toApply,alignDim_rps,alignIndices,11,...
+                hostVoxDim_mm_rps,Hrps,kspaceCentre_rps,-1,reconPars.NUFFTosf,1);
+        else
+            [~,st,~, phaseTranslations] = applyRetroMC_nufft(zeros(hrps'),fitMats_mm_toApply,alignDim_rps,alignIndices,11,...
+                hostVoxDim_mm_rps,Hrps,kspaceCentre_rps,-1,reconPars.NUFFTosf,1);
+        end
     end
     
     for iC = 1:nc_keep           
@@ -858,17 +875,20 @@ if ~reconPars.bFullParforRecon
 %             % non-parallelized version, so I've disabled it again as a
 %             % default...
             
-            if reconPars.bUseGPU
-                thisData_corrected = FT' * (newData(:).*phaseTranslations(:));
-                disp('GPU version')
-            else
-                thisData_corrected =  nufft_adj_single(newData(:).*phaseTranslations(:),st);
+            if nFatNavs > 0
+                if reconPars.bUseGPU
+                    thisData_corrected = FT' * (newData(:).*phaseTranslations(:));
+                    disp('GPU version')
+                else
+                    thisData_corrected =  nufft_adj_single(newData(:).*phaseTranslations(:),st);
+                end
             end
             
             % apply transforms to corrected and uncorrected data for final matrix shape:
             thisData = permute(thisData,permutedims);
-            thisData_corrected = permute(thisData_corrected,permutedims);
-
+            if nFatNavs > 0
+                thisData_corrected = permute(thisData_corrected,permutedims);
+            end
                         
             if any(hxyz~=Hxyz)
                 thisData(Hxyz(1),Hxyz(2),Hxyz(3)) = 0; % extend to new size
@@ -882,8 +902,9 @@ if ~reconPars.bFullParforRecon
             % important to apply the flip after the FFT for full agreement
             % between iFFT and NUFFT pipelines
             thisData = flipAxes(thisData,reconPars.flipAxes_xyz);
-            thisData_corrected = flipAxes(thisData_corrected,reconPars.flipAxes_xyz);
-         
+            if nFatNavs > 0
+                thisData_corrected = flipAxes(thisData_corrected,reconPars.flipAxes_xyz);
+            end
             
 %             save('svdCombineData.mat','thisData','newData','thisData_corrected','Hxyz','hxyz','Hrps','hrps',...
 %                 'fitMats_mm_toApply','alignDim_rps','alignIndices','hostVoxDim_mm_rps','kspaceCentre_rps',...
@@ -898,10 +919,14 @@ if ~reconPars.bFullParforRecon
             
             if nS > 1
                 mOut.thiscoil_ims(:,:,:,iS) = thisData;
-                mOut.thiscoil_ims_corrected(:,:,:,iS) = thisData_corrected;
+                if nFatNavs > 0                    
+                    mOut.thiscoil_ims_corrected(:,:,:,iS) = thisData_corrected;
+                end
             else
                 mOut.thiscoil_ims = thisData;
-                mOut.thiscoil_ims_corrected = thisData_corrected;
+                if nFatNavs > 0
+                    mOut.thiscoil_ims_corrected = thisData_corrected;
+                end
             end
             
         end
@@ -998,31 +1023,37 @@ if ~reconPars.bFullParforRecon
     
     if nS==2
         mOut.all_uniImage = mOut.all_uniImage./mOut.all_refImage;
-        mOut.all_uniImage_corrected = mOut.all_uniImage_corrected./mOut.all_refImage_corrected;
-        
         sn(int16(4095*mOut.all_ims(:,:,:,1)/max(reshape(mOut.all_ims,[],1))),[outDir '/INV1'],hostVoxDim_mm)
-        sn(int16(4095*mOut.all_ims_corrected(:,:,:,1)/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/INV1_' outputSuffix],hostVoxDim_mm)
-        
-        
         sn(int16(4095*(mOut.all_uniImage+0.5)) ,[outDir '/UNI'],hostVoxDim_mm)
-        sn(int16(4095*(mOut.all_uniImage_corrected+0.5)),[outDir '/UNI_' outputSuffix],hostVoxDim_mm)
         sn(int16(4095*mOut.all_ims(:,:,:,2)/max(reshape(mOut.all_ims,[],1))),[outDir '/INV2'],hostVoxDim_mm)
-        sn(int16(4095*mOut.all_ims_corrected(:,:,:,2)/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/INV2_' outputSuffix],hostVoxDim_mm)
+        
+        if nFatNavs > 0
+            mOut.all_uniImage_corrected = mOut.all_uniImage_corrected./mOut.all_refImage_corrected;
+            sn(int16(4095*mOut.all_ims_corrected(:,:,:,1)/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/INV1_' outputSuffix],hostVoxDim_mm)
+            sn(int16(4095*(mOut.all_uniImage_corrected+0.5)),[outDir '/UNI_' outputSuffix],hostVoxDim_mm)
+            sn(int16(4095*mOut.all_ims_corrected(:,:,:,2)/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/INV2_' outputSuffix],hostVoxDim_mm)
+        end
+        
+       
     else
         % if using matfile variables you can't use index in dimensions which
         % aren't there, even if you only put a 1 there...!
         sn(int16(4095*mOut.all_ims/max(reshape(mOut.all_ims,[],1))),[outDir '/INV1'],hostVoxDim_mm)
-        sn(int16(4095*mOut.all_ims_corrected/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/INV1_' outputSuffix],hostVoxDim_mm)
+        if nFatNavs > 0
+            sn(int16(4095*mOut.all_ims_corrected/max(reshape(mOut.all_ims_corrected,[],1))),[outDir '/INV1_' outputSuffix],hostVoxDim_mm)
+        end
         
     end
     
     
 else % the much faster version with much hungrier RAM requirements:
     
+    if nFatNavs > 0
     % generate the st object for NUFFT and precalculate the phase offsets    
     [~,st,~, phaseTranslations] = applyRetroMC_nufft(zeros(hrps'),fitMats_mm_toApply,alignDim_rps,alignIndices,11,...
         hostVoxDim_mm_rps,Hrps,kspaceCentre_rps,-1,reconPars.NUFFTosf,1);
-
+    end
+    
     parfor iC = 1:nc_keep
         
         thiscoil_ims = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nS,'single'));
@@ -1044,13 +1075,17 @@ else % the much faster version with much hungrier RAM requirements:
             end
             
                 
-            tic            
-            thisData_corrected =  nufft_adj_single(thisData(:).*phaseTranslations(:),st);
+            tic       
+            if nFatNavs > 0
+                thisData_corrected =  nufft_adj_single(thisData(:).*phaseTranslations(:),st);
+            end
             timingReport_applyMoco(iC,iS) = toc;
             
             % apply transforms to corrected and uncorrected data for final matrix shape:
             thisData = permute(thisData,permutedims);
-            thisData_corrected = permute(thisData_corrected,permutedims);            
+            if nFatNavs > 0
+                thisData_corrected = permute(thisData_corrected,permutedims);
+            end
             
             if any(hxyz~=Hxyz)
                 thisData(Hxyz(1),Hxyz(2),Hxyz(3)) = 0; % extend to new size
@@ -1064,14 +1099,20 @@ else % the much faster version with much hungrier RAM requirements:
             % important to apply the flip after the FFT for full agreement
             % between iFFT and NUFFT pipelines
             thisData = flipAxes(thisData,reconPars.flipAxes_xyz);
-            thisData_corrected = flipAxes(thisData_corrected,reconPars.flipAxes_xyz);      
+            if nFatNavs > 0
+                thisData_corrected = flipAxes(thisData_corrected,reconPars.flipAxes_xyz);
+            end
             
             if nS > 1
                 thiscoil_ims(:,:,:,iS) = thisData;
-                thiscoil_ims_corrected(:,:,:,iS) = thisData_corrected;
+                if nFatNavs > 0
+                    thiscoil_ims_corrected(:,:,:,iS) = thisData_corrected;
+                end
             else
                 thiscoil_ims = thisData;
-                thiscoil_ims_corrected = thisData_corrected;
+                if nFatNavs > 0
+                    thiscoil_ims_corrected = thisData_corrected;
+                end
             end
             
         end
@@ -1165,16 +1206,21 @@ else % the much faster version with much hungrier RAM requirements:
     
     
     all_uniImage = all_uniImage./all_refImage;
-    all_uniImage_corrected = all_uniImage_corrected./all_refImage_corrected;
     
     sn(int16(4095*all_ims(:,:,:,1)/max(reshape(all_ims,[],1))),[outDir '/INV1'],hostVoxDim_mm)
-    sn(int16(4095*all_ims_corrected(:,:,:,1)/max(reshape(all_ims_corrected,[],1))),[outDir '/INV1_' outputSuffix],hostVoxDim_mm)
+    
+    if nFatNavs > 0
+        all_uniImage_corrected = all_uniImage_corrected./all_refImage_corrected;
+        sn(int16(4095*all_ims_corrected(:,:,:,1)/max(reshape(all_ims_corrected,[],1))),[outDir '/INV1_' outputSuffix],hostVoxDim_mm)
+    end
     
     if nS>1
-        sn( int16(4095*(all_uniImage+0.5)) ,[outDir '/UNI'],hostVoxDim_mm)
-        sn( int16(4095*(all_uniImage_corrected+0.5)),[outDir '/UNI_' outputSuffix],hostVoxDim_mm)
+        sn(int16(4095*(all_uniImage+0.5)) ,[outDir '/UNI'],hostVoxDim_mm)
         sn(int16(4095*all_ims(:,:,:,2)/max(reshape(all_ims,[],1))),[outDir '/INV2'],hostVoxDim_mm)
-        sn(int16(4095*all_ims_corrected(:,:,:,2)/max(reshape(all_ims_corrected,[],1))),[outDir '/INV2_' outputSuffix],hostVoxDim_mm)
+        if nFatNavs > 0
+            sn(int16(4095*all_ims_corrected(:,:,:,2)/max(reshape(all_ims_corrected,[],1))),[outDir '/INV2_' outputSuffix],hostVoxDim_mm)
+            sn(int16(4095*(all_uniImage_corrected+0.5)),[outDir '/UNI_' outputSuffix],hostVoxDim_mm)
+        end
     end
     
     mOut.all_ims = all_ims;
@@ -1212,31 +1258,37 @@ switch nS
         
         ov1 = orthoview(mOut.all_ims,'drawIms',0);
         imab_overwrite([htmlDir '/INV1.png'],ov1.oneIm);
-        ov1 = orthoview(mOut.all_ims_corrected,'drawIms',0);
-        imab_overwrite([htmlDir '/INV1_' outputSuffix '.png'],ov1.oneIm);
+        if nFatNavs > 0            
+            ov1 = orthoview(mOut.all_ims_corrected,'drawIms',0);
+            imab_overwrite([htmlDir '/INV1_' outputSuffix '.png'],ov1.oneIm);
+        end
         
         fprintf(fidHTML,['INV1 image before correction:<br>\n']);
         fprintf(fidHTML,['<img src="INV1.png"><br><br>\n']);
-        fprintf(fidHTML,['INV1 image after correction:<br>\n']);
-        fprintf(fidHTML,['<img src="INV1_' outputSuffix '.png"><br><br>\n']);
+        if nFatNavs > 0
+            fprintf(fidHTML,['INV1 image after correction:<br>\n']);
+            fprintf(fidHTML,['<img src="INV1_' outputSuffix '.png"><br><br>\n']);
+        end
         
-        
-        testMagick = system('convert -version');
-        
-        if testMagick==0 % can use ImageMagick to make animated GIFs...
-            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
-            system(processString);
-            fprintf(fidHTML,['INV1 image movie before/after correction:<br>\n']);
-            fprintf(fidHTML,['<img src="mov_INV1.gif"><br><br>\n']);
-        else
-            testMagickNew = system('magick -version'); % test for newer version of imageMagick (thanks to Sila Dokumaci!)
-            if testMagickNew==0 
-                processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
+        if nFatNavs > 0
+            
+            testMagick = system('convert -version');
+            
+            if testMagick==0 % can use ImageMagick to make animated GIFs...
+                processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
                 system(processString);
                 fprintf(fidHTML,['INV1 image movie before/after correction:<br>\n']);
                 fprintf(fidHTML,['<img src="mov_INV1.gif"><br><br>\n']);
+            else
+                testMagickNew = system('magick -version'); % test for newer version of imageMagick (thanks to Sila Dokumaci!)
+                if testMagickNew==0
+                    processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
+                    system(processString);
+                    fprintf(fidHTML,['INV1 image movie before/after correction:<br>\n']);
+                    fprintf(fidHTML,['<img src="mov_INV1.gif"><br><br>\n']);
+                end
+                
             end
-        
         end
         
         %%% Add a sagittal zoom of the images before and after correction
@@ -1255,219 +1307,244 @@ switch nS
         export_fig([htmlDir '/zoom.png'])
         close(hf);
         
-        hf = figure('Visible','off');
-        set(hf,'Position',[   246   611   500   500])
-        imab(squeeze(mOut.all_ims_corrected(xi,yi,zi)),[0 clim1c*zoomLimsScale]) 
-        colormap(gray)
-        export_fig([htmlDir '/zoom_' outputSuffix '.png'])
-        close(hf);
+        if nFatNavs > 0
+            hf = figure('Visible','off');
+            set(hf,'Position',[   246   611   500   500])
+            imab(squeeze(mOut.all_ims_corrected(xi,yi,zi)),[0 clim1c*zoomLimsScale])
+            colormap(gray)
+            export_fig([htmlDir '/zoom_' outputSuffix '.png'])
+            close(hf);
+        end
         
-        if testMagick==0
-            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_' outputSuffix '.png ' htmlDir '/mov_zoom.gif'];
-            system(processString);
+        if nFatNavs > 0
             
-            fprintf(fidHTML,['Sagittal zoom before/after correction:<br>\n']);
-            fprintf(fidHTML,['<img src="mov_zoom.gif"><br><br>\n']);
-        elseif testMagickNew==0
-            processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_' outputSuffix '.png ' htmlDir '/mov_zoom.gif'];
-            system(processString);
-            
-            fprintf(fidHTML,['Sagittal zoom before/after correction:<br>\n']);
-            fprintf(fidHTML,['<img src="mov_zoom.gif"><br><br>\n']);
-        else
-            fprintf(fidHTML,['Sagittal zoom before correction:<br>\n']);
-            fprintf(fidHTML,['<img src="zoom.png"><br><br>\n']);
-            fprintf(fidHTML,['Sagittal after correction:<br>\n']);
-            fprintf(fidHTML,['<img src="zoom_' outputSuffix '.png"><br><br>\n']);
+            if testMagick==0
+                processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_' outputSuffix '.png ' htmlDir '/mov_zoom.gif'];
+                system(processString);
+                
+                fprintf(fidHTML,['Sagittal zoom before/after correction:<br>\n']);
+                fprintf(fidHTML,['<img src="mov_zoom.gif"><br><br>\n']);
+            elseif testMagickNew==0
+                processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_' outputSuffix '.png ' htmlDir '/mov_zoom.gif'];
+                system(processString);
+                
+                fprintf(fidHTML,['Sagittal zoom before/after correction:<br>\n']);
+                fprintf(fidHTML,['<img src="mov_zoom.gif"><br><br>\n']);
+            else
+                fprintf(fidHTML,['Sagittal zoom before correction:<br>\n']);
+                fprintf(fidHTML,['<img src="zoom.png"><br><br>\n']);
+                fprintf(fidHTML,['Sagittal after correction:<br>\n']);
+                fprintf(fidHTML,['<img src="zoom_' outputSuffix '.png"><br><br>\n']);
+            end
         end
         
     case 2
         
         ov1 = orthoview(mOut.all_ims(:,:,:,1),'drawIms',0);
         imab_overwrite([htmlDir '/INV1.png'],ov1.oneIm);
-        ov1 = orthoview(mOut.all_ims_corrected(:,:,:,1),'drawIms',0);
-        imab_overwrite([htmlDir '/INV1_' outputSuffix '.png'],ov1.oneIm);
+        if nFatNavs > 0            
+            ov1 = orthoview(mOut.all_ims_corrected(:,:,:,1),'drawIms',0);
+            imab_overwrite([htmlDir '/INV1_' outputSuffix '.png'],ov1.oneIm);
+        end
         
         fprintf(fidHTML,['INV1 image before correction:<br>\n']);
         fprintf(fidHTML,['<img src="INV1.png"><br><br>\n']);
-        fprintf(fidHTML,['INV1 image after correction:<br>\n']);
-        fprintf(fidHTML,['<img src="INV1_' outputSuffix '.png"><br><br>\n']);
+        if nFatNavs > 0
+            fprintf(fidHTML,['INV1 image after correction:<br>\n']);
+            fprintf(fidHTML,['<img src="INV1_' outputSuffix '.png"><br><br>\n']);
+        end
         
-        
-        testMagick = system('convert -version');
-        
-        if testMagick==0 % can use ImageMagick to make animated GIFs...
-            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
-            system(processString);
-            fprintf(fidHTML,['INV1 image movie before/after correction:<br>\n']);
-            fprintf(fidHTML,['<img src="mov_INV1.gif"><br><br>\n']);
-            testMagickNew = -1; % create this variable in case it needs to exist for code to run
-        else
-            testMagickNew = system('magick -version');  % test for newer version of imageMagick (thanks to Sila Dokumaci!)
-            if testMagickNew==0 
-                processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
+        if nFatNavs > 0
+            
+            testMagick = system('convert -version');
+            
+            if testMagick==0 % can use ImageMagick to make animated GIFs...
+                processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
                 system(processString);
                 fprintf(fidHTML,['INV1 image movie before/after correction:<br>\n']);
                 fprintf(fidHTML,['<img src="mov_INV1.gif"><br><br>\n']);
+                testMagickNew = -1; % create this variable in case it needs to exist for code to run
+            else
+                testMagickNew = system('magick -version');  % test for newer version of imageMagick (thanks to Sila Dokumaci!)
+                if testMagickNew==0
+                    processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
+                    system(processString);
+                    fprintf(fidHTML,['INV1 image movie before/after correction:<br>\n']);
+                    fprintf(fidHTML,['<img src="mov_INV1.gif"><br><br>\n']);
+                end
+                
             end
-        
         end
         
         ov1 = orthoview(mOut.all_ims(:,:,:,2),'drawIms',0);
         imab_overwrite([htmlDir '/INV2.png'],ov1.oneIm);
-        ov1 = orthoview(mOut.all_ims_corrected(:,:,:,2),'drawIms',0);
-        imab_overwrite([htmlDir '/INV2_' outputSuffix '.png'],ov1.oneIm);
+
         ov1 = orthoview(mOut.all_uniImage,'drawIms',0);
         imab_overwrite([htmlDir '/UNI.png'],ov1.oneIm);
-        ov1 = orthoview(mOut.all_uniImage_corrected,'drawIms',0);
-        imab_overwrite([htmlDir '/UNI_' outputSuffix '.png'],ov1.oneIm);
+        
+        if nFatNavs > 0
+            ov1 = orthoview(mOut.all_ims_corrected(:,:,:,2),'drawIms',0);
+            imab_overwrite([htmlDir '/INV2_' outputSuffix '.png'],ov1.oneIm);
+            ov1 = orthoview(mOut.all_uniImage_corrected,'drawIms',0);
+            imab_overwrite([htmlDir '/UNI_' outputSuffix '.png'],ov1.oneIm);
+        end
         
         fprintf(fidHTML,['INV2 image before correction:<br>\n']);
         fprintf(fidHTML,['<img src="INV2.png"><br><br>\n']);
-        fprintf(fidHTML,['INV2 image after correction:<br>\n']);
-        fprintf(fidHTML,['<img src="INV2_' outputSuffix '.png"><br><br>\n']);
+        if nFatNavs > 0            
+            fprintf(fidHTML,['INV2 image after correction:<br>\n']);
+            fprintf(fidHTML,['<img src="INV2_' outputSuffix '.png"><br><br>\n']);
+        end
         
-        
-        if testMagick==0
-            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2.png ' htmlDir '/INV2_' outputSuffix '.png ' htmlDir '/mov_INV2.gif'];
-            system(processString);
-            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/UNI.png ' htmlDir '/UNI_' outputSuffix '.png ' htmlDir '/mov_UNI.gif'];
-            system(processString);
-            fprintf(fidHTML,['INV2 image movie before/after correction:<br>\n']);
-            fprintf(fidHTML,['<img src="mov_INV2.gif"><br><br>\n']);
-            
-        elseif testMagickNew==0
-            processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2.png ' htmlDir '/INV2_' outputSuffix '.png ' htmlDir '/mov_INV2.gif'];
-            system(processString);
-            processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/UNI.png ' htmlDir '/UNI_' outputSuffix '.png ' htmlDir '/mov_UNI.gif'];
-            system(processString);
-            fprintf(fidHTML,['INV2 image movie before/after correction:<br>\n']);
-            fprintf(fidHTML,['<img src="mov_INV2.gif"><br><br>\n']);
+        if nFatNavs > 0
+            if testMagick==0
+                processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2.png ' htmlDir '/INV2_' outputSuffix '.png ' htmlDir '/mov_INV2.gif'];
+                system(processString);
+                processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/UNI.png ' htmlDir '/UNI_' outputSuffix '.png ' htmlDir '/mov_UNI.gif'];
+                system(processString);
+                fprintf(fidHTML,['INV2 image movie before/after correction:<br>\n']);
+                fprintf(fidHTML,['<img src="mov_INV2.gif"><br><br>\n']);
+                
+            elseif testMagickNew==0
+                processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2.png ' htmlDir '/INV2_' outputSuffix '.png ' htmlDir '/mov_INV2.gif'];
+                system(processString);
+                processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/UNI.png ' htmlDir '/UNI_' outputSuffix '.png ' htmlDir '/mov_UNI.gif'];
+                system(processString);
+                fprintf(fidHTML,['INV2 image movie before/after correction:<br>\n']);
+                fprintf(fidHTML,['<img src="mov_INV2.gif"><br><br>\n']);
+            end
         end
         
         fprintf(fidHTML,['UNI image before correction:<br>\n']);
         fprintf(fidHTML,['<img src="UNI.png"><br><br>\n']);
-        fprintf(fidHTML,['UNI image after correction:<br>\n']);
-        fprintf(fidHTML,['<img src="UNI_' outputSuffix '.png"><br><br>\n']);
-        
-        if testMagick==0 || testMagickNew==0
-            fprintf(fidHTML,['UNI image movie before/after correction:<br>\n']);
-            fprintf(fidHTML,['<img src="mov_UNI.gif"><br><br>\n']);
+        if nFatNavs > 0
+            fprintf(fidHTML,['UNI image after correction:<br>\n']);
+            fprintf(fidHTML,['<img src="UNI_' outputSuffix '.png"><br><br>\n']);
         end
         
-        % Do skull stripping with BET to be able to see the vessels within the brain more
-        % clearly in the INV2 image
-        disp('...............')
-        disp('... Checking for FSL...')
-        testFSL = getenv('FSLDIR');
-        if ~isempty(testFSL)
-            disp('... Found FSL, assuming that ''bet'' and ''fslmaths'' commands will work')
-            disp('... Performing BET brain extraction ...')
-            setenv('FSLOUTPUTTYPE','NIFTI'); % this uses more space than NIFTI_GZ, but stays compatible with SPM
-            system(['bet ' outDir '/INV2_' outputSuffix ' ' outDir '/INV2_' outputSuffix '_bet -m -f 0.2']);
-            system(['fslmaths ' outDir '/INV2 -mul ' outDir '/INV2_' outputSuffix '_bet_mask ' outDir '/INV2_bet']);
-            disp('... Done')
+        if nFatNavs > 0
+            if testMagick==0 || testMagickNew==0
+                fprintf(fidHTML,['UNI image movie before/after correction:<br>\n']);
+                fprintf(fidHTML,['<img src="mov_UNI.gif"><br><br>\n']);
+            end
+        end
+        
+        
+        if nFatNavs > 0
             
-            %%% make MIPs of INV2 after BET
-            
-            inv2 = rn([outDir '/INV2_bet.nii']);
-            inv2c = rn([outDir '/INV2_' outputSuffix '_bet.nii']);
-            
-            ov1 = orthoview(inv2,'mip',1,'drawIms',0);
-            ov2 = orthoview(inv2c,'mip',1,'drawIms',0);
-            
-            im1 = abs(ov1.oneIm); im1 = im1/max(im1(:));
-            im2 = abs(ov2.oneIm); im2 = im2/max(im2(:));
-            
-            imab_overwrite([htmlDir '/INV2_MIP.png'],im1);
-            imab_overwrite([htmlDir '/INV2_' outputSuffix '_MIP.png'],im2);
-            
-            if testMagick==0
-                processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2_MIP.png ' htmlDir '/INV2_' outputSuffix '_MIP.png ' htmlDir '/mov_INV2_MIP.gif'];
-                system(processString);
+            % Do skull stripping with BET to be able to see the vessels within the brain more
+            % clearly in the INV2 image
+            disp('...............')
+            disp('... Checking for FSL...')
+            testFSL = getenv('FSLDIR');
+            if ~isempty(testFSL)
+                disp('... Found FSL, assuming that ''bet'' and ''fslmaths'' commands will work')
+                disp('... Performing BET brain extraction ...')
+                setenv('FSLOUTPUTTYPE','NIFTI'); % this uses more space than NIFTI_GZ, but stays compatible with SPM
+                system(['bet ' outDir '/INV2_' outputSuffix ' ' outDir '/INV2_' outputSuffix '_bet -m -f 0.2']);
+                system(['fslmaths ' outDir '/INV2 -mul ' outDir '/INV2_' outputSuffix '_bet_mask ' outDir '/INV2_bet']);
+                disp('... Done')
                 
-                fprintf(fidHTML,['INV2 MIP movie before/after correction:<br>\n']);
-                fprintf(fidHTML,['<img src="mov_INV2_MIP.gif"><br><br>\n']);
-            elseif testMagickNew==0
-                processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2_MIP.png ' htmlDir '/INV2_' outputSuffix '_MIP.png ' htmlDir '/mov_INV2_MIP.gif'];
-                system(processString);
+                %%% make MIPs of INV2 after BET
                 
-                fprintf(fidHTML,['INV2 MIP movie before/after correction:<br>\n']);
-                fprintf(fidHTML,['<img src="mov_INV2_MIP.gif"><br><br>\n']);
-            else
-                fprintf(fidHTML,['INV2 MIP before correction:<br>\n']);
-                fprintf(fidHTML,['<img src="INV2_MIP.png"><br><br>\n']);
-                fprintf(fidHTML,['INV2 MIP after correction:<br>\n']);
-                fprintf(fidHTML,['<img src="INV2_' outputSuffix '_MIP.png"><br><br>\n']);
+                inv2 = rn([outDir '/INV2_bet.nii']);
+                inv2c = rn([outDir '/INV2_' outputSuffix '_bet.nii']);
+                
+                ov1 = orthoview(inv2,'mip',1,'drawIms',0);
+                ov2 = orthoview(inv2c,'mip',1,'drawIms',0);
+                
+                im1 = abs(ov1.oneIm); im1 = im1/max(im1(:));
+                im2 = abs(ov2.oneIm); im2 = im2/max(im2(:));
+                
+                imab_overwrite([htmlDir '/INV2_MIP.png'],im1);
+                imab_overwrite([htmlDir '/INV2_' outputSuffix '_MIP.png'],im2);
+                
+                if testMagick==0
+                    processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2_MIP.png ' htmlDir '/INV2_' outputSuffix '_MIP.png ' htmlDir '/mov_INV2_MIP.gif'];
+                    system(processString);
+                    
+                    fprintf(fidHTML,['INV2 MIP movie before/after correction:<br>\n']);
+                    fprintf(fidHTML,['<img src="mov_INV2_MIP.gif"><br><br>\n']);
+                elseif testMagickNew==0
+                    processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2_MIP.png ' htmlDir '/INV2_' outputSuffix '_MIP.png ' htmlDir '/mov_INV2_MIP.gif'];
+                    system(processString);
+                    
+                    fprintf(fidHTML,['INV2 MIP movie before/after correction:<br>\n']);
+                    fprintf(fidHTML,['<img src="mov_INV2_MIP.gif"><br><br>\n']);
+                else
+                    fprintf(fidHTML,['INV2 MIP before correction:<br>\n']);
+                    fprintf(fidHTML,['<img src="INV2_MIP.png"><br><br>\n']);
+                    fprintf(fidHTML,['INV2 MIP after correction:<br>\n']);
+                    fprintf(fidHTML,['<img src="INV2_' outputSuffix '_MIP.png"><br><br>\n']);
+                end
+                
             end
             
-        end
-        
-        %%% Add a zoom of the 3 images before and after correction
-        if ~isempty(testFSL) % there will be a BET mask to use for choosing the brain region
-            brainmask = rn([outDir '/INV2_' outputSuffix '_bet_mask.nii']);            
-            xi = round(Hxyz(1)/2+Hxyz(1)/10);
-            yi = round(Hxyz(2)/2+Hxyz(2)/8:find(squeeze(any(any(brainmask,1),3)),1,'last'));
-            zi = round(Hxyz(3)/2:find(squeeze(any(any(brainmask,1),2)),1,'last'));            
-        else
-            xi = round(Hxyz(1)/2+Hxyz(1)/10);
-            yi = round(Hxyz(2)/2+Hxyz(2)/8: .9*Hxyz(2)); % arbitrary cut off points for zoom in y and z
-            zi = round(Hxyz(3)/2+Hxyz(3)/8: .8*Hxyz(3)); 
-        end
-        clim1 = percentile(mOut.all_ims(:,:,:,1),97);
-        clim2 = percentile(mOut.all_ims(:,:,:,2),97);
-        clim1c = percentile(mOut.all_ims_corrected(:,:,:,1),97);
-        clim2c = percentile(mOut.all_ims_corrected(:,:,:,2),97);       
-        clims_uni = [-.5 .5];
-        zoomLimsScale = 1.3; % arbitrary factor as zoomed images tend to be clipped
-        
-        hf = figure('Visible','off');
-        set(hf,'Position',[   246   611   982   494])
-        hAx = subplot1(1,3,'figHandle',hf);
-        subplot(hAx(1))
-        imab(squeeze(mOut.all_ims(xi,yi,zi,1)),[0 clim1*zoomLimsScale])
-        subplot(hAx(2))
-        imab(squeeze(mOut.all_ims(xi,yi,zi,2)),[0 clim2*zoomLimsScale])
-        subplot(hAx(3))
-        imab(squeeze(mOut.all_uniImage(xi,yi,zi)),clims_uni)
-        colormap(gray)
-        export_fig([htmlDir '/zoom.png'])
-        close(hf);
-        
-        hf = figure('Visible','off');
-        set(hf,'Position',[   246   611   982   494])
-        hAx = subplot1(1,3,'figHandle',hf);
-        subplot(hAx(1))
-        imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,1)),[0 clim1c*zoomLimsScale]) 
-        subplot(hAx(2))
-        imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,2)),[0 clim2c*zoomLimsScale])
-        subplot(hAx(3))
-        imab(squeeze(mOut.all_uniImage_corrected(xi,yi,zi)),clims_uni)
-        colormap(gray)
-        export_fig([htmlDir '/zoom_' outputSuffix '.png'])
-        close(hf);
-        
-        if testMagick==0
-            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_' outputSuffix '.png ' htmlDir '/mov_zoom.gif'];
-            system(processString);
+            %%% Add a zoom of the 3 images before and after correction
+            if ~isempty(testFSL) % there will be a BET mask to use for choosing the brain region
+                brainmask = rn([outDir '/INV2_' outputSuffix '_bet_mask.nii']);
+                xi = round(Hxyz(1)/2+Hxyz(1)/10);
+                yi = round(Hxyz(2)/2+Hxyz(2)/8:find(squeeze(any(any(brainmask,1),3)),1,'last'));
+                zi = round(Hxyz(3)/2:find(squeeze(any(any(brainmask,1),2)),1,'last'));
+            else
+                xi = round(Hxyz(1)/2+Hxyz(1)/10);
+                yi = round(Hxyz(2)/2+Hxyz(2)/8: .9*Hxyz(2)); % arbitrary cut off points for zoom in y and z
+                zi = round(Hxyz(3)/2+Hxyz(3)/8: .8*Hxyz(3));
+            end
+            clim1 = percentile(mOut.all_ims(:,:,:,1),97);
+            clim2 = percentile(mOut.all_ims(:,:,:,2),97);
+            clim1c = percentile(mOut.all_ims_corrected(:,:,:,1),97);
+            clim2c = percentile(mOut.all_ims_corrected(:,:,:,2),97);
+            clims_uni = [-.5 .5];
+            zoomLimsScale = 1.3; % arbitrary factor as zoomed images tend to be clipped
             
-            fprintf(fidHTML,['Sagittal zoom before/after correction:<br>\n']);
-            fprintf(fidHTML,['<img src="mov_zoom.gif"><br><br>\n']);
-        elseif testMagickNew==0
-            processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_' outputSuffix '.png ' htmlDir '/mov_zoom.gif'];
-            system(processString);
+            hf = figure('Visible','off');
+            set(hf,'Position',[   246   611   982   494])
+            hAx = subplot1(1,3,'figHandle',hf);
+            subplot(hAx(1))
+            imab(squeeze(mOut.all_ims(xi,yi,zi,1)),[0 clim1*zoomLimsScale])
+            subplot(hAx(2))
+            imab(squeeze(mOut.all_ims(xi,yi,zi,2)),[0 clim2*zoomLimsScale])
+            subplot(hAx(3))
+            imab(squeeze(mOut.all_uniImage(xi,yi,zi)),clims_uni)
+            colormap(gray)
+            export_fig([htmlDir '/zoom.png'])
+            close(hf);
             
-            fprintf(fidHTML,['Sagittal zoom before/after correction:<br>\n']);
-            fprintf(fidHTML,['<img src="mov_zoom.gif"><br><br>\n']);
-        else
-            fprintf(fidHTML,['Sagittal zoom before correction:<br>\n']);
-            fprintf(fidHTML,['<img src="zoom.png"><br><br>\n']);
-            fprintf(fidHTML,['Sagittal after correction:<br>\n']);
-            fprintf(fidHTML,['<img src="zoom_' outputSuffix '.png"><br><br>\n']);
+            hf = figure('Visible','off');
+            set(hf,'Position',[   246   611   982   494])
+            hAx = subplot1(1,3,'figHandle',hf);
+            subplot(hAx(1))
+            imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,1)),[0 clim1c*zoomLimsScale])
+            subplot(hAx(2))
+            imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,2)),[0 clim2c*zoomLimsScale])
+            subplot(hAx(3))
+            imab(squeeze(mOut.all_uniImage_corrected(xi,yi,zi)),clims_uni)
+            colormap(gray)
+            export_fig([htmlDir '/zoom_' outputSuffix '.png'])
+            close(hf);
+            
+            if testMagick==0
+                processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_' outputSuffix '.png ' htmlDir '/mov_zoom.gif'];
+                system(processString);
+                
+                fprintf(fidHTML,['Sagittal zoom before/after correction:<br>\n']);
+                fprintf(fidHTML,['<img src="mov_zoom.gif"><br><br>\n']);
+            elseif testMagickNew==0
+                processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_' outputSuffix '.png ' htmlDir '/mov_zoom.gif'];
+                system(processString);
+                
+                fprintf(fidHTML,['Sagittal zoom before/after correction:<br>\n']);
+                fprintf(fidHTML,['<img src="mov_zoom.gif"><br><br>\n']);
+            else
+                fprintf(fidHTML,['Sagittal zoom before correction:<br>\n']);
+                fprintf(fidHTML,['<img src="zoom.png"><br><br>\n']);
+                fprintf(fidHTML,['Sagittal after correction:<br>\n']);
+                fprintf(fidHTML,['<img src="zoom_' outputSuffix '.png"><br><br>\n']);
+            end
+            
+            
         end
-        
-        
-        
         
 end
 
