@@ -1054,6 +1054,7 @@ else % the much faster version with much hungrier RAM requirements:
         hostVoxDim_mm_rps,Hrps,kspaceCentre_rps,-1,reconPars.NUFFTosf,1);
     else
         phaseTranslations = [];
+        st = [];
     end
     
     parfor iC = 1:nc_keep
