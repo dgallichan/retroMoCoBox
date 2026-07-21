@@ -1053,7 +1053,7 @@ else % the much faster version with much hungrier RAM requirements:
     [~,st,~, phaseTranslations] = applyRetroMC_nufft(zeros(hrps'),fitMats_mm_toApply,alignDim_rps,alignIndices,11,...
         hostVoxDim_mm_rps,Hrps,kspaceCentre_rps,-1,reconPars.NUFFTosf,1);
     else
-        phaseTranslations = [];
+        phaseTranslations = []; % parfor is weird and it seems these variables must exist even if not used
         st = [];
     end
     
@@ -1567,9 +1567,12 @@ else
 end
 
 fprintf(fidHTML,['<h4>Total reconstruction time: ' num2str(totalTime_hrs) ' hours, ' num2str(totalTime_mins) ' mins</h4>\n']);
-fprintf(fidHTML,['<strong>Calculate GRAPPA weights for FatNavs: </strong>' num2str(round(timingReport_FatNavs.calculateGRAPPAweights)) ' seconds.<br>\n']);
-fprintf(fidHTML,['<strong>Reconstruct FatNavs: </strong>' num2str(nFatNavs) 'x ' num2str(round(mean(timingReport_FatNavs.eachFatNav))) ' seconds. Total time (possibly parallelized!): = ' num2str(round(timingReport_FatNavs.allFatNavs)) ' seconds. <br>\n']);
-fprintf(fidHTML,['<strong>Align FatNavs using SPM: </strong>' num2str(round(timingReport_FatNavs.SPMalignment)) ' seconds.<br>\n']);
+if nFatNavs > 0
+    fprintf(fidHTML,['<strong>Calculate GRAPPA weights for FatNavs: </strong>' num2str(round(timingReport_FatNavs.calculateGRAPPAweights)) ' seconds.<br>\n']);
+    fprintf(fidHTML,['<strong>Reconstruct FatNavs: </strong>' num2str(nFatNavs) 'x ' num2str(round(mean(timingReport_FatNavs.eachFatNav))) ' seconds. Total time (possibly parallelized!): = ' num2str(round(timingReport_FatNavs.allFatNavs)) ' seconds. <br>\n']);
+    fprintf(fidHTML,['<strong>Align FatNavs using SPM: </strong>' num2str(round(timingReport_FatNavs.SPMalignment)) ' seconds.<br>\n']);
+end
+
 if reconPars.bGRAPPAinRAM
     fprintf(fidHTML,'<em>GRAPPA recon of host performed in RAM (i.e. faster)...</em><br>\n');
 else
@@ -1626,10 +1629,16 @@ end
     
 timingReport.totalTime_hrs = totalTime_hrs;
 timingReport.totalTime_mins = totalTime_mins;
-timingReport.timingReport_FatNavs = timingReport_FatNavs;
+if nFatNavs > 0
+    timingReport.timingReport_FatNavs = timingReport_FatNavs;
+    timingReport.avgTimeApplyMocoPerVolume = avgTimeApplyMocoPerVolume;
+    timingReport.timingReport_totalTimeApplyMoco = timingReport_totalTimeApplyMoco;    
+else
+    timingReport.timingReport_FatNavs = 0;
+    timingReport.avgTimeApplyMocoPerVolume = 0;
+    timingReport.timingReport_totalTimeApplyMoco = 0;
+end
 timingReport.timingReport_hostRecon = timingReport_hostRecon;
-timingReport.avgTimeApplyMocoPerVolume = avgTimeApplyMocoPerVolume;
-timingReport.timingReport_totalTimeApplyMoco = timingReport_totalTimeApplyMoco;
 timingReport.postProcessing = timingReport_postProcessing;
 
 end
