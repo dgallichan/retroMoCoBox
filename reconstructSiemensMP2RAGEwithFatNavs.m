@@ -144,9 +144,8 @@ if length(twix_obj)>1 % on VE (and presumably VD as well) the raw data typically
 end
 
 if ~isfield(twix_obj,'FatNav')
-    disp('Error, no FatNavs found in raw data file!')
-    twix_obj % this displays the fields of the twix_obj that are present for comparison/debugging
-    return
+    disp('Error, no FatNavs found in raw data file! Attempting recon without MoCo...')
+    twix_obj % this displays the fields of the twix_obj that are present for comparison/debugging    
 end
 
 %%
