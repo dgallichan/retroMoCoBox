@@ -34,11 +34,11 @@ $ git clone https://github.com/dgallichan/retroMoCoBox.git
 
 ### Requirements
 
-The only part of my code that is not included here is the FatNav-modification version of Philipp Ehses' `mapVBVD.m` code for reading the raw Siemens data into Matlab. Philipp's original code is freely available from the Siemens MR-IDEA online forum, but I have not included the FatNav-modified code here as it appears to be 'Siemens sensitive'. If you would like this code too, please [email me](mailto:gallichand@cardiff.ac.uk).
+I have included various open-source tools inside the toolbox - including now also the NUFFT part of the [Michigan Image Reconstruction Toolbox (MIRT) for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html) and the FatNav-modification version of Philipp Ehses' `mapVBVD.m` code for reading the raw Siemens data into Matlab. If you want to use the code on actual FatNav data, you will also **need to download** [SPM 12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/) (used for the co-registration of the individual FatNav images to estimate the motion parameters).
 
-I have included various open-source tools inside the toolbox - including now also the NUFFT part of the [Michigan Image Reconstruction Toolbox (MIRT) for Matlab](http://web.eecs.umich.edu/~fessler/code/index.html). If you want to use the code on actual FatNav data, you will also need to download [SPM 12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/) (used for the co-registration of the individual FatNav images to estimate the motion parameters).
+For prettifying of the HTML report, I also used [ImageMagick](https://imagemagick.org/index.php) to create animated GIF files from the command line and [FSL's BET](https://fsl.fmrib.ox.ac.uk/fsl/docs/structural/bet.html) for a quick brain extraction. These are both optional.
 
-For prettifying of the HTML report, I also used [ImageMagick](https://imagemagick.org/index.php) to create animated GIF files from the command line. 
+
 
 ---
 

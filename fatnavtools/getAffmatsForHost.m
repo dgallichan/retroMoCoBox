@@ -144,7 +144,7 @@ end
 newDisplacements = thisRot*theseDisplacements;
 this_fitMat_mm(1:3,4,:) = newDisplacements;
 
-
+this_fitMat_mm(4,4,:) = 1; % put ones down the 4,4 position
 
 
 % if reconPars.swapDims_xyz(alignDim)

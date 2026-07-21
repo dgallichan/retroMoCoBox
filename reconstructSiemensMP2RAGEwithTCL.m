@@ -28,6 +28,9 @@ function reconstructSiemensMP2RAGEwithTCL(rawDataFile,TCLdir,varargin)
 %                 - override this with 'tempRoot' option). The default 
 %                 'outRoot' is to use the same folder as the raw data file.
 %    
+%      'outFolderPrefix' - what to put in front of the MIDstr in the
+%                          generated output folder - default is 'MPRAGE_TCL'
+%
 %      'tempRoot' - location for creating temporary files - can be many Gb.
 %                   Default is to use the same location as 'outRoot'.
 %
@@ -175,10 +178,10 @@ end
 
 [reconPars.TCLtimeOffset_ms, reconPars.outRoot, reconPars.tempRoot, reconPars.bLinParSwap, reconPars.bGRAPPAinRAM, reconPars.bKeepGRAPPArecon, reconPars.bKeepReconInRAM, reconPars.bFullParforRecon,...
     reconPars.coilCombineMethod, reconPars.swapDims_xyz, reconPars.bZipNIFTIs, reconPars.bKeepPatientInfo, reconPars.GRAPPAlambda,...
-    reconPars.pSmoothMPars, reconPars.cgIters] = process_options(varargin,...
+    reconPars.pSmoothMPars, reconPars.cgIters, reconPars.outFolderPrefix] = process_options(varargin,...
     'TCLtimeOffset_ms',0,'outRoot',[],'tempRoot',[],'bLinParSwap',0,'bGRAPPAinRAM',0,'bKeepGRAPPArecon',0,'bKeepReconInRAM',0,...
     'bFullParforRecon',0,'coilCombineMethod','default','swapDims_xyz',[0 0 1],'bZipNIFTIs',1,'bKeepPatientInfo',1,'GRAPPAlambda',0,...
-    'pSmoothMPars',[],'cgIters',1);
+    'pSmoothMPars',[],'cgIters',1,'outFolderPrefix','MPRAGE_TCL');
 
 
 %%

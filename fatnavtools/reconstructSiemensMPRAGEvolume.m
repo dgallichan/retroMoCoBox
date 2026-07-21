@@ -1,26 +1,9 @@
-function timingReport = reconstructSiemensMPRAGEVolume(twix_obj,reconPars)
-% function timingReport = reconstructSiemensMPRAGEVolume(twix_obj,reconPars)
+function timingReport = reconstructSiemensMPRAGEvolume(twix_obj,reconPars)
+% function timingReport = reconstructSiemensMPRAGEvolume(twix_obj,reconPars)
 % 
 % Called by reconstructSiemensMP2RAGEwithFatNavs.m to reconstruct a
 % specific 'average' or 'repetition'.
 %
-% Feb 2018, gallichand@cardiff.ac.uk
-%
-% -- Sep 2022, gallichand@cardiff.ac.uk -> changed output suffix to 'MoCo'
-% instead of 'corrected' to be more specific about which correction this
-% is!
-%
-% -- June 2023, gallichand@cardiff.ac.uk -> tried to clean-up generation of
-% figure windows during running
-%
-% -- June 2023, gallichand@cardiff.ac.uk -> small speed-up in NUFFT
-% distribution across coils (and sets) by precalculating NUFFT object
-%
-% -- July 2023, gallichand@cardiff.ac.uk -> add option to use gpuNUFFT
-% instead of NUFFT - reconPars.bUseGPU = 1;
-%
-% -- Oct 2023, gallichand@cardiff.ac.uk -> add timing report as output, and
-% include the post-processing time as well
 %
 % -- July 2026, gallichand@cardiff.ac.uk -> major overhaul for v1.0.0dev
 %     see retroMocoBoxVersion.m for more info
@@ -322,7 +305,7 @@ if any(reshape(eye(4),16,1)~=reconPars.extraFlipMat2(:))
                                   '<br>&nbsp;&nbsp;&nbsp;&nbsp;' num2str(reconPars.extraFlipMat2(3,:))...
                                   '<br>&nbsp;&nbsp;&nbsp;&nbsp;' num2str(reconPars.extraFlipMat2(4,:)) '<br>\n']);
 end
-
+fprintf(fidHTML,['extraPositionOffsetSignFlips (it seems that this should be [1 -1 1] in most cases) : [' num2str(reconPars.extraPositionOffsetSignFlips) ']<br>\n']);
 
 %% Check if using HEADNECK_64 receive coil, and discard channels over the neck if this is the case (would be nice to know what Siemens does...)
 %%% It seems that this manual selection was only valid for one acquisition
@@ -404,7 +387,7 @@ if exist(fatnavdir,'dir') % could have just kept the motion-parameters file...
     if exist([fatnavdir '/a_FatNav_NoseCircshift_' MIDstr '.png'],'file')
         copyfile([fatnavdir '/a_FatNav_NoseCircshift_' MIDstr '.png'],...
             [htmlDir '/a_FatNav_NoseCircshift_' MIDstr '.png']);
-        fprintf(fidHTML,['The FatNavs have been automatically circularly shifted in the y-direction to attempt to account for a non-isocentre head position (seemingly common at ultra-high fields):<br>\n']);
+        fprintf(fidHTML,['The FatNavs have been automatically circularly shifted in the y-direction to attempt to account for a non-isocentre head position (seemingly common at ultra-high fields) which causes the nose to wrap and could affect apparent motion parameters:<br>\n']);
         fprintf(fidHTML,['<img src="a_FatNav_NoseCircshift_' MIDstr '.png"><br><br>\n']);
     end
     if exist([fatnavdir '/a_FatNav_ACSim_' MIDstr '_channelCut.png'],'file')
@@ -481,14 +464,11 @@ this_fitMat = fitResult.MPos_cent.mats;
 % isocentre:
 %%% danielg: June 26 - attempt to 'fix' this code using moveFrame approach
 A_fatnav2host = eye(4);
+% add rotations:
 A_fatnav2host(1:3,1:3) = rotAndShift.RotMat*reconPars.extraFlipMat1;
-
-A_fatnav2host(1:3,4) = rotAndShift.RotMat*rotAndShift.Shifts_SagCorTra(:); 
-% A_fatnav2host(1:3,4) = rotAndShift.Shifts_SagCorTra(permutedims_toXYZ).'; 
-% still slightly unclear here as to whether my 'extraFlips' are necessary
-% on the offsets...
-% A_fatnav2host(1:3,4) = -reconPars.extraFlipMat1*rotAndShift.Shifts(permutedims_toXYZ).'; 
-% A_fatnav2host(1:3,4) = reconPars.extraFlipMat1*rotAndShift.Shifts(permutedims_toXYZ).'; 
+% and translations:
+A_fatnav2host(1:3,4) = -rotAndShift.RotMat*reconPars.extraFlipMat1*...
+    (reconPars.extraPositionOffsetSignFlips(:).*rotAndShift.Shifts_SagCorTra(:)); 
 
 % it doesn't make sense to me to create a new matrix here, but when I was
 % debugging I was getting desparate. Leaving in here 'just in case'...
@@ -498,7 +478,7 @@ this_fitMat_mm = moveFrame(this_fitMat,A_fatnav2host_forMats);
 
 if exist([fatnavdir '/eachFatNav_001.nii'],'file')
     
-   %%
+   %
     fileTest1 = [fatnavdir '/test1.nii'];
     fileTest2 = [fatnavdir '/test2.nii'];
     copyfile([fatnavdir '/eachFatNav_001.nii'],fileTest1);
@@ -525,12 +505,17 @@ if exist([fatnavdir '/eachFatNav_001.nii'],'file')
     shift_mm = reconPars.FatNavRes_mm * shift_voxels';
     
     % Account for any nosecircshift in the fatnav    
-    shift_nose_mm = -(nii.hdr.hist.srow_y(4) + ((V_source.dim(2)/2)*reconPars.FatNavRes_mm)); % srow_y is -ve, so this finds diff
-    A_shiftNose = eye(4);
-    A_shiftNose(2,4) = shift_nose_mm; 
+    shift_nose_mm = (nii.hdr.hist.srow_y(4) + ((V_source.dim(2)/2)*reconPars.FatNavRes_mm)); % srow_y is -ve, so this finds diff
+%     A_shiftNose = eye(4);
+%     A_shiftNose(2,4) = -shift_nose_mm; 
     
-    V_source.mat = A_fatnav2host * A_shiftNose * V_source.mat;
+%     V_source.mat = A_fatnav2host * A_shiftNose * V_source.mat;
+ 
+    V_source.mat = A_fatnav2host * V_source.mat;
+ 
     V_source.mat(1:3, 4) = V_source.mat(1:3, 4) + shift_mm;
+    
+    V_source.mat(2, 4) = V_source.mat(2, 4) + shift_nose_mm;
     
     % Pass both headers to spm_reslice. 
     spm_reslice([V_virtual, V_source], struct('mask',false,'mean',false,'interp',1,'which',1,'wrap',[1 1 1],'prefix',''));
@@ -538,9 +523,10 @@ if exist([fatnavdir '/eachFatNav_001.nii'],'file')
     newFatIm = rn(fileTest1);
   
     hf = figure('Visible','off');
-    oOut = orthoview(newFatIm,'useNewFig',0);
     
-    set(gcf,'Position',[    50   720   950  540])
+    oOut = orthoview(newFatIm,'useNewFig',0);
+    %
+    set(gcf,'Position',[    50   50   950  540])
     subplot(oOut.hAx(1))
     title('Read/Phase')
     ylabel('First FatNav realigned to Host RPS')
@@ -549,7 +535,7 @@ if exist([fatnavdir '/eachFatNav_001.nii'],'file')
     subplot(oOut.hAx(3))
     title('Phase/Slice')
     export_fig([htmlDir '/orientationCheck_FatVolume.png'])
-    %%
+    %
     close(hf);
     
     fprintf(fidHTML,['Orientation check for host sequence slice rotation and positioning:<br>\n']);
@@ -665,12 +651,11 @@ hf = figure('Visible','off'); % make an invisible figure for all figure plots
 set(hf,'Position',[    22   594   702   473])
 hAx = subplot1(2,1,'figHandle',hf);
 subplot(hAx(1))
-imab(ov1.oneIm)
+imab(ov1.oneIm,[0 .5*max(ov1.oneIm(:))])
 ylabel({'MIP of FatNav', 'in Host RPS space' , ['coil ' num2str(iAsymCoil)]})
 subplot(hAx(2))
-imab(ov2.oneIm)
+imab(ov2.oneIm,[0 .5*max(ov2.oneIm(:))])
 ylabel({'MIP of Host', 'GRAPPA recon' , [ 'coil ' num2str(iAsymCoil)]})
-colormap(gray)
 export_fig([htmlDir '/orientationCheck_xy.png']);
 close(hf);
 
@@ -1250,8 +1235,50 @@ switch nS
                 system(processString);
                 fprintf(fidHTML,['INV1 image movie before/after correction:<br>\n']);
                 fprintf(fidHTML,['<img src="mov_INV1.gif"><br><br>\n']);
+            end
+        
         end
         
+        %%% Add a sagittal zoom of the images before and after correction
+        xi = round(Hxyz(1)/2+Hxyz(1)/10);
+        yi = round(Hxyz(2)/2+Hxyz(2)/8: .9*Hxyz(2)); % arbitrary cut off points for zoom in y and z
+        zi = round(Hxyz(3)/2+Hxyz(3)/8: .8*Hxyz(3));
+
+        clim1 = percentile(mOut.all_ims,97);
+        clim1c = percentile(mOut.all_ims_corrected,97);
+        zoomLimsScale = 1.3; % arbitrary factor as zoomed images tend to be clipped
+        
+        hf = figure('Visible','off');
+        set(hf,'Position',[   246   611   500   500])
+        imab(squeeze(mOut.all_ims(xi,yi,zi)),[0 clim1*zoomLimsScale])
+        colormap(gray)
+        export_fig([htmlDir '/zoom.png'])
+        close(hf);
+        
+        hf = figure('Visible','off');
+        set(hf,'Position',[   246   611   500   500])
+        imab(squeeze(mOut.all_ims_corrected(xi,yi,zi)),[0 clim1c*zoomLimsScale]) 
+        colormap(gray)
+        export_fig([htmlDir '/zoom_' outputSuffix '.png'])
+        close(hf);
+        
+        if testMagick==0
+            processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_' outputSuffix '.png ' htmlDir '/mov_zoom.gif'];
+            system(processString);
+            
+            fprintf(fidHTML,['Sagittal zoom before/after correction:<br>\n']);
+            fprintf(fidHTML,['<img src="mov_zoom.gif"><br><br>\n']);
+        elseif testMagickNew==0
+            processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_' outputSuffix '.png ' htmlDir '/mov_zoom.gif'];
+            system(processString);
+            
+            fprintf(fidHTML,['Sagittal zoom before/after correction:<br>\n']);
+            fprintf(fidHTML,['<img src="mov_zoom.gif"><br><br>\n']);
+        else
+            fprintf(fidHTML,['Sagittal zoom before correction:<br>\n']);
+            fprintf(fidHTML,['<img src="zoom.png"><br><br>\n']);
+            fprintf(fidHTML,['Sagittal after correction:<br>\n']);
+            fprintf(fidHTML,['<img src="zoom_' outputSuffix '.png"><br><br>\n']);
         end
         
     case 2
@@ -1282,7 +1309,7 @@ switch nS
                 system(processString);
                 fprintf(fidHTML,['INV1 image movie before/after correction:<br>\n']);
                 fprintf(fidHTML,['<img src="mov_INV1.gif"><br><br>\n']);
-        end
+            end
         
         end
         
@@ -1392,14 +1419,15 @@ switch nS
         clim1c = percentile(mOut.all_ims_corrected(:,:,:,1),97);
         clim2c = percentile(mOut.all_ims_corrected(:,:,:,2),97);       
         clims_uni = [-.5 .5];
+        zoomLimsScale = 1.3; % arbitrary factor as zoomed images tend to be clipped
         
         hf = figure('Visible','off');
         set(hf,'Position',[   246   611   982   494])
         hAx = subplot1(1,3,'figHandle',hf);
         subplot(hAx(1))
-        imab(squeeze(mOut.all_ims(xi,yi,zi,1)),[0 clim1])
+        imab(squeeze(mOut.all_ims(xi,yi,zi,1)),[0 clim1*zoomLimsScale])
         subplot(hAx(2))
-        imab(squeeze(mOut.all_ims(xi,yi,zi,2)),[0 clim2])
+        imab(squeeze(mOut.all_ims(xi,yi,zi,2)),[0 clim2*zoomLimsScale])
         subplot(hAx(3))
         imab(squeeze(mOut.all_uniImage(xi,yi,zi)),clims_uni)
         colormap(gray)
@@ -1410,9 +1438,9 @@ switch nS
         set(hf,'Position',[   246   611   982   494])
         hAx = subplot1(1,3,'figHandle',hf);
         subplot(hAx(1))
-        imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,1)),[0 clim1c])
+        imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,1)),[0 clim1c*zoomLimsScale]) 
         subplot(hAx(2))
-        imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,2)),[0 clim2c])
+        imab(squeeze(mOut.all_ims_corrected(xi,yi,zi,2)),[0 clim2c*zoomLimsScale])
         subplot(hAx(3))
         imab(squeeze(mOut.all_uniImage_corrected(xi,yi,zi)),clims_uni)
         colormap(gray)

@@ -57,7 +57,7 @@ if reconPars.iRep > 1
     appendString = [appendString '_Rep' num2str(reconPars.iRep)];
 end
 
-outDir = [reconPars.outRoot '/hostrecon_TCL_' MIDstr appendString];
+outDir = [reconPars.outRoot '/' reconPars.outFolderPrefix '_' MIDstr appendString];
 if ~exist(outDir,'dir')
     mkdir(outDir)
 end
@@ -307,9 +307,16 @@ if isempty(alignMatFile)
     error('Error: no TCL alignment file found!')
 end
 TS_alignMat = importdata([reconPars.TCLdir '/' alignMatFile.name]);
-if isstruct(TS_alignMat) % this means new version and import will have failed
+if isstruct(TS_alignMat) % this means newer version and import will have failed
     TS_alignMat = importdata([reconPars.TCLdir '/' alignMatFile.name],' ',12);
     TS_alignMat = TS_alignMat.data;
+    if numel(TS_alignMat) ~= 16 % maybe a newer TracSuite version again...
+        TS_alignMat = importdata([reconPars.TCLdir '/' alignMatFile.name],' ',16);
+        TS_alignMat = TS_alignMat.data;
+    end
+end
+if numel(TS_alignMat) ~= 16
+    error('Unable to load the TCL ALN.tsa file - maybe you have a newer TracSuite version?')
 end
 
 t_MPR = duration(0,0,0,twix_obj.imageWithRefscan.timestamp*2.5);

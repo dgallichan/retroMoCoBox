@@ -1,29 +1,56 @@
+clear
+close all
+
+
 % Obviously this needs to point to your data (Siemens MP(2)RAGE with 3D-FatNavs)
-rawDataFile = '/home/gallicha/temp/autoTransferTemp/tempRaw/meas_MID36_mp2rage_FN600b_FatNav_06mm.dat';
+rawDataFile = '/home/scedg10/mydata/testdata/meas_MID132_mp2rage_FN600b_FatNav_06mm.dat';
 
 % And wherever you installed the Retro-MoCo-Box
-run('~/Documents/code/retroMoCoBox/addRetroMoCoBoxToPath.m')
+run('~/retroMoCoBox/addRetroMoCoBoxToPath.m')
 
 % And SPM 12
-addpath('~/matlabdownloads/spm12')
+addpath('/cubric/software/spm.versions/spm12')
 
-% And the Michigan Image Reconstruction Toolbox (MIRT) (http://web.eecs.umich.edu/~fessler/code/) for the NUFFT
-% run('~/matlabdownloads/mirt/setup.m') % This is now included in retroMoCoBox/mirt_nufft
-
-% Set the resolution of the FatNavs that were used (default is 2 for 7T and 4 for 3T)
-FatNavRes_mm = 2;
+% You don't have to specify the following (default if empty is to use the
+% same folder where the .dat is located) - a new folder based on the MID
+% number of the .dat file is created here
+outRootFolder = '/home/scedg10/mydata/testdata/testrecons';
 
 %% Fastest option: if you have loads of RAM (tested with 12 CPUs and 96 Gb of RAM on both 1 mm and 600 um data)
+%
+% (Note that there is a bit of a 'trick' available - if you have a
+% high-power server with many CPUs and high RAM, but still a very large
+% dataset that won't fit into RAM enough times over for full parfor on all
+% CPUs, you can set the parpool size down to say ~8-10 and it might still
+% work reasonably fast then! - use e.g. theseReconPars.parpoolSize = 8;
 
-reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,'FatNavRes_mm',FatNavRes_mm,'bGRAPPAinRAM',1,'bKeepReconInRAM',1,'bFullParforRecon',1);
+thisReconPars = getDefaultReconPars('veryhighRAM');
+thisReconPars.rawDataFile = rawDataFile; % required
+
+thisReconPars.outRoot = outRootFolder; % optional
+thisReconPars.outFolderPrefix = 'veryhighRAM'; % optional - allows multiple recons to exist with same MID in same folder
+
+reconstructSiemensMP2RAGEwithFatNavs(thisReconPars);
+
 
 %% if you have plenty of RAM:
 
-% reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,'FatNavRes_mm',FatNavRes_mm,'bGRAPPAinRAM',1);
+thisReconPars = getDefaultReconPars('highRAM');
+thisReconPars.rawDataFile = rawDataFile;
 
+thisReconPars.outRoot = outRootFolder; % optional
+thisReconPars.outFolderPrefix = 'highRAM'; % optional - allows multiple recons to exist with same MID in same folder
+
+reconstructSiemensMP2RAGEwithFatNavs(thisReconPars);
 
 %% otherwise do the slower version:
 
-% reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,'FatNavRes_mm',FatNavRes_mm,'bGRAPPAinRAM',0);
+thisReconPars = getDefaultReconPars('normalRAM');
+thisReconPars.rawDataFile = rawDataFile;
+
+thisReconPars.outRoot = outRootFolder; % optional
+thisReconPars.outFolderPrefix = 'normalRAM'; % optional - allows multiple recons to exist with same MID in same folder
+
+reconstructSiemensMP2RAGEwithFatNavs(thisReconPars);
 
 

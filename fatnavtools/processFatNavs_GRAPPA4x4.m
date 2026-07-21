@@ -43,6 +43,23 @@ function [ACSims, timingReport, fatnavdir] = processFatNavs_GRAPPA4x4(twix_obj, 
 %
 %   'appendString' - String which gets appended to the output foldername
 %
+%   'bSwapHandedness' - This will flip L/R to try to potentially avoid needing to have
+%                       any remaining flips in the A_fatnav2host matrix     
+%
+%   'bApplyNoseCircshift' - Finds the minimum signal in FatNav in PE
+%                           direction and circularly shifts by this amount
+%                           to attempt to centre the FOV for more reliable
+%                           motion estimates. It then (hopefully!) accounts
+%                           for this offset properly in the motion
+%                           estimates, keeping them relative to isocentre.
+%
+%   'bUseNeckMasking' - Aligns a FatNav to a 'standard' FatNav (included in
+%                       'fatnavStandardSpace' folder) and puts a mask
+%                       defined in that space back into subject space to
+%                       try to get alignment to concentrate only on region
+%                       of image where FatNav can be expected to be assumed
+%                       rigid.
+%
 %  ------------
 %  daniel.gallichan@epfl.ch, June 2015
 %
@@ -86,7 +103,11 @@ function [ACSims, timingReport, fatnavdir] = processFatNavs_GRAPPA4x4(twix_obj, 
 %         - For 64ch coil at 3T now discard the 10 most inferior channels
 %         (when 52 channels are active) as the neck signals affect motion
 %         parameter estimation - especially for pitch)
-
+%
+% 17/6/26 - gallichand@cardiff.ac.uk (danielg)
+%         - Added 'bSwapHandedness', 'bApplyNoseCircShift',
+%         'bUseNeckMasking' options
+%
 
 if (~isfield(twix_obj,'FatNav') || ~isfield(twix_obj,'FatNav_refscan'))
     disp('Error: input twix_obj doesn''t seem to contain FatNav data...')
@@ -94,9 +115,13 @@ if (~isfield(twix_obj,'FatNav') || ~isfield(twix_obj,'FatNav_refscan'))
 end
 
 
-[indexOfFirstNav, bShowFigs, nVirtualCoilsFatNavs, FatNavRes_mm, nSliceNeighbours, bApplyNoseFix, iAve, appendString] = ...
+[indexOfFirstNav, bShowFigs, nVirtualCoilsFatNavs, FatNavRes_mm, nSliceNeighbours, ...
+    bApplyNoseFix, iAve, appendString,bSwapHandedness, bApplyNoseCircShift, ...
+    bUseNeckMasking] = ...
     process_options(varargin,'indexOfFirstNav',1,'showFigs',0,'nVirtualCoilsFatNavs',[],...
-                    'FatNavRes_mm',2,'nSliceNeighbours',0,'bApplyNoseFix',0, 'iAve', 1, 'appendString', '');
+                    'FatNavRes_mm',2,'nSliceNeighbours',0,'bApplyNoseFix',0,...
+                    'iAve', 1, 'appendString', '','bSwapHandedness',0,'bApplyNoseCircShift',0,...
+                    'bUseNeckMasking',1);
 
 %% For testing code without calling as function:
 
@@ -249,6 +274,10 @@ ACSdata = ifft1s(ACSdata,3);
 ACSdata = ACSdata(:,:,end:-1:1,:);
 
 ACSims = ifft2s(ACSdata);
+if bSwapHandedness
+    disp('Swapping L/R for Fat ACS...')
+    ACSims = ACSims(end:-1:1,:,:,:);
+end
 ACSim = ssos(ACSims);
 
 ovACS = orthoview(ACSim,'drawIms',0);
@@ -497,8 +526,13 @@ if nProcessedImages~=nT % assume images are there, but not the alignment of them
         disp(['FatNav ' num2str(iT) ' out of ' num2str(nT)]);
         timingEachFatNav(iT) = toc;
         
+        if bSwapHandedness
+            disp('Swapping L/R for each FatNav...')
+            sn(full_GRAPPArecons(end:-1:1,:,:),[fatnavdir '/eachFatNav_' num2str(iT,'%.3d') '.nii'],FatNavRes_mm*[1 1 1]);
+        else
+            sn(full_GRAPPArecons,[fatnavdir '/eachFatNav_' num2str(iT,'%.3d') '.nii'],FatNavRes_mm*[1 1 1]);            
+        end
         
-        sn(full_GRAPPArecons,[fatnavdir '/eachFatNav_' num2str(iT,'%.3d') '.nii'],FatNavRes_mm*[1 1 1]);
         
         if bShowFigs
             hf = fig(figIndex);
@@ -523,10 +557,7 @@ if bShowFigs
 end
 
 
-%% Do registration
-   
-
-% do registration with SPM
+%%
 
 if indexOfFirstNav>1
     iiV = indexOfFirstNav:nT;
@@ -535,12 +566,133 @@ else
     iiV = 1:nT;
 end
 
+%% Some data can have very large nose presense in back of head, but we can circshift this away...
+
+if bApplyNoseCircShift
+    
+    disp('Attempting to circshift in y-direction to avoid wrap bias in motion estimates!')
+    
+    copyfile([fatnavdir '/eachFatNav_' num2str(indexOfFirstNav,'%.3d') '.nii'],[fatnavdir '/eachFatNav_' num2str(indexOfFirstNav,'%.3d') '_preNoseCircShift.nii']);
+    
+    nav1 = rn([fatnavdir '/eachFatNav_' num2str(indexOfFirstNav,'%.3d') '.nii']);
+    
+    % find the mean yprofile of the FatNav, smooth it, then take minimum
+    % and assume this is best point between nose and back of head
+    yprofile = mean(mean(nav1,1),3);
+    vox_numbers = (1:ny)-ny/2; % turn into -ve and +ve range
+    yprofile_shift = circshift(yprofile,ny/2-1);
+    yprofile_shift_smooth = smoothdata(yprofile_shift); % just use with defaults...
+
+    iMin = find(yprofile_shift_smooth==min(yprofile_shift_smooth),1);
+    yNoseShift_voxels = vox_numbers(iMin);
+    
+   
+   
+    for iV = 1:nT
+        V = spm_vol([fatnavdir '/eachFatNav_' num2str(iiV(iV),'%.3d') '.nii']);
+        img = spm_read_vols(V);
+        img_new = circshift(img,[0 -yNoseShift_voxels 0]);
+        
+        V_new = V;
+        V_new.mat(2,4) = V_new.mat(2,4) + yNoseShift_voxels*FatNavRes_mm;
+        spm_write_vol(V_new,img_new);
+    end
+
+    nav1_shifted = rn([fatnavdir '/eachFatNav_' num2str(indexOfFirstNav,'%.3d') '.nii']); % should now be shifted
+   
+    ov1 = orthoview(nav1,'drawIms',0);
+    ov2 = orthoview(nav1_shifted,'drawIms',0);
+    
+    hf = figure('Visible','off');
+    subplot1(1,2)
+    
+    subplot1(1)
+    imab(ov1.im3)
+    title('Before circshift')
+    subplot1(2)
+    imab(ov2.im3)
+    title(['After circshift (' num2str(yNoseShift_voxels*FatNavRes_mm) ' mm)'])
+    colormap(gray)
+    export_fig([fatnavdir '/a_FatNav_NoseCircshift_' MIDstr '.png'])
+    close(hf);
+    
+
+    
+end
+    
+%% Do registration
+   
+
+% do registration with SPM
+
+
+
 for iV = 1:nT
     V(iV) = spm_vol_nifti([fatnavdir '/eachFatNav_' num2str(iiV(iV),'%.3d') '.nii']);
 end
 
 
 alignpars = struct('quality',1,'fwhm',3,'sep',2,'rtm',0,'wrap',[0 1 0]);
+if bUseNeckMasking
+    
+    retroMoCoPath = which('addRetroMoCoBoxToPath.m');
+    [retroMoCoPath, ~] = fileparts(retroMoCoPath);
+    %%
+    % Copy in the templates locally and unzip them
+    copyfile([retroMoCoPath '/fatnavStandardSpace/fatnavStandard.nii.gz'],fatnavdir)
+    copyfile([retroMoCoPath '/fatnavStandardSpace/fatnavStandard_mask.nii.gz'],fatnavdir)
+    system(['gunzip ' fatnavdir '/fatnavStandard*gz']);
+    
+    % 1. Define file paths (Must be unzipped .nii, appended with ',1')
+    template_fatnav = [fatnavdir '/fatnavStandard.nii,1'];
+    template_mask   = [fatnavdir '/fatnavStandard_mask.nii,1'];    
+    subj_fatnav     = [fatnavdir '/eachFatNav_' num2str(indexOfFirstNav,'%.3d') '.nii,1']; % Reference frame 1
+    
+    % NOTE this uses 6-dof rigid-body, whereas full affine would make more
+    % sense, but in quick testing, rigid-body seems more robust and is
+    % probably good enough anyway for this purpose!
+    
+    % 1. Pass both files as a 2-frame series (Subject is reference Frame 1)
+    P_pair = char(subj_fatnav, template_fatnav);
+    
+    % 2. Set standard realignment flags (Least Squares)
+    realign_flags.quality = 0.9;
+    realign_flags.fwhm    = 5;
+    realign_flags.rtm     = 0; % Keep Frame 1 (Subject) as the strict target
+    realign_flags.interp  = 2;
+    realign_flags.wrap    = [0 0 0];
+    
+    % 3. Run realignment. This modifies the HEADER of template_fatnav to match subj_fatnav
+    spm_realign(P_pair, realign_flags);
+    
+    % Extract the newly calculated space from the realigned template image
+    M_new = spm_get_space(template_fatnav);
+    
+    % Apply that exact spatial matrix to your template mask
+    spm_get_space(template_mask, M_new);
+    
+    % Now reslice the mask into subject space using Nearest Neighbor (interp=0)
+    reslice_flags = struct('mask',0, 'mean',0, 'interp',0, 'which',1,'prefix','subj_');
+    spm_reslice(char(subj_fatnav, template_mask), reslice_flags);
+
+%     spm_check_registration(char(subj_fatnav,template_fatnav));
+%     spm_check_registration(char(subj_fatnav,template_mask));
+    %%
+   alignpars.PW = [fatnavdir '/subj_fatnavStandard_mask.nii'];
+   
+   imgNav = rn(subj_fatnav(1:end-2));
+   imgMask= rn(alignpars.PW);
+   ovNav = orthoview(imgNav,'drawIms',0);
+   ovMask = orthoview(imgMask,'drawIms',0);
+   
+   ovIm = Intense2rgb(ovNav.oneIm);
+   ovIm2 = ovIm;   
+   ovIm2(:,:,2) = .7*ovMask.oneIm;
+   ovIm = cat(1,ovIm,ovIm2);
+   
+   imwrite(permute(flip(ovIm,2),[2 1 3]),[fatnavdir '/a_FatNav_NeckMask_' MIDstr '.png']);
+   
+end
 disp('...............')
 disp(['Aligning ' num2str(nT) ' FatNavs using SPM'])
 tic
@@ -625,4 +777,5 @@ else
     disp('... ImageMagick not found, install this from www.imagemagick.org and re-run if you would like animated gifs')
     disp('...............')
 end
+
 

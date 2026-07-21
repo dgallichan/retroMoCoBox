@@ -7,41 +7,54 @@ run([ASPIRE_HOME '/aspire_startup.m']);
 
 %% Run ASPIRE on both noMoCo and MoCo
 
+if nEco == 1 % can't run ASPIRE, but need coil combination...
+    magData = rn(fullfile(tempDir, 'GRE_5D_mag.nii'));
+    magData = ssos(magData,5);
+    
+    ninfo = niftiinfo(fullfile(tempDir, 'GRE_5D_mag.nii'));
+    sn(magData,fullfile(outDir,'GRE_mag.nii'),ninfo.PixelDimensions(1:3));
 
+    magData = rn(fullfile(tempDir, 'GRE_5D_MoCo_mag.nii'));
+    magData = ssos(magData,5);
+    
+    ninfo = niftiinfo(fullfile(tempDir, 'GRE_5D_MoCo_mag.nii'));
+    sn(magData,fullfile(outDir,'GRE_MoCo_mag.nii'),ninfo.PixelDimensions(1:3));
+else
+    
 
-
-data.read_dir = tempDir;
-data.filename_mag = fullfile(data.read_dir, 'GRE_5D_mag.nii'); % 5D NIfTI input (x,y,z,eco,cha)
-data.filename_phase = fullfile(data.read_dir, 'GRE_5D_phs.nii');
-data.write_dir = fullfile(tempDir,'ASPIRE_noMoCo');
-
-% OPTIONS
-data.poCalculator = AspirePoCalculator; % AspireBipolarPoCalculator('non-linear correction') for bipolar acquisitions (at least 3 echoes)
-data.smoother = NanGaussianSmoother; % NanGaussianSmoother, GaussianBoxSmoother (=default)
-
-% data.processing_option = 'all_at_once'; % all_at_once, slice_by_slice (slice_by_slice requires fslmerge)
-data.processing_option = 'slice_by_slice';
-
-% run ASPIRE
-tic;
-run(Aspire(data));
-aspireTime = secs2hms(toc); 
-
-disp(['Whole calculation took: ' aspireTime]);
-disp(['Files written to: ' data.write_dir]);
-
-data2 = data;
-data2.filename_mag = fullfile(data2.read_dir,'GRE_5D_MoCo_mag.nii');
-data2.filename_phase = fullfile(data2.read_dir,'GRE_5D_MoCo_phs.nii');
-data2.write_dir = fullfile(tempDir,'ASPIRE_MoCo');
-
-% run ASPIRE
-tic;
-run(Aspire(data2));
-aspireTime = secs2hms(toc); 
-
-disp(['Whole calculation took: ' aspireTime]);
-disp(['Files written to: ' data2.write_dir]);
+    data.read_dir = tempDir;
+    data.filename_mag = fullfile(data.read_dir, 'GRE_5D_mag.nii'); % 5D NIfTI input (x,y,z,eco,cha)
+    data.filename_phase = fullfile(data.read_dir, 'GRE_5D_phs.nii');
+    data.write_dir = fullfile(tempDir,'ASPIRE_noMoCo');
+    
+    % OPTIONS
+    data.poCalculator = AspirePoCalculator; % AspireBipolarPoCalculator('non-linear correction') for bipolar acquisitions (at least 3 echoes)
+    data.smoother = NanGaussianSmoother; % NanGaussianSmoother, GaussianBoxSmoother (=default)
+    
+    % data.processing_option = 'all_at_once'; % all_at_once, slice_by_slice (slice_by_slice requires fslmerge)
+    data.processing_option = 'slice_by_slice';
+    
+    % run ASPIRE
+    tic;
+    run(Aspire(data));
+    aspireTime = secs2hms(toc);
+    
+    disp(['Whole calculation took: ' aspireTime]);
+    disp(['Files written to: ' data.write_dir]);
+    
+    data2 = data;
+    data2.filename_mag = fullfile(data2.read_dir,'GRE_5D_MoCo_mag.nii');
+    data2.filename_phase = fullfile(data2.read_dir,'GRE_5D_MoCo_phs.nii');
+    data2.write_dir = fullfile(tempDir,'ASPIRE_MoCo');
+    
+    % run ASPIRE
+    tic;
+    run(Aspire(data2));
+    aspireTime = secs2hms(toc);
+    
+    disp(['Whole calculation took: ' aspireTime]);
+    disp(['Files written to: ' data2.write_dir]);
+end
 
 %% Copy ASPIRE output to be main GRE recon
 

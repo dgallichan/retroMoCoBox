@@ -185,7 +185,14 @@ for iT = 1:Nt
     end    
     newVec = (alignMats(1:3,1:3,iT) * [kx(iLine) ky(iLine) kz(iLine)].' ).';
     nkx(iLine) = newVec(:,1); nky(iLine) = newVec(:,2); nkz(iLine) = newVec(:,3);
+    % Testing here whether trans/rot comes first! (default behaviour is to
+    % use kx and not nkx..)
+    % 
+    % did the swap and for 2026_03_19_BEAM_TCLtest/ data it made no real
+    % noticeable diffence!
     newData(iLine) = newData(iLine).*exp(-1i*pi*( alignMats(1,4,iT)*kx(iLine) + alignMats(2,4,iT)*ky(iLine) + alignMats(3,4,iT)*kz(iLine)));
+%     newData(iLine) = newData(iLine).*exp(-1i*pi*( alignMats(1,4,iT)*nkx(iLine) + alignMats(2,4,iT)*nky(iLine) + alignMats(3,4,iT)*nkz(iLine)));
+
     if bKeepPhaseTranslations
         phaseTranslations(iLine) = exp(-1i*pi*(alignMats(1,4,iT)*kx(iLine) + alignMats(2,4,iT)*ky(iLine) + alignMats(3,4,iT)*kz(iLine)));
     end

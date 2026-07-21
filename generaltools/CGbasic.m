@@ -2,8 +2,10 @@ function [b, b_iters] = CGbasic(E,m,varargin)
 % b = CGbasic(E,m,varargin)
 %
 % Basic linear conjugate-gradient approximation to inverse
+%
+% updated Sep 25 to attempt to add 'hot start' (not yet correct!)
 
-[maxIters, useDisp] = process_options(varargin,'maxIters',15,'useDisp',0);
+[maxIters, useDisp, b_start] = process_options(varargin,'maxIters',15,'useDisp',0,'b_start',[]);
 
 m = single(m); % data to be reconstructed, [nT, nC], complex
    
@@ -15,9 +17,17 @@ if nargout > 1
     b_iters = zeros([prod(outDims) maxIters]);
 end
 
-b_approx= repmat( single(0+1e-30j), length(cg_a(:)), 1);
-p = cg_a(:);
-r = cg_a(:);
+if isempty(b_start)
+    b_approx= repmat( single(0+1e-30j), length(cg_a(:)), 1);
+    p = cg_a(:);
+    r = cg_a(:);
+else
+    % this bit is probably not right yet!
+    b_approx = b_start(:);
+    p = b_start(:);
+    r = cg_a(:);
+end
+
 iteration = 0;
 
 if useDisp

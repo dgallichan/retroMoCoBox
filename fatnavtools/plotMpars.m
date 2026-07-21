@@ -32,7 +32,7 @@ Vdisp2(:,2) = squeeze(ssos(Vdisp(:,[1 3],2),2));
 Vdisp2(:,3) = squeeze(ssos(Vdisp(:,[1 2],3),2));
 
 figure
-set(gcf,'Position',[        1962         670        1083         318])
+set(gcf,'Position',[        50       50        1083         318])
 plot(t,Vdisp2)
 xlim([t(1) t(end)])
 xlabel('Time')

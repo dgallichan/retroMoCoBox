@@ -1,5 +1,5 @@
-function timingReport = reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
-% function timingReport = reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargin)
+function timingReport = reconstructSiemensMP2RAGEwithFatNavs(reconPars)
+% function timingReport = reconstructSiemensMP2RAGEwithFatNavs(reconPars)
 % 
 % Dependencies:
 %%%%%%%%%%%%%%%
@@ -17,259 +17,47 @@ function timingReport = reconstructSiemensMP2RAGEwithFatNavs(rawDataFile,varargi
 % Usage:
 %%%%%%%%
 %
-% 'rawDataFile' - this is the filename for the raw data you exported from
+% 'reconPars' - create a struct first using reconPars = getDefaultReconPars()
+%               and then modify any parameters as appropriate. 
+%
+% The only **required** modification to the defaults is to specify the
+% rawDataFile itself:
+%
+%     'reconPars.rawDataFile' - the filename for the raw data you exported from
 %                 TWIX (including the full path). Due to the way I chose to
 %                 name output files, if you have renamed the datafile it is
 %                 required to still contain the text 'MID' followed by a
 %                 number and then an underscore ('_') so that multiple
 %                 files can be processed from the same directory and not
 %                 get overwritten.
-%
-%  Optional arguments:-
-%      'outRoot' - this gets used as the output folder for all processing
-%                 (and the default root for the temporary folder which may
-%                 generate several Gb of temporary files along the way - 
-%                 - override this with 'tempRoot' option). The default 
-%                 'outRoot' is to use the same folder as the raw data file.
-%    
-%      'tempRoot' - location for creating temporary files - can be many Gb.
-%                   Default is to use the same location as 'outRoot'.
-%
-%      'bLinParSwap' - set this to '1' to indicate that the 'LIN/PAR swap'
-%                     option was chosen in the MP2RAGE sequence. This
-%                     alters which direction in k-space the FatNavs
-%                     correspond to.
-%
-%      'bGRAPPAinRAM' - set this to '1' to perform the GRAPPA recon (if
-%                       necessary!) for the host sequence entirely in RAM. This
-%                       can be quite a lot faster - but requires sufficient
-%                       RAM...! 
-%                       (Note that the temporary variables for applying the
-%                       MoCo are currently done outside of RAM as this
-%                       is currently not the bottleneck for that part of
-%                       the recon)
-%
-%      'bKeepGRAPPArecon' - set this to '1' to prevent deleting of the
-%                           GRAPPA recon of the host data (which would be
-%                           deleted by default). 
-%
-%      'bKeepReconInRAM' - set this to '1' to keep all the reconstructed
-%                          files (INV1, INV2 and UNI, all with and without
-%                          correction) in RAM, or default is to use a
-%                          temporary file.
-%
-%      'bFullParforRecon' - set this to '1' to enable parfor over the NUFFT
-%                           loop. For this to work, bKeepReconInRAM must
-%                           also be set - and depending how many CPUs you
-%                           have available on your matlabpool, you may need
-%                           to have LOADS of RAM...  But it is much faster!
-%       
-%      'coilCombineMethod' - In MP2RAGE the default method is to match what
-%                            I believe is done on the scanner - to weight
-%                            each separately calculated UNI image by the
-%                            square of the INV2 image for that coil.
-%                            Slightly better results might be obtained for
-%                            low SNR data by using a lower-res version of
-%                            the INV2 image. Set this option to 'lowres' to
-%                            try this. 
-%                            For INV1 and INV2 the default is to combine
-%                            the images using root sum-of-squares
-%                            - this is not optimal, so the 'lowres' will
-%                            also try to use a low-res version of INV2 to
-%                            combine both. This corresponds to the coil
-%                            combination method of Bydder et al, MRM 2002,
-%                            47:539-548 - but as there is a smoothness
-%                            parameter which needs tuning - and that it can
-%                            also lead to signal voids, I haven't yet felt
-%                            confident enough to make this the default
-%                            processing.
-%
-%       'FatNavRes_mm' - the spatial resolution of the acquired FatNavs, 
-%                        specified in mm. The current implementation of the
-%                        pulse sequence does not allow this information to
-%                        be stored in the raw data, so this must be entered
-%                        here manually - or use the default of 2 mm.
-%                        Whatever you specify here, the code does still
-%                        assume that the acceleration for the FatNavs was
-%                        4x4 and that the FOV was 176x256x256mm.
-%
-%       'swapDims_xyz' - 3-component row-vector to determine whether to
-%                        reverse each of x, y and z directions. Default is
-%                        [0 0 1] which seems to work for a lot of parameter
-%                        sets, but not all...  Check the orientation
-%                        checker feature in the HTML!
-%
-%       'bZipNIFTIs' - Use '1' to apply gzip at the end to all the NIFTI
-%                     files (default), otherwise just leave them uncompressed.
-%
-%       'bKeepFatNavs' - Use '1' to keep all the reconstructed FatNavs,
-%                       otherwise delete that folder when finished
-%                       (default).
-%
-%       'bKeepPatientInfo' - Use '1' to keep sensitive info from raw data header  
-%                           in HTML output (default). Use '0' to anomyize completely
-%                           and use a string e.g. '0019' to insert the ID from
-%                           another database.
-%
-%       'bKeepComplexImageData' - save out the complex data per coil as MATLAB files 
-%                                 before and after application of MoCo.
-%
-%
 %     
 %   
-% Matlab tools which are included:
+
 %
-%     NUFFT code from the Michigan Image Reconstruction Toolbox (MIRT)
-%     (http://web.eecs.umich.edu/~fessler/code/index.html)
-%     from the group of Prof. J Fessler
-%           This is used to perform the NUFFT 3D gridding operation used to deal
-%           with the non-Cartesian k-space sampling after rotations have
-%           been applied.
-%
-%     mapVBVD (from Philip Ehses) 
-% *** Note that this code is presumably 'Siemens-sensitive' as it is    ***
-% *** not freely available online, but only from the Siemens user forum.***
-% *** Consequently the FatNavs recon code must also be considered       ***
-% *** 'Siemens-sensitive' while it contains this code                   ***
-% *** I have not included this part in the Github repository - please   ***
-% *** email me if you would like it.                                    ***
-%           For reading in the Siemens raw data format - and able to handle
-%           very large datasets elegantly. 
-%           I made small changes to the code to allow handling of the
-%           FatNav data.
-%
-%     NIFTI Tools (from Jimmy Shen)
-%           For reading in and saving out in the .nii NIFTI format. 
-%           This code is provided here unaltered.            
-%
-%     GCC - coil compression (from Miki Lustig)
-%           We work mostly with a 32-channel head coil, and so massive
-%           speedups are possible when using coil compression. This code
-%           from Miki Lustig's website implements the method described in
-%           Zhang et. al MRM 2013;69(2):571-82.
-%           For this code I have directly taken snippets and inserted them
-%           into performHostGRAPPArecon.m
-% 
-%     export_fig (from Oliver Woodford)
-%           Useful for making figures that you save from Matlab look nice!
-%           :)
-%
-%     process_options (from Mark A. Paskin)
-%           Useful for sending optional inputs to this master file.         
-%
-%     subplot1 (from Eran O. Ofek)
-%           Nicer than Matlab's own way of doing subplots
-%
-% 
-% Optional:
-%     ImageMagick (www.imagemagick.org)
-%           For making animated GIFs of results ('convert') in the html
-%           report
-%
-%     FSL (www.fmrib.ox.ac.uk/fsl) - tested with v5.0
-%           Used for brain extraction ('bet') in order to make MIP views 
-%           of INV2 images (which show bright arteries) more interpretable
-%
-%
-%
-%
-%
-% To do:
-%%%%%%%%
-%
-%  Coil compression for the FatNavs
-%              - this is now implemented, but preliminary tests have shown
-%                it doesn't work well... One problem is the weights
-%                themselves for the sparse image - the other problem is
-%                that acceleration of 16 is quite a lot...
-%
-%  Coil compression when no GRAPPA used
-%              - this might make sense to still be able to speed up the
-%                application of the retrospective motion-correction, but as
-%                most people are probably scanning with GRAPPA in the host
-%                sequence anyway, I haven't implemented this yet.
-%
-%
-% -------------------------------------------------------------------------
-% reconstructSiemensMP2RAGEwithFatNavs.m, 
-%   v0.1 - daniel.gallichan@epfl.ch - June 2015
-%   v0.2 -    -- February 2016 --
-%        - added option to specify resolution of FatNavs 
-%        - also added option to specify swapDims_xyz 
-%        - added Patient info to HTML output
-%        - added option to zip the NIFTIs at the end
-%        - added option to keep FatNavs (and changed default behaviour to delete them)
-%   v0.3 -   -- April 2016 -- trying to speed things up
-%        - changed default oversampling from 2 down to 1.375 for NUFFT
-%        - use parfor in NUFFT
-%        - use parfor in SPM registration
-%        - switch to using SPM12 (previously SPM8)
-%        - now have option to do the MP2RAGE recon combination entirely in RAM
-%   v0.4 -   -- August 2016
-%        - changed default NUFFT oversampling from 1.375 to 1.5 (to reduce aliasing artifact)
-%   v0.5 -   -- September 2016
-%        - updated to latest version of Philipp Ehses' mapVBVD software (from 18/9/15)
-%        - now renamed things to make it part of the 'RetroMoCoBox' and put
-%          on Github
-%        - Added the bFullParforRecon option to really speed things up if
-%          you have enough CPUs and RAM available
-%        - changed name of bKeepRecoInRAM to bKeepReconInRAM for consistency
-%        - output files no longer start with 'a_host_'
-%        - fit to versioning for the whole of 'RetroMoCoBox' as 0.5.0
-%        
-%   0.5.1 -  -- September 2016
-%         - Fixed bug in handling of data acquired without GRAPPA
-%         - Fixed bug in handling of data acquired with different orientations 
-%
-%   0.6.0 -  -- February 2017 - new contact email: gallichand@cardiff.ac.uk
-%         - *CHANGED* handling of motion estimates - now average temporal
-%           neighbours
-%         - Add support for VD/VE data
-%         - *RENAMED* output 'uniImage' and 'uniImage_corrected' to 'UNI'
-%           and 'UNI_corrected' as seems to match INV1 and INV2 better
-%         - Add animated GIF with zoom of front of brain where changes are
-%           likely to be most noticeable and put in HTML
-%
-%   0.6.1 - -- May 2017
-%         - Added Torben's option to anonymize data
-%
-%   0.6.2 -   -- July 2017
-%         - Improved 'parfor' handling of data without second inversion
-%           time
-%         - Added manual discard of channels for HeadNeck_64 coil which
-%           have a lot of signal in the neck
-%
-%   0.6.3 - -- August 2017
-%         - Include the FatNav resolution in the HTML (and display to
-%           screen)
-%         - handle the case where 'PatientName' becomes 'tPatientName' for
-%           no apparent reason
-%
-%   0.6.4 - -- Sep 2017
-%         - Automatically set FatNavRes_mm based on field strength (7T - 2mm, 3T - 4mm)         
-%
-%   0.7.0 - Feb 2018
-%         - Create sub-function reconstructSiemensVolume.m so that multiple
-%           averages or repetitions can be handled directly in this code.
-%           NB. Handling this properly would involve updated the sequence
-%           code run on the scanner because it currently doesn't label the
-%           FatNavs properly beyond the first volume of the host. This
-%           feature probably won't be used enough to make that worthwhile
-%           though...
-%         - WARNING - I took this opportunity to cleanup the names of some
-%           of the input options (always putting a 'b' for boolean in front
-%           of logical options) so please check your calling code!
-%
-%
-%   0.7.1 - -- Nov 2018
-%         - Added new input flag 'bKeepComplexImageData' to allow saving
-%           out of the complex data per coil as MATLAB files - before and
-%           after application of MoCo.
-%
+
 %  --> overall version notes now pushed to 'retroMocoBoxVersion.m')
 
-reconPars.retroMocoBoxVersion = retroMocoBoxVersion; % put this into the HTML for reference
-reconPars.rawDataFile = rawDataFile;
+
+%% Validate that the input reconPars contains all required fields
+
+[isValid, errMsg] = validateReconPars(reconPars); 
+if ~isValid
+    disp(errMsg)
+    return
+end
+
+
+%%
+
+reconPars.retroMocoBoxVersion = retroMocoBoxVersion; % update just in case this was old somehow...
+
+rawDataFile = reconPars.rawDataFile;
+
+if ~exist(rawDataFile,'file')
+    disp(['Error - raw data file given: "' rawDataFile '" not found']);
+    return
+end
+
 
 %%
 
@@ -286,15 +74,6 @@ if ~exist('nufft_init.m','file')
     disp('Error - Fessler toolbox must be on the path for the NUFFT')
     return
 end
-
-%%
-
-[reconPars.outRoot, reconPars.tempRoot, reconPars.bLinParSwap, reconPars.bGRAPPAinRAM, reconPars.bKeepGRAPPArecon, reconPars.bKeepReconInRAM, reconPars.bFullParforRecon,...
-    reconPars.coilCombineMethod, reconPars.FatNavRes_mm, reconPars.swapDims_xyz, reconPars.bZipNIFTIs, reconPars.bKeepFatNavs,reconPars.bKeepPatientInfo,...
-    reconPars.bKeepComplexImageData,reconPars.outFolderPrefix,reconPars.bUseGPU, reconPars.parpoolSize, reconPars.NUFFTosf] = process_options(varargin,...
-    'outRoot',[],'tempRoot',[],'bLinParSwap',0,'bGRAPPAinRAM',0,'bKeepGRAPPArecon',0,'bKeepReconInRAM',0,...
-    'bFullParforRecon',0,'coilCombineMethod','default','FatNavRes_mm',[],'swapDims_xyz',[0 0 1],'bZipNIFTIs',1,'bKeepFatNavs',0,'bKeepPatientInfo',1,...
-    'bKeepComplexImageData',0,'outFolderPrefix','MPRAGE','bUseGPU',0,'parpoolSize',12,'NUFFTosf',1.5);
 
 
 %%
@@ -315,8 +94,12 @@ tic
 isPool = gcp('nocreate');
 if isempty(isPool)
     c = parcluster('local');
-    c.NumWorkers = reconPars.parpoolSize;
-    c.parpool(c.NumWorkers);
+    if ~isempty(reconPars.parpoolSize)
+        c.NumWorkers = reconPars.parpoolSize;
+        c.parpool(c.NumWorkers);
+    else
+        c.parpool();
+    end
 end
 timeToCreateParpool = toc;
 
@@ -412,7 +195,7 @@ if nAve > 1
         
         thisReconPars = reconPars;
         thisReconPars.iAve = iAve;
-        timingReport{iAve} = reconstructSiemensVolume(twix_obj,thisReconPars);
+        timingReport{iAve} = reconstructSiemensMPRAGEvolume(twix_obj,thisReconPars);
     end
     
 else
@@ -420,7 +203,7 @@ else
         disp('Error - handling of data with multiple repetitions not yet implemented...! Please contact gallichand@cardiff.ac.uk for more info')
         return
     else
-        timingReport = reconstructSiemensVolume(twix_obj,reconPars);       
+        timingReport = reconstructSiemensMPRAGEvolume(twix_obj,reconPars);       
     end
 end
 

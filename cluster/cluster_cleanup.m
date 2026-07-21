@@ -1,7 +1,7 @@
 load(cleanupFile)
 
 run([RETROMOCOBOX_PATH '/addRetroMoCoBoxToPath.m']);
-run([MIRT_PATH '/setup.m']);
+%run([MIRT_PATH '/setup.m']);
 addpath(SPM_PATH);
 
 

@@ -119,7 +119,9 @@ switch MoveFoc
         %     Ptot = length(H);
         iReject = [];
         for iP = 1:length(H) %% danielg: try to fix for HG2
-            if strcmp(get(H(iP),'tag'),'Colorbar')
+            if strcmp(get(H(iP),'tag'),'Colorbar') || contains(get(H(iP),'tag'),'figMenu') ...
+                    || contains(get(H(iP),'type'),'annotation') || contains(get(H(iP),'type'),'toolbar') ...
+                    || contains(get(H(iP),'type'),'menu')
                 iReject = [iReject iP];
             end
         end
