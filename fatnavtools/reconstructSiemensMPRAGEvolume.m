@@ -1,5 +1,5 @@
-function timingReport = reconstructSiemensVolume(twix_obj,reconPars)
-% function timingReport = reconstructSiemensVolume(twix_obj,reconPars)
+function timingReport = reconstructSiemensMPRAGEVolume(twix_obj,reconPars)
+% function timingReport = reconstructSiemensMPRAGEVolume(twix_obj,reconPars)
 % 
 % Called by reconstructSiemensMP2RAGEwithFatNavs.m to reconstruct a
 % specific 'average' or 'repetition'.
@@ -21,6 +21,9 @@ function timingReport = reconstructSiemensVolume(twix_obj,reconPars)
 %
 % -- Oct 2023, gallichand@cardiff.ac.uk -> add timing report as output, and
 % include the post-processing time as well
+%
+% -- July 2026, gallichand@cardiff.ac.uk -> major overhaul for v1.0.0dev
+%     see retroMocoBoxVersion.m for more info
 
 retroMocoBoxVersion = reconPars.retroMocoBoxVersion; % put this into the HTML for reference
 
@@ -32,11 +35,16 @@ end
 if ~isfield(reconPars,'iRep')
     reconPars.iRep = 1;
 end
-if ~isfield(reconPars,'bUseGPU')
-    reconPars.bUseGPU = 0;
+if isfield(reconPars,'swapDims_xyz')
+    disp("WARNING: swapDims_xyz is deprecated, use flipAxes_xyz instead - name has change as functionality has changed")
 end
-if ~isfield(reconPars,'outFolderPrefix')
-    reconPars.outFolderPrefix = 'MPRAGErecon';
+
+if ~isfield(reconPars,'flipAxes_xyz') || isempty(reconPars.flipAxes_xyz)
+    % Previously the 'swapDims_xyz' also affected the MoCo, the new
+    % 'flipAxes_xyz' is purely aesthetic for what space the output volume
+    % is put into.
+    % flipAxes_xyz = [1 1 0]; % I currently expect this to be correct, as z is oriented 'upside down' for Siemens, and they use FFT instead of iFFT
+    reconPars.flipAxes_xyz = [0 0 1]; % this is looking better so far!
 end
 
 outputSuffix = 'MoCo';
@@ -91,12 +99,15 @@ if ~exist(tempDir,'dir')
 end
 
 % intialize html index file
-fid = fopen([htmlDir '/index.html'],'w');
-fprintf(fid,['<html><head><title>MP(2)RAGE with FatNavs - Summary</title>\n']);
-fprintf(fid,'</head>\n');
-fprintf(fid,'<body>\n');
-fprintf(fid,['<h2>MP(2)RAGE with FatNavs - Summary: %s</h2>\n'],[fileName]);
-fprintf(fid,['<br>\n']);
+fidHTML = fopen([htmlDir '/index.html'],'w');
+fprintf(fidHTML,['<html><head><title>MP(2)RAGE with FatNavs - Summary</title>\n']);
+fprintf(fidHTML,'</head>\n');
+fprintf(fidHTML,'<body>\n');
+fprintf(fidHTML,['<h2>MP(2)RAGE with FatNavs - Summary: %s</h2>\n'],[fileName]);
+
+% include version number
+fprintf(fidHTML,['<em>' char(datetime) '- created with reconstructSiemensMP2RAGEwithFatNavs.m, version: ' retroMocoBoxVersion '</em><br><br>\n']);
+
 
 
 
@@ -124,11 +135,11 @@ switch reconPars.FatNavRes_mm % in newer version of FatNav sequences, the resolu
     % these choices should also match the corresponding code in processFatNavs_GRAPPA4x4.m
     case {2,4}
         FatNav_FOVxyz = [176 256 256]; % FatNav FOV         
-        FatNav_xyz = FatNav_FOVxyz ./ reconPars.FatNavRes_mm;
+        FatNavDims_xyz = FatNav_FOVxyz ./ reconPars.FatNavRes_mm;
     case 6
         FatNav_FOVxyz = [192 264 264]; % FatNav FOV         
-        FatNav_xyz = FatNav_FOVxyz ./ reconPars.FatNavRes_mm;
-        FatNav_xyz(3) = 64; % No idea why, but the 6mm data has 64 points in the readout direction for the ACS lines instead of 44...        
+        FatNavDims_xyz = FatNav_FOVxyz ./ reconPars.FatNavRes_mm;
+        FatNavDims_xyz(3) = 64; % No idea why, but the 6mm data has 64 points in the readout direction for the ACS lines instead of 44...        
 end
 
 
@@ -144,109 +155,78 @@ if isfield(twix_obj.hdr.MeasYaps,'tReferenceImage0') % some files apparently mig
     thisDateString = char(twix_obj.hdr.MeasYaps.tReferenceImage0);
     try
         if strcmp(thisDateString(iDot(end)+(1:6)),'300000') % it seems sometimes this 300000 is present, then the year is only two digits...
-            fprintf(fid,['<strong>Date of scan:</strong> ' local_reformatDateString(['20' thisDateString(iDot(end)+6+(1:6))]) '<br>\n']);
+            fprintf(fidHTML,['<strong>Date of scan:</strong> ' local_reformatDateString(['20' thisDateString(iDot(end)+6+(1:6))]) '<br>\n']);
         else
-            fprintf(fid,['<strong>Date of scan:</strong> ' local_reformatDateString(thisDateString(iDot(end)+(1:8))) '<br>\n']);
+            fprintf(fidHTML,['<strong>Date of scan:</strong> ' local_reformatDateString(thisDateString(iDot(end)+(1:8))) '<br>\n']);
         end
     catch
-        fprintf(fid,['<strong>Date of scan:</strong> unable to read from file <br>\n']);
+        fprintf(fidHTML,['<strong>Date of scan:</strong> unable to read from file <br>\n']);
     end
 end
 
 if ischar(reconPars.bKeepPatientInfo)
-    fprintf(fid,['<strong>Database ID:</strong> ' reconPars.bKeepPatientInfo '<br>\n']);
+    fprintf(fidHTML,['<strong>Database ID:</strong> ' reconPars.bKeepPatientInfo '<br>\n']);
 else
     if reconPars.bKeepPatientInfo
         %% Put patient info into HTML
         
       if isfield(twix_obj.hdr.Config,'PatientName')
-            fprintf(fid,['<strong>Patient Name:</strong> ' twix_obj.hdr.Config.PatientName '<br>\n']);
+            fprintf(fidHTML,['<strong>Patient Name:</strong> ' twix_obj.hdr.Config.PatientName '<br>\n']);
         else
             if isfield(twix_obj.hdr.Config,'tPatientName') % why would this be different for some scanners / software versions...?!?
-                fprintf(fid,['<strong>Patient Name:</strong> ' twix_obj.hdr.Config.tPatientName '<br>\n']);
+                fprintf(fidHTML,['<strong>Patient Name:</strong> ' twix_obj.hdr.Config.tPatientName '<br>\n']);
             end
         end
-        fprintf(fid,['<strong>Patient ID:</strong> ' twix_obj.hdr.Config.PatientID '<br>\n']);
+        fprintf(fidHTML,['<strong>Patient ID:</strong> ' twix_obj.hdr.Config.PatientID '<br>\n']);
         switch twix_obj.hdr.Config.PatientSex
             case 1
-                fprintf(fid,['<strong>Patient Sex:</strong> Female<br>\n']);
+                fprintf(fidHTML,['<strong>Patient Sex:</strong> Female<br>\n']);
             case 2
-                fprintf(fid,['<strong>Patient Sex:</strong> Male<br>\n']);
+                fprintf(fidHTML,['<strong>Patient Sex:</strong> Male<br>\n']);
             case 3
-                fprintf(fid,['<strong>Patient Sex:</strong> Other<br>\n']);
+                fprintf(fidHTML,['<strong>Patient Sex:</strong> Other<br>\n']);
         end
         try
-            fprintf(fid,['<strong>Patient date of birth:</strong> ' local_reformatDateString(num2str(twix_obj.hdr.Config.PatientBirthDay)) '<br>\n']);
+            fprintf(fidHTML,['<strong>Patient date of birth:</strong> ' local_reformatDateString(num2str(twix_obj.hdr.Config.PatientBirthDay)) '<br>\n']);
         catch
-            fprintf(fid,['<strong>Patient date of birth:</strong> ' twix_obj.hdr.Config.PatientBirthDay '<br>\n']);
+            fprintf(fidHTML,['<strong>Patient date of birth:</strong> ' twix_obj.hdr.Config.PatientBirthDay '<br>\n']);
         end
         
     else
-        fprintf(fid,['<strong>Patient Info:</strong> Anonymised<br>\n']);
+        fprintf(fidHTML,['<strong>Patient Info:</strong> Anonymised<br>\n']);
     end
 end
 
 
 %% Try to establish slice orientation - this has not been rigourously tested for all possible orientations...!
 
-sNormal = twix_obj.hdr.MeasYaps.sSliceArray.asSlice{1}.sNormal;
-if ~isfield(sNormal,'dCor'),  sNormal.dCor = 0; end
-if ~isfield(sNormal,'dTra'),  sNormal.dTra = 0; end
-if ~isfield(sNormal,'dSag'),  sNormal.dSag = 0; end
 
-allNormals = [sNormal.dCor, sNormal.dTra, sNormal.dSag].';
+rotAndShift = getSiemensRotMatAndShift(twix_obj.hdr);
 
-baseOrientation = find(allNormals==max(allNormals));% 1 - Coronal; 2 - Transverse, 3 = Sagittal
-
-if ~isfield(twix_obj.hdr.MeasYaps.sSliceArray.asSlice{1},'sPosition')
-    sPosition.dCor = 0;
-    sPosition.dTra = 0;
-    sPosition.dSag = 0;
-else
-    sPosition = twix_obj.hdr.MeasYaps.sSliceArray.asSlice{1}.sPosition;
-    if ~isfield(sPosition,'dCor'), sPosition.dCor = 0; end
-    if ~isfield(sPosition,'dTra'), sPosition.dTra = 0; end
-    if ~isfield(sPosition,'dSag'), sPosition.dSag = 0; end
-end
-
-
-permutedims = []; % initialize
-if isfield(twix_obj.hdr.MeasYaps.sSliceArray.asSlice{1},'dInPlaneRot')
-    dInPlaneRot = twix_obj.hdr.MeasYaps.sSliceArray.asSlice{1}.dInPlaneRot;
-else
-    dInPlaneRot = 0;
-end
-switch baseOrientation 
-    case 1 % Coronal
-        orientText = 'coronal';
-        if (dInPlaneRot*180/pi) < 45
+switch rotAndShift.baseOrientation 
+    case 'Coronal'
+        % danielg -  11/6/26 - added 'abs' and  >135 here to try to handle 180 deg in-plane rot!
+        if abs(rotAndShift.dInPlaneRot*180/pi) < 45 || abs(rotAndShift.dInPlaneRot*180/pi) > 135
             permutedims = [2 3 1];
         else
             permutedims = [1 3 2]; 
         end       
-    case 2 % Transverse
-        orientText = 'transversal';
-        if (dInPlaneRot*180/pi) < 45
+    case 'Transverse'
+        if abs(rotAndShift.dInPlaneRot*180/pi) < 45 || abs(rotAndShift.dInPlaneRot*180/pi) > 135
             permutedims = [1 2 3];
         else
             permutedims = [2 1 3];
         end
-    case 3 % Sagittal       
-        orientText = 'sagittal';
-        if (dInPlaneRot*180/pi) < 45
+    case 'Sagittal'
+        if abs(rotAndShift.dInPlaneRot*180/pi) < 45 || abs(rotAndShift.dInPlaneRot*180/pi) > 135
             permutedims = [3 2 1];
         else
             permutedims = [3 1 2];
         end
 end
 
-% reconPars.swapDims_xyz = [0 0 1]; % <-- so far all data I have seems to fit this - only the z direction needs reversal - 
-                        %     which would presumably be equivalent to the Siemens definition of z as running from head to foot
-                        % 4/1/16 - now specify this as an input because I
-                        % have found some data which didn't fit this
-                        % default...
+
 [~, permutedims_toXYZ] = sort(permutedims);
-swapDims_rps = reconPars.swapDims_xyz(permutedims_toXYZ);
 
 % Note that in the following Hrps refers to the dimensions of the host
 % sequence when fully reconstructed, whereas hrps refers to the dimensions
@@ -269,15 +249,10 @@ FOVrps = [twix_obj.hdr.MeasYaps.sSliceArray.asSlice{1}.dReadoutFOV twix_obj.hdr.
 FOVxyz = FOVrps(permutedims);
 
 hostVoxDim_mm = FOVxyz./Hxyz;
+hostVoxDim_mm_rps = hostVoxDim_mm(permutedims_toXYZ);
 
 kspaceCentre_rps = [ceil(twix_obj.image.centerCol(1)/2) twix_obj.image.centerLin(1) twix_obj.image.centerPar(1)];
-for iD = 1:3
-    if swapDims_rps(iD)
-        kspaceCentre_rps(iD) = hrps(iD)-kspaceCentre_rps(iD);
-    end
-end
 
-kspaceCentre_xyz = kspaceCentre_rps(permutedims);
 
 nc = twix_obj.image.NCha;
 nS = twix_obj.image.NSet; % for MP2RAGE this will be 2...
@@ -285,41 +260,69 @@ nS = twix_obj.image.NSet; % for MP2RAGE this will be 2...
 
 % and put stuff into html report and the screen
 if nS == 2
-    fprintf(fid,['<h4>Host MP2RAGE ']);
+    fprintf(fidHTML,['<h4>Host MP2RAGE ']);
     fprintf(['\n\n\nHost MP2RAGE ']);
 else
-    fprintf(fid,['<h4>Host MPRAGE ']);
+    fprintf(fidHTML,['<h4>Host MPRAGE ']);
     fprintf(['\n\n\nHost MPRAGE ']);
 end
-fprintf(fid,['sequence</h4>\n']);
-fprintf(['sequence\n']);
+fprintf(fidHTML,['sequence:</h4>\n']);
+fprintf(['sequence:\n']);
 
-fprintf(fid,['RPS dimensions in raw data: ' num2str(hrps(1)) 'x' num2str(hrps(2)) 'x' num2str(hrps(3)) '<br>\n']);
+fprintf(fidHTML,['Scanner field strength: ' num2str(twix_obj.hdr.MeasYaps.sTXSPEC.asNucleusInfo{1,1}.lFrequency/42.58e6,'%.2f') ' T<br><br>\n']);
+
+fprintf(fidHTML,['RPS dimensions in raw data: ' num2str(hrps(1)) 'x' num2str(hrps(2)) 'x' num2str(hrps(3)) '<br>\n']);
 fprintf(['RPS dimensions in raw data: ' num2str(hrps(1)) 'x' num2str(hrps(2)) 'x' num2str(hrps(3)) '\n']);
-fprintf(fid,['XYZ dimensions reconstructed: ' num2str(Hxyz(1)) 'x' num2str(Hxyz(2)) 'x' num2str(Hxyz(3)) '<br>\n']);
+fprintf(fidHTML,['XYZ dimensions reconstructed: ' num2str(Hxyz(1)) 'x' num2str(Hxyz(2)) 'x' num2str(Hxyz(3)) '<br>\n']);
 fprintf(['XYZ dimensions reconstructed: ' num2str(Hxyz(1)) 'x' num2str(Hxyz(2)) 'x' num2str(Hxyz(3)) '\n']);
-fprintf(fid,['FOV - ' num2str(FOVxyz(1),'%.1f') 'x' num2str(FOVxyz(2),'%.1f') 'x' num2str(FOVxyz(3),'%.1f') 'mm<br>\n']);
+fprintf(fidHTML,['FOV - ' num2str(FOVxyz(1),'%.1f') 'x' num2str(FOVxyz(2),'%.1f') 'x' num2str(FOVxyz(3),'%.1f') 'mm<br>\n']);
 fprintf(['FOV - ' num2str(FOVxyz(1),'%.1f') 'x' num2str(FOVxyz(2),'%.1f') 'x' num2str(FOVxyz(3),'%.1f') 'mm\n']);
-fprintf(fid,['Resolution: ' num2str(hostVoxDim_mm(1),'%.3f') 'x' num2str(hostVoxDim_mm(2),'%.3f') 'x' num2str(hostVoxDim_mm(3),'%.3f') 'mm<br>\n']);
+fprintf(fidHTML,['Resolution: ' num2str(hostVoxDim_mm(1),'%.3f') 'x' num2str(hostVoxDim_mm(2),'%.3f') 'x' num2str(hostVoxDim_mm(3),'%.3f') 'mm<br>\n']);
 fprintf(['Resolution: ' num2str(hostVoxDim_mm(1),'%.3f') 'x' num2str(hostVoxDim_mm(2),'%.3f') 'x' num2str(hostVoxDim_mm(3),'%.3f') 'mm\n']);
-if manualFatNavRes
-    fprintf(fid,['Manually selected FatNav resolution: ' num2str(reconPars.FatNavRes_mm) ' mm<br>\n']);
-    fprintf(['Manually selected FatNav resolution: ' num2str(reconPars.FatNavRes_mm) ' mm\n']);
-else
-    fprintf(fid,['Assumed FatNav resolution (based on field strength): ' num2str(reconPars.FatNavRes_mm) ' mm<br>\n']);
-    fprintf(['Assumed FatNav resolution (based on field strength): ' num2str(reconPars.FatNavRes_mm) ' mm\n']);
-end
-fprintf(fid,['Detected orientation: ' orientText '<br>\n']);
-fprintf(['Detected orientation: ' orientText '\n']);
-fprintf(fid,['SwapDims_xyz: [' num2str(reconPars.swapDims_xyz(1)) ' ' num2str(reconPars.swapDims_xyz(2)) ' ' num2str(reconPars.swapDims_xyz(3)) ']<br>\n']); 
-fprintf(['SwapDims_xyz: [' num2str(reconPars.swapDims_xyz(1)) ' ' num2str(reconPars.swapDims_xyz(2)) ' ' num2str(reconPars.swapDims_xyz(3)) ']\n']); 
+fprintf(fidHTML,['Position offset (dSag dCor dTra): '  num2str([rotAndShift.sPosition.dSag rotAndShift.sPosition.dCor rotAndShift.sPosition.dTra]) '<br>\n']);
+fprintf(['Position offset (dSag dCor dTra): '  num2str([rotAndShift.sPosition.dSag rotAndShift.sPosition.dCor rotAndShift.sPosition.dTra]) '\n']);
+fprintf(fidHTML,['Orientation normals (dSag dCor dTra): ' num2str([rotAndShift.sNormal.dSag rotAndShift.sNormal.dCor rotAndShift.sNormal.dTra]) '<br>\n']);
+fprintf(['Orientation normals (dSag dCor dTra): ' num2str([rotAndShift.sNormal.dSag rotAndShift.sNormal.dCor rotAndShift.sNormal.dTra]) '\n']);
+fprintf(fidHTML,['In plane rotation: ' num2str(rotAndShift.dInPlaneRot) '<br>\n']);
+fprintf(['In plane rotation: ' num2str(rotAndShift.dInPlaneRot) '\n']);
+fprintf(fidHTML,['Detected orientation: ' rotAndShift.baseOrientation '<br>\n']);
+fprintf(['Detected orientation: ' rotAndShift.baseOrientation '\n']);
 if isfield(twix_obj.hdr.MeasYaps,'sCoilSelectMeas')
     fprintf(['Coil used: ' char(twix_obj.hdr.MeasYaps.sCoilSelectMeas.aRxCoilSelectData{1}.asList{1}.sCoilElementID.tCoilID) ', with ' num2str(nc) ' channels active\n']);
-    fprintf(fid,['Coil used: ' char(twix_obj.hdr.MeasYaps.sCoilSelectMeas.aRxCoilSelectData{1}.asList{1}.sCoilElementID.tCoilID) ', with ' num2str(nc) ' channels active<br>\n']);
+    fprintf(fidHTML,['Coil used: ' char(twix_obj.hdr.MeasYaps.sCoilSelectMeas.aRxCoilSelectData{1}.asList{1}.sCoilElementID.tCoilID) ', with ' num2str(nc) ' channels active<br>\n']);
 else
     fprintf(['Coil used: ' char(twix_obj.hdr.MeasYaps.asCoilSelectMeas{1}.asList{1}.sCoilElementID.tCoilID) ', with ' num2str(nc) ' channels active\n']);
-    fprintf(fid,['Coil used: ' char(twix_obj.hdr.MeasYaps.asCoilSelectMeas{1}.asList{1}.sCoilElementID.tCoilID) ', with ' num2str(nc) ' channels active<br>\n']);
+    fprintf(fidHTML,['Coil used: ' char(twix_obj.hdr.MeasYaps.asCoilSelectMeas{1}.asList{1}.sCoilElementID.tCoilID) ', with ' num2str(nc) ' channels active<br>\n']);
 end
+fprintf(fidHTML,'<br>\n');
+fprintf('\n');
+
+
+fprintf(fidHTML,'<h4>FatNav Parameters and Recon options:</h4>\n');
+fprintf('FatNav Parameters and Recon options:\n');
+
+if manualFatNavRes
+    fprintf(fidHTML,['Manually selected FatNav resolution: ' num2str(reconPars.FatNavRes_mm) ' mm<br>\n']);
+    fprintf(['Manually selected FatNav resolution: ' num2str(reconPars.FatNavRes_mm) ' mm\n']);
+else
+    fprintf(fidHTML,['Assumed FatNav resolution (based on field strength): ' num2str(reconPars.FatNavRes_mm) ' mm<br>\n']);
+    fprintf(['Assumed FatNav resolution (based on field strength): ' num2str(reconPars.FatNavRes_mm) ' mm\n']);
+end
+fprintf(fidHTML,['bSwapFatNavHandedness: ' num2str(reconPars.bSwapFatNavHandedness) '<br>\n']);
+fprintf(fidHTML,['bApplyFatNavNoseCircshift: ' num2str(reconPars.bApplyFatNavNoseCircshift) '<br>\n']);
+
+fprintf(fidHTML,['flipAxes_xyz (aesthetic effect only) : [' num2str(reconPars.flipAxes_xyz) ']<br>\n']);
+fprintf(['flipAxes_xyz (aesthetic effect only) :' num2str(reconPars.flipAxes_xyz)  '\n']);
+fprintf(fidHTML,['extraFlipMat1 (it seems that this should be diag([-1 1 -1]) in most cases):<br>&nbsp;&nbsp;&nbsp;&nbsp;' num2str(reconPars.extraFlipMat1(1,:))...
+                               '<br>&nbsp;&nbsp;&nbsp;&nbsp;' num2str(reconPars.extraFlipMat1(2,:))...
+                               '<br>&nbsp;&nbsp;&nbsp;&nbsp;' num2str(reconPars.extraFlipMat1(3,:)) '<br>\n']);
+if any(reshape(eye(4),16,1)~=reconPars.extraFlipMat2(:))
+   fprintf(fidHTML,['extraFlipMat2:<br>&nbsp;&nbsp;&nbsp;&nbsp;' num2str(reconPars.extraFlipMat2(1,:))...
+                                  '<br>&nbsp;&nbsp;&nbsp;&nbsp;' num2str(reconPars.extraFlipMat2(2,:))...
+                                  '<br>&nbsp;&nbsp;&nbsp;&nbsp;' num2str(reconPars.extraFlipMat2(3,:))...
+                                  '<br>&nbsp;&nbsp;&nbsp;&nbsp;' num2str(reconPars.extraFlipMat2(4,:)) '<br>\n']);
+end
+
 
 %% Check if using HEADNECK_64 receive coil, and discard channels over the neck if this is the case (would be nice to know what Siemens does...)
 %%% It seems that this manual selection was only valid for one acquisition
@@ -355,18 +358,17 @@ nc_keep = length(iC_keep);
 % find the right (chronological) order for the k-space lines in the raw data
 
 if reconPars.bLinParSwap % MP2RAGE sequence currently doesn't allow 2D GRAPPA, so this means the number of FatNavs should already match that dimension
-    alignDim = permutedims_toXYZ(3); 
-    iSamp = 1:hxyz(alignDim);           
+    alignDim_rps = 3;
+    iSamp = 1:hrps(alignDim_rps);           
 else
-    alignDim = permutedims_toXYZ(2);    
-%     iSamp = twix_obj.imageWithRefscan.Lin(1:hrps(3)*nS:end);
+    alignDim_rps = 2;
     thisLine = squeeze(twix_obj.imageWithRefscan(1,1,:,1,1,1,1,1,1,1,1,1));
     iSamp = find(thisLine);
 end
 nFatNavs = twix_obj.FatNav.dataSize(9)/twix_obj.image.NAve;
 
-fprintf(fid,['No. of FatNavs: ' num2str(nFatNavs) '<br>\n']);
-fprintf(fid,['No. of measured lines in host sequence: ' num2str(length(iSamp)) '<br>\n']);
+fprintf(fidHTML,['<br><br><br>No. of FatNavs: ' num2str(nFatNavs) '<br>\n']);
+fprintf(fidHTML,['No. of measured lines in host sequence: ' num2str(length(iSamp)) '<br>\n']);
 fprintf(['\n\nNo. of FatNavs: ' num2str(nFatNavs) '\n']);
 fprintf(['No. of measured lines in host sequence: ' num2str(length(iSamp)) '\n']);
 
@@ -379,63 +381,95 @@ end
 %   motion-estimates
 
 [ACSims, timingReport_FatNavs, fatnavdir] = processFatNavs_GRAPPA4x4(twix_obj, ... 
-            outDir,'FatNavRes_mm',reconPars.FatNavRes_mm, 'iAve', reconPars.iAve, 'appendString', appendString);
+            outDir,'FatNavRes_mm',reconPars.FatNavRes_mm, 'iAve', reconPars.iAve, ...
+            'appendString', appendString,'bSwapHandedness',reconPars.bSwapFatNavHandedness,...
+            'bApplyNoseCircshift',reconPars.bApplyFatNavNoseCircshift,...
+            'bUseNeckMasking',reconPars.bApplyFatNavNeckMasking);
 
 % And put stuff into the html report
 if exist(fatnavdir,'dir') % could have just kept the motion-parameters file...
     imdims = 2*[304 128];
-    
+    fprintf(fidHTML,['<h4>FatNavs</h4>\n']);
+
+    if exist([fatnavdir '/a_FatNav_MoCoPars_' MIDstr '.png'],'file')
+        copyfile([fatnavdir '/a_FatNav_MoCoPars_' MIDstr '.png'],[htmlDir '/motion_parameters.png']);
+        fprintf(fidHTML,['Estimated motion parameters:<br>\n']);
+        fprintf(fidHTML,['<img src="motion_parameters.png"><br><br>\n']);
+    end
     if exist([fatnavdir '/a_FatNav_ACSim_' MIDstr '.png'],'file')
         copyfile([fatnavdir '/a_FatNav_ACSim_' MIDstr '.png'],[htmlDir '/ACSim.png']);
-        fprintf(fid,['ACS image:<br>\n']);
-        fprintf(fid,['<img src="ACSim.png" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
+        fprintf(fidHTML,['<br><br>FatNav ACS image:<br>\n']);
+        fprintf(fidHTML,['<img src="ACSim.png" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));        
+    end
+    if exist([fatnavdir '/a_FatNav_NoseCircshift_' MIDstr '.png'],'file')
+        copyfile([fatnavdir '/a_FatNav_NoseCircshift_' MIDstr '.png'],...
+            [htmlDir '/a_FatNav_NoseCircshift_' MIDstr '.png']);
+        fprintf(fidHTML,['The FatNavs have been automatically circularly shifted in the y-direction to attempt to account for a non-isocentre head position (seemingly common at ultra-high fields):<br>\n']);
+        fprintf(fidHTML,['<img src="a_FatNav_NoseCircshift_' MIDstr '.png"><br><br>\n']);
     end
     if exist([fatnavdir '/a_FatNav_ACSim_' MIDstr '_channelCut.png'],'file')
         copyfile([fatnavdir '/a_FatNav_ACSim_' MIDstr '_channelCut.png'],[htmlDir '/ACSim_channelCut.png']);
-        fprintf(fid,['ACS image (after removing neck channels from 64ch coil):<br>\n']);
-        fprintf(fid,['<img src="ACSim_channelCut.png" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
-    end
-    if exist([fatnavdir '/a_FatNav_MoCoPars_' MIDstr '.png'],'file')
-        copyfile([fatnavdir '/a_FatNav_MoCoPars_' MIDstr '.png'],[htmlDir '/motion_parameters.png']);
-        fprintf(fid,['<h4>FatNavs</h4>\n']);
-        fprintf(fid,['Estimated motion parameters:<br>\n']);
-        fprintf(fid,['<img src="motion_parameters.png"><br><br>\n']);
+        fprintf(fidHTML,['ACS image (after removing neck channels from 64ch coil):<br>\n']);
+        fprintf(fidHTML,['<img src="ACSim_channelCut.png" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
     end
     if exist([fatnavdir '/a_mov_eachFatNav.gif'],'file')
         copyfile([fatnavdir '/a_mov_eachFatNav.gif'],[htmlDir '/mov_eachFatNav.gif'])
-        fprintf(fid,['15 example FatNavs covering complete scan:<br>\n']);
-        fprintf(fid,['<img src="mov_eachFatNav.gif" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
+        fprintf(fidHTML,['15 example FatNavs covering complete scan:<br>\n']);
+        fprintf(fidHTML,['<img src="mov_eachFatNav.gif" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
     end
     if exist([fatnavdir '/a_mov_spm_eachFatNav.gif'],'file')
         copyfile([fatnavdir '/a_mov_spm_eachFatNav.gif'],[htmlDir '/mov_spm_eachFatNav.gif'])
-        fprintf(fid,['And after rigid-body registration using SPM:<br>\n']);
-        fprintf(fid,['<img src="mov_spm_eachFatNav.gif" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
+        fprintf(fidHTML,['And after rigid-body registration using SPM:<br>\n']);
+        fprintf(fidHTML,['<img src="mov_spm_eachFatNav.gif" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)));
     end
+    if exist([fatnavdir '/a_FatNav_NeckMask_' MIDstr '.png'],'file')
+        copyfile([fatnavdir '/a_FatNav_NeckMask_' MIDstr '.png'],...
+            [htmlDir '/a_FatNav_NeckMask_' MIDstr '.png']);
+        fprintf(fidHTML,['An automatic masking was applied to attempt to restrict registration to rigid regions of the FatNav:<br>\n']);
+        fprintf(fidHTML,['<img src="a_FatNav_NeckMask_' MIDstr '.png" height=%s width=%s><br><br>\n'],num2str(imdims(2)),num2str(imdims(1)*2));
+    end
+        
+    
 end
 
-%% Do GRAPPA (if necessary) for the host sequence
-% Note that this can use rather a lot of hard-disk space, as the raw data
-% has to be shuffled around a few times to end up with one file per 
-% reconstructed RF channel
+
+%% Make iFFT of host ACS for rapid orientation check without waiting for GRAPPA to finish
 
 if Arps(2) > 1
-    useGRAPPAforHost = 1;
-    if reconPars.bGRAPPAinRAM        
-        [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_obj,struct('iAve',reconPars.iAve,'iRep',reconPars.iRep));
-        mOutGRAPPA.grappaRecon_1DFFT = grappaRecon_1DFFT; clear grappaRecon_1DFFT;
-        timingReport_hostRecon = mOutGRAPPA.timingReport;
-    else
-%         [mOutGRAPPA, timingReport_hostRecon] =
-%         performHostGRAPPArecon(twix_obj,tempDir); % the original low-RAM
-%         alternative code needs verifying as the output ends up corrupted
-%         (in at least some cases)
-        [timingReport_hostRecon, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,struct('iAve',reconPars.iAve,'iRep',reconPars.iRep));    
-    end
-else
-    useGRAPPAforHost = 0;
-    timingReport_hostRecon = 0;
-end
+    kdataHostACS = squeeze(twix_obj.refscan());
+    kdataHostACS = kdataHostACS(:,:,:,:,end); % keep only last Set
+    kdataHostACS = permute(kdataHostACS,[1 3 4 2]); % move coils to last dim
+    
+    imACS_rps = ssos(ifft3s(kdataHostACS));
+    
+    imACS_xyz = permute(imACS_rps,[permutedims 4]); % permute rest according to permutedims
 
+    imACS_xyz = flipAxes(imACS_xyz,reconPars.flipAxes_xyz);
+    
+    hf = figure('Visible','off'); % make an invisible figure for all figure plots
+    % to try to avoid stealing focus
+    set(hf,'Position',[    50   50   950  340])
+    orthoview(imACS_rps,'useNewFig',0);
+    subplot1(1); axis normal; title('Read/Phase')
+    ylabel('Low-res host image in native RPS coords')
+    subplot1(2); axis normal; title('Read/Slice')
+    subplot1(3); axis normal; title('Phase/Slice')
+    export_fig([htmlDir '/orientationCheck_Host_RPS.png']);
+    clf
+    orthoview(imACS_xyz,'useNewFig',0);
+    subplot1(1); axis normal; 
+    ylabel('Low-res host image in assumed XYZ coords')
+    subplot1(2); axis normal;
+    subplot1(3); axis normal; 
+    export_fig([htmlDir '/orientationCheck_Host_XYZ.png']);
+
+    close(hf);
+    
+    fprintf(fidHTML,['<br><br><br>Orientation check for host images RPS to XYZ:<br>\n']);
+    fprintf(fidHTML,['<img src="orientationCheck_Host_XYZ.png"><br><br>\n']);
+    fprintf(fidHTML,['<img src="orientationCheck_Host_RPS.png"><br><br>\n']);
+
+end
 
 %% load moco parameters and align their orientation to the host data
 
@@ -445,42 +479,116 @@ this_fitMat = fitResult.MPos_cent.mats;
 
 % Account for the fact that the host sequence may not have been acquired at
 % isocentre:
-%
-%%% NOTE - I have not checked the following code works properly in the case
-%%% of non-isotropic host FOV and/or voxels situated away from isocentre.
-vox_fitMat = this_fitMat;
-vox_fitMat(1:3,4,:) = bsxfun(@times,this_fitMat(1:3,4,:), 1./hostVoxDim_mm); % rescale translations into new voxel size
+%%% danielg: June 26 - attempt to 'fix' this code using moveFrame approach
+A_fatnav2host = eye(4);
+A_fatnav2host(1:3,1:3) = rotAndShift.RotMat*reconPars.extraFlipMat1;
 
-rotMatDisplacement_mm = [sPosition.dSag sPosition.dCor -sPosition.dTra].';
-rotMatDisplacement_voxels = rotMatDisplacement_mm ./ hostVoxDim_mm;
+A_fatnav2host(1:3,4) = rotAndShift.RotMat*rotAndShift.Shifts_SagCorTra(:); 
+% A_fatnav2host(1:3,4) = rotAndShift.Shifts_SagCorTra(permutedims_toXYZ).'; 
+% still slightly unclear here as to whether my 'extraFlips' are necessary
+% on the offsets...
+% A_fatnav2host(1:3,4) = -reconPars.extraFlipMat1*rotAndShift.Shifts(permutedims_toXYZ).'; 
+% A_fatnav2host(1:3,4) = reconPars.extraFlipMat1*rotAndShift.Shifts(permutedims_toXYZ).'; 
 
-new_fitMat = zeros(size(vox_fitMat));
-for iT = 1:size(vox_fitMat,3)
-    thisRotMat = vox_fitMat(1:3,1:3,iT);
-    thisRotMatDisplacement = rotMatDisplacement_voxels - (thisRotMat*rotMatDisplacement_voxels);
-    new_fitMat(1:3,1:3,iT) = thisRotMat;
-    new_fitMat(1:3,4,iT) = thisRotMatDisplacement + vox_fitMat(1:3,4,iT);
+% it doesn't make sense to me to create a new matrix here, but when I was
+% debugging I was getting desparate. Leaving in here 'just in case'...
+A_fatnav2host_forMats = reconPars.extraFlipMat2*A_fatnav2host;
+
+this_fitMat_mm = moveFrame(this_fitMat,A_fatnav2host_forMats);
+
+if exist([fatnavdir '/eachFatNav_001.nii'],'file')
+    
+   %%
+    fileTest1 = [fatnavdir '/test1.nii'];
+    fileTest2 = [fatnavdir '/test2.nii'];
+    copyfile([fatnavdir '/eachFatNav_001.nii'],fileTest1);
+    copyfile([fatnavdir '/eachFatNav_001.nii'],fileTest2);
+    
+    % attempt to use SPM directly to put FatNav into Host RPS space
+    V_source = spm_vol_nifti(fileTest1);    
+    V_virtual = spm_vol_nifti(fileTest2);
+    
+    % also use niftiread functions to get header as this is (slightly)
+    % different to SPM's header...
+    nii = load_untouch_nii(fileTest1);
+    
+    
+    % Change the dimensions (number of voxels) to alter your FOV
+    V_virtual.dim = round(FOVrps.' / reconPars.FatNavRes_mm);
+
+    %  Calculate centering shift caused purely by the FOV dimension change
+    orig_center  = V_source.dim / 2;
+    new_center   = V_virtual.dim / 2;
+    shift_voxels = ( new_center - orig_center);
+    
+    % Convert voxel shift to mm using the original voxel spacing
+    shift_mm = reconPars.FatNavRes_mm * shift_voxels';
+    
+    % Account for any nosecircshift in the fatnav    
+    shift_nose_mm = -(nii.hdr.hist.srow_y(4) + ((V_source.dim(2)/2)*reconPars.FatNavRes_mm)); % srow_y is -ve, so this finds diff
+    A_shiftNose = eye(4);
+    A_shiftNose(2,4) = shift_nose_mm; 
+    
+    V_source.mat = A_fatnav2host * A_shiftNose * V_source.mat;
+    V_source.mat(1:3, 4) = V_source.mat(1:3, 4) + shift_mm;
+    
+    % Pass both headers to spm_reslice. 
+    spm_reslice([V_virtual, V_source], struct('mask',false,'mean',false,'interp',1,'which',1,'wrap',[1 1 1],'prefix',''));
+    
+    newFatIm = rn(fileTest1);
+  
+    hf = figure('Visible','off');
+    oOut = orthoview(newFatIm,'useNewFig',0);
+    
+    set(gcf,'Position',[    50   720   950  540])
+    subplot(oOut.hAx(1))
+    title('Read/Phase')
+    ylabel('First FatNav realigned to Host RPS')
+    subplot(oOut.hAx(2))
+    title('Read/Slice')
+    subplot(oOut.hAx(3))
+    title('Phase/Slice')
+    export_fig([htmlDir '/orientationCheck_FatVolume.png'])
+    %%
+    close(hf);
+    
+    fprintf(fidHTML,['Orientation check for host sequence slice rotation and positioning:<br>\n']);
+    fprintf(fidHTML,['<img src="orientationCheck_FatVolume.png"><br><br>\n']);
+    fprintf(fidHTML,['(The fat volume shown above should approximately correspond to the FOV chosen for the host sequence in the "native RPS" coords shown above that)<br><br><br>\n']);
+end
+disp('Ims done')
+
+%% Do GRAPPA (if necessary) for the host sequence
+% Note that this can use rather a lot of hard-disk space, as the raw data
+% has to be shuffled around a few times to end up with one file per 
+% reconstructed RF channel
+
+
+if Arps(2) > 1
+    if reconPars.bGetGRAPPA_SVD
+        [~,~,Vsvd] = svd(reshape(kdataHostACS,[],size(kdataHostACS,4)),'econ');
+        svdCombinePars = Vsvd(:,1);
+    else
+        svdCombinePars = [];
+    end
+    useGRAPPAforHost = 1;
+    if reconPars.bGRAPPAinRAM        
+        [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_obj,...
+            struct('iAve',reconPars.iAve,'iRep',reconPars.iRep),2,svdCombinePars);
+        mOutGRAPPA.grappaRecon_1DFFT = grappaRecon_1DFFT; clear grappaRecon_1DFFT;
+        timingReport_hostRecon = mOutGRAPPA.timingReport;
+    else
+%         [mOutGRAPPA, timingReport_hostRecon] =
+%         performHostGRAPPArecon(twix_obj,tempDir); % the original low-RAM
+%         alternative code needs verifying as the output ends up corrupted
+%         (in at least some cases)
+        [timingReport_hostRecon, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,struct('iAve',reconPars.iAve,'iRep',reconPars.iRep),2,svdCombinePars);    
+    end
+else
+    useGRAPPAforHost = 0;
+    timingReport_hostRecon = 0;
 end
 
-this_fitMat_mm = new_fitMat;
-this_fitMat_mm(1:3,4,:) = bsxfun(@times,this_fitMat_mm(1:3,4,:), hostVoxDim_mm); % put translations into mm
-
-theseDisplacements = squeeze(this_fitMat_mm(1:3,4,:));
-
-switch baseOrientation
-    case 1 % Coronal         
-        tiltTheta = acos(allNormals(1))*180/pi;
-        thisRot = euler2rmat(tiltTheta,0,0);        
-    case 2 % Transverse
-        tiltTheta = acos(allNormals(2))*180/pi;
-        thisRot = euler2rmat(tiltTheta,0,0);
-    case 3 % Sagittal
-        thisRot = euler2rmat(dInPlaneRot*180/pi,0,0);
-end
-
-% and account for rotation of slices...
-newDisplacements = thisRot*theseDisplacements;
-this_fitMat_mm(1:3,4,:) = newDisplacements;
 
 
 
@@ -489,8 +597,8 @@ this_fitMat_mm(1:3,4,:) = newDisplacements;
 % - find the coil which has the biggest asymmetry left > right, and see if it
 % is on the same side in both the FatNavs and the host data
 nc_FatNavs = size(ACSims,4);
-asymData_left = sum(reshape(abs(ACSims(1:floor(FatNav_xyz(1)/2),:,:,:)),[],nc_FatNavs),1);
-asymData_right = sum(reshape(abs(ACSims(ceil(FatNav_xyz(1)/2):FatNav_xyz(1),:,:,:)),[],nc_FatNavs),1);
+asymData_left = sum(reshape(abs(ACSims(1:floor(FatNavDims_xyz(1)/2),:,:,:)),[],nc_FatNavs),1);
+asymData_right = sum(reshape(abs(ACSims(ceil(FatNavDims_xyz(1)/2):FatNavDims_xyz(1),:,:,:)),[],nc_FatNavs),1);
 asymFactor = asymData_left./asymData_right;
 iAsymCoil = find(asymFactor==max(asymFactor),1);
 
@@ -509,72 +617,67 @@ else
     hostExampleVolume = squeeze(twix_obj.image(:,iAsymCoil,:,:,1,reconPars.iAve,1,1,reconPars.iRep,nS));
     hostExampleVolume = ifft3s(hostExampleVolume);
 end
-hostExampleVolume = permute(hostExampleVolume,permutedims);
 
-if reconPars.swapDims_xyz(1)
-    hostExampleVolume = hostExampleVolume(end:-1:1,:,:);
-end
 
-%%
-ov1 = orthoview(ACSims(:,:,:,iAsymCoil),'drawIms',0,'mip',1,'clims',[0 max(abs(ACSims(:)))]);
-ov2 = orthoview(hostExampleVolume,'drawIms',0,'mip',0,'clims',[0 max(abs(hostExampleVolume(:)))]);
+% ov1 = orthoview(ACSims(:,:,:,iAsymCoil),'drawIms',0,'mip',1,'clims',[0 max(abs(ACSims(:)))]);
+% ov2 = orthoview(hostExampleVolume,'drawIms',0,'mip',0,'clims',[0 max(abs(hostExampleVolume(:)))]);
+
+% Use SPM technique to put FatNav ACS image (single asymmetric coil only)
+% into Host RPS space:
+fileTest1 = [fatnavdir '/test1.nii'];
+fileTest2 = [fatnavdir '/test2.nii'];   
+sn(abs(ACSims(:,:,:,iAsymCoil)),fileTest1,reconPars.FatNavRes_mm*[1 1 1])
+
+copyfile(fileTest1,fileTest2);
+
+% attempt to use SPM directly to put FatNav into Host RPS space
+V_source = spm_vol_nifti(fileTest1);
+V_virtual = spm_vol_nifti(fileTest2);
+
+% Change the dimensions (number of voxels) to alter your FOV
+%     V_virtual.dim = FatNavDims_HostRPS;
+V_virtual.dim = round(FOVrps.' / reconPars.FatNavRes_mm);
+
+%  Calculate centering shift caused purely by the FOV dimension change
+orig_center  = V_source.dim / 2;
+new_center   = V_virtual.dim / 2;
+shift_voxels = ( new_center - orig_center);
+
+% Convert voxel shift to mm using the original voxel spacing
+shift_mm = reconPars.FatNavRes_mm * shift_voxels';
+
+% Note that ACSim wouldn't have the nose circshift applied, so no need to
+% correct here as above
+V_source.mat = A_fatnav2host * V_source.mat;
+V_source.mat(1:3, 4) = V_source.mat(1:3, 4) + shift_mm;
+
+% Pass both headers to spm_reslice. 
+spm_reslice([V_virtual, V_source], struct('mask',false,'mean',false,'interp',1,'which',1,'wrap',[0 0 0],'prefix',''));
+
+
+newFatImAsym = rn(fileTest1);
+
+ov1 = orthoview(newFatImAsym,'drawIms',0,'mip',1,'clims',[0 max(abs(ACSims(:)))]);
+ov2 = orthoview(hostExampleVolume,'drawIms',0,'mip',1,'clims',[0 max(abs(hostExampleVolume(:)))]);
+
 hf = figure('Visible','off'); % make an invisible figure for all figure plots
 % to try to avoid stealing focus
 set(hf,'Position',[    22   594   702   473])
-hAx = subplot1(1,2,'figHandle',hf);
+hAx = subplot1(2,1,'figHandle',hf);
 subplot(hAx(1))
-imab(ov1.im1)
-title(['xy MIP of FatNav, coil ' num2str(iAsymCoil)])
+imab(ov1.oneIm)
+ylabel({'MIP of FatNav', 'in Host RPS space' , ['coil ' num2str(iAsymCoil)]})
 subplot(hAx(2))
-imab(ov2.im1)
-title(['xy centre-slice of host GRAPPA recon, coil ' num2str(iAsymCoil)])
+imab(ov2.oneIm)
+ylabel({'MIP of Host', 'GRAPPA recon' , [ 'coil ' num2str(iAsymCoil)]})
 colormap(gray)
 export_fig([htmlDir '/orientationCheck_xy.png']);
 close(hf);
 
-fprintf(fid,['Orientation check for left/right symmetry:<br>\n']);
-fprintf(fid,['<img src="orientationCheck_xy.png"><br><br>\n']);
-fprintf(fid,['(Both images above should have the brightest signal on the left of the image. If not, the orientation of the FatNavs is not correctly aligned with the host sequence)<br><br><br>\n']);
+fprintf(fidHTML,['Orientation check for left/right symmetry:<br>\n']);
+fprintf(fidHTML,['<img src="orientationCheck_xy.png"><br><br>\n']);
+fprintf(fidHTML,['(Both images above should have the brightest signal in the same places on the images. If not, the orientation of the FatNavs is not correctly aligned with the host sequence)<br><br><br>\n']);
 
-
-%%
-
-if exist([fatnavdir '/eachFatNav_001.nii'],'file')
-    affMat = thisRot;
-%     affMat(1:3,4) = rotMatDisplacement_mm.'/2; % Why was this divided by
-%     two...?
-    affMat(1:3,4) = rotMatDisplacement_mm.'; 
-    affMat(4,4) = 1;
-    
-    fileTest1 = [fatnavdir '/test1.nii'];
-    fileTest2 = [fatnavdir '/test2.nii'];
-    copyfile([fatnavdir '/eachFatNav_001.nii'],fileTest1);
-    copyfile([fatnavdir '/eachFatNav_001.nii'],fileTest2);
-    
-    V = spm_vol_nifti(fileTest1);
-    V(2) = spm_vol_nifti(fileTest2);
-    newMat = V(1).mat;
-    newMat = affMat*newMat;
-    V(2).mat = newMat;
-    spm_reslice(V,struct('mask',false,'mean',false,'interp',5,'which',1,'wrap',[0 0 0],'prefix',''));
-    newFatIm = rn(fileTest2);
-    
-    nShowX = min(FatNav_xyz(1),round(0.5*FatNav_xyz(1)*FOVxyz(1)/FatNav_FOVxyz(1))*2);
-    nShowY = min(FatNav_xyz(2),round(0.5*FatNav_xyz(2)*FOVxyz(2)/FatNav_FOVxyz(2))*2);
-    nShowZ = min(FatNav_xyz(3),round(0.5*FatNav_xyz(3)*FOVxyz(3)/FatNav_FOVxyz(3))*2);
-    
-    hf = figure('Visible','off');
-    oOut = orthoview(newFatIm([1:nShowX]-nShowX/2+FatNav_xyz(1)/2,[1:nShowY]-nShowY/2+FatNav_xyz(2)/2,[1:nShowZ]-nShowZ/2+FatNav_xyz(3)/2),'useNewFig',0);
-    set(gcf,'Position',[    50   720   950  340])
-    subplot(oOut.hAx(2))
-    title({'First FatNav realigned to coordinate system of host sequence','xz'})
-    export_fig([htmlDir '/orientationCheck_FatVolume.png'])
-    close(hf);
-    
-    fprintf(fid,['Orientation check for host sequence slice rotation and positioning:<br>\n']);
-    fprintf(fid,['<img src="orientationCheck_FatVolume.png"><br><br>\n']);
-    fprintf(fid,['(The fat volume shown above should approximately correspond to the FOV chosen for the host sequence)<br><br><br>\n']);
-end
 
 %% FatNavs are not acquired concurrently with the MP2RAGE data, so in the 
 % case of 'brittle' motion it may be especially beneficial to average
@@ -601,22 +704,22 @@ this_fitMat_mm(1:3,4,:) = newRotTrans(4:6,:);
 
 % if accelerated in fatnav direction, then motion needs to be interpolated
 % for the gaps
-if nFatNavs ~= hxyz(alignDim)
+if nFatNavs ~= hrps(alignDim_rps)
     rotTrans = rotmat2euler(this_fitMat_mm(1:3,1:3,:));
     rotTrans(4:6,:) = squeeze(this_fitMat_mm(1:3,4,:));
     
-    rotTrans_interp = interp1(iSamp,rotTrans.',1:hxyz(alignDim)).';
+    rotTrans_interp = interp1(iSamp,rotTrans.',1:hrps(alignDim_rps)).';
     startIndex = iSamp(1);
     % copy in values at edges of k-space to avoid extrapolation errors
     if startIndex > 1
         rotTrans_interp(:,1:startIndex-1) = repmat(rotTrans_interp(:,startIndex),[1 startIndex-1]);
     end
     endIndex = iSamp(end);
-    if endIndex < hxyz(alignDim)
-        rotTrans_interp(:,endIndex+1:end) = repmat(rotTrans_interp(:,endIndex),[1 hxyz(alignDim)-endIndex]);
+    if endIndex < hrps(alignDim_rps)
+        rotTrans_interp(:,endIndex+1:end) = repmat(rotTrans_interp(:,endIndex),[1 hrps(alignDim_rps)-endIndex]);
     end
     
-    this_fitMat_mm_interp = zeros(4,4,hxyz(alignDim));
+    this_fitMat_mm_interp = zeros(4,4,hrps(alignDim_rps));
     this_fitMat_mm_interp(4,4,:) = 1;
     
     this_fitMat_mm_interp(1:3,1:3,:) = euler2rmat(rotTrans_interp(1:3,:));
@@ -630,15 +733,10 @@ else
 end
 
 
-if reconPars.swapDims_xyz(alignDim)
-    % make it so that centre of k-space is not 'moved' (accounting for partial Fourier):
-    fitMats_mm_toApply = recentre_affmats(fitMats_mm_toApply,hxyz(alignDim)-kspaceCentre_xyz(alignDim));  
-    alignIndices = hxyz(alignDim):-1:1;  
-else
-    % make it so that centre of k-space is not 'moved' (accounting for partial Fourier):
-    fitMats_mm_toApply = recentre_affmats(fitMats_mm_toApply,kspaceCentre_xyz(alignDim));  
-    alignIndices = 1:hxyz(alignDim);
-end
+
+% make it so that centre of k-space is not 'moved' (accounting for partial Fourier):
+fitMats_mm_toApply = recentre_affmats(fitMats_mm_toApply,kspaceCentre_rps(alignDim_rps));
+alignIndices = 1:hrps(alignDim_rps);
 
 
 
@@ -728,11 +826,11 @@ if ~reconPars.bFullParforRecon
 
     % generate the st object for NUFFT and precalculate the phase offsets
     if reconPars.bUseGPU
-        [~,FT,~, phaseTranslations] = applyRetroMC_gpunufft(zeros(hxyz'),fitMats_mm_toApply,alignDim,alignIndices,11,...
-            hostVoxDim_mm,Hxyz,kspaceCentre_xyz,-1,reconPars.NUFFTosf,1);
+        [~,FT,~, phaseTranslations] = applyRetroMC_gpunufft(zeros(hrps'),fitMats_mm_toApply,alignDim_rps,alignIndices,11,...
+            hostVoxDim_mm_rps,Hrps,kspaceCentre_rps,-1,reconPars.NUFFTosf,1);
     else
-        [~,st,~, phaseTranslations] = applyRetroMC_nufft(zeros(hxyz'),fitMats_mm_toApply,alignDim,alignIndices,11,...
-            hostVoxDim_mm,Hxyz,kspaceCentre_xyz,-1,reconPars.NUFFTosf,1);
+        [~,st,~, phaseTranslations] = applyRetroMC_nufft(zeros(hrps'),fitMats_mm_toApply,alignDim_rps,alignIndices,11,...
+            hostVoxDim_mm_rps,Hrps,kspaceCentre_rps,-1,reconPars.NUFFTosf,1);
     end
     
     for iC = 1:nc_keep           
@@ -755,34 +853,16 @@ if ~reconPars.bFullParforRecon
                         thisData(iReadSlice,:,:) = reshape(tempData.outData(1,iC_keep(iC),:,:),[1 hrps(2) hrps(3)]);
                     end
                 end
-                % thisData = squeeze(mOutGRAPPA.dataCombined(:,:,:,2)); iC=1;iS = 1; % use this to have more brain coverage for debugging...
+                
+                % use this line to have more brain coverage for debugging:
+                % thisData = squeeze(mOutGRAPPA.dataCombined(:,:,:,2)); iC=1;iS = 1; 
+                
                 thisData = fft1s(thisData,1); % put into full 3D k-space
             else
                 thisData = squeeze(twix_obj.image(:,iC_keep(iC),:,:,1,reconPars.iAve,1,1,reconPars.iRep,iS));
             end
-            
-            thisData = permute(thisData,permutedims);
-            if reconPars.swapDims_xyz(1)
-                thisData = thisData(end:-1:1,:,:,:);
-            end
-            if reconPars.swapDims_xyz(2)
-                thisData = thisData(:,end:-1:1,:,:);
-            end
-            if reconPars.swapDims_xyz(3)
-                thisData = thisData(:,:,end:-1:1,:);
-            end
-            
+                                
             newData = thisData;
-            
-            if any(hxyz~=Hxyz)
-                thisData(Hxyz(1),Hxyz(2),Hxyz(3)) = 0; % extend to new size
-                thisData = circshift(thisData,double([Hxyz(1)-hxyz(1) Hxyz(2)-hxyz(2) Hxyz(3)-hxyz(3)].*(1-reconPars.swapDims_xyz)));
-                % the 'double' in the above line appears necessary in certain
-                % versions of Matlab, no idea why...
-            end
-            
-            thisData = ifft3s(thisData)*prod(hxyz);
-            
       
 %             thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
 %             % the multi-CPU (parfor) version of the NUFFT can be called with a
@@ -800,6 +880,34 @@ if ~reconPars.bFullParforRecon
                 thisData_corrected =  nufft_adj_single(newData(:).*phaseTranslations(:),st);
             end
             
+            % apply transforms to corrected and uncorrected data for final matrix shape:
+            thisData = permute(thisData,permutedims);
+            thisData_corrected = permute(thisData_corrected,permutedims);
+
+                        
+            if any(hxyz~=Hxyz)
+                thisData(Hxyz(1),Hxyz(2),Hxyz(3)) = 0; % extend to new size
+                thisData = circshift(thisData,double([Hxyz(1)-hxyz(1) Hxyz(2)-hxyz(2) Hxyz(3)-hxyz(3)]));
+                % the 'double' in the above line appears necessary in certain
+                % versions of Matlab, no idea why...
+            end                   
+
+            thisData = ifft3s(thisData)*prod(hxyz);
+
+            % important to apply the flip after the FFT for full agreement
+            % between iFFT and NUFFT pipelines
+            thisData = flipAxes(thisData,reconPars.flipAxes_xyz);
+            thisData_corrected = flipAxes(thisData_corrected,reconPars.flipAxes_xyz);
+         
+            
+%             save('svdCombineData.mat','thisData','newData','thisData_corrected','Hxyz','hxyz','Hrps','hrps',...
+%                 'fitMats_mm_toApply','alignDim_rps','alignIndices','hostVoxDim_mm_rps','kspaceCentre_rps',...
+%                 'reconPars','permutedims','-v7.3');
+            
+%             addpath ~/matlab/generaltools/
+%             SliceBrowser2(cat(4,nma(abs(thisData)),nma(abs(thisData_corrected))))
+% SliceBrowser2(cat(4,nma(abs(test1)),nma(abs(thisData_corrected))))
+
             
             timingReport_applyMoco(iC,iS) = toc;
             
@@ -927,8 +1035,8 @@ if ~reconPars.bFullParforRecon
 else % the much faster version with much hungrier RAM requirements:
     
     % generate the st object for NUFFT and precalculate the phase offsets    
-    [~,st,~, phaseTranslations] = applyRetroMC_nufft(zeros(hxyz'),fitMats_mm_toApply,alignDim,alignIndices,11,...
-        hostVoxDim_mm,Hxyz,kspaceCentre_xyz,-1,reconPars.NUFFTosf,1);
+    [~,st,~, phaseTranslations] = applyRetroMC_nufft(zeros(hrps'),fitMats_mm_toApply,alignDim_rps,alignIndices,11,...
+        hostVoxDim_mm_rps,Hrps,kspaceCentre_rps,-1,reconPars.NUFFTosf,1);
 
     parfor iC = 1:nc_keep
         
@@ -950,32 +1058,28 @@ else % the much faster version with much hungrier RAM requirements:
                 thisData = fft1s(thisData,1); % put into full 3D k-space
             end
             
-            thisData = permute(thisData,permutedims);
-            if reconPars.swapDims_xyz(1)
-                thisData = thisData(end:-1:1,:,:,:);
-            end
-            if reconPars.swapDims_xyz(2)
-                thisData = thisData(:,end:-1:1,:,:);
-            end
-            if reconPars.swapDims_xyz(3)
-                thisData = thisData(:,:,end:-1:1,:);
-            end
+                
+            tic            
+            thisData_corrected =  nufft_adj_single(thisData(:).*phaseTranslations(:),st);
+            timingReport_applyMoco(iC,iS) = toc;
             
-            newData = thisData;
+            % apply transforms to corrected and uncorrected data for final matrix shape:
+            thisData = permute(thisData,permutedims);
+            thisData_corrected = permute(thisData_corrected,permutedims);            
             
             if any(hxyz~=Hxyz)
                 thisData(Hxyz(1),Hxyz(2),Hxyz(3)) = 0; % extend to new size
-                thisData = circshift(thisData,double([Hxyz(1)-hxyz(1) Hxyz(2)-hxyz(2) Hxyz(3)-hxyz(3)].*(1-reconPars.swapDims_xyz)));
+                thisData = circshift(thisData,double([Hxyz(1)-hxyz(1) Hxyz(2)-hxyz(2) Hxyz(3)-hxyz(3)]));
                 % the 'double' in the above line appears necessary in certain
                 % versions of Matlab, no idea why...
             end
             
             thisData = ifft3s(thisData)*prod(hxyz);
             
-            tic
-            %             thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
-            thisData_corrected =  nufft_adj_single(newData(:).*phaseTranslations(:),st);
-            timingReport_applyMoco(iC,iS) = toc;
+            % important to apply the flip after the FFT for full agreement
+            % between iFFT and NUFFT pipelines
+            thisData = flipAxes(thisData,reconPars.flipAxes_xyz);
+            thisData_corrected = flipAxes(thisData_corrected,reconPars.flipAxes_xyz);      
             
             if nS > 1
                 thiscoil_ims(:,:,:,iS) = thisData;
@@ -1115,7 +1219,10 @@ avgTimeApplyMocoPerVolume = sum(timingReport_applyMoco(:))/ nc / nS;
 
 %% And put the reconstructed images into the html
 
+fprintf(fidHTML,'<h4>Reconstructed MP(2)RAGE images:</h4>\n');
+
 switch nS
+
     case 1 % again different code because matfile variables can't index dimensions which don't exist
         
         ov1 = orthoview(mOut.all_ims,'drawIms',0);
@@ -1123,10 +1230,10 @@ switch nS
         ov1 = orthoview(mOut.all_ims_corrected,'drawIms',0);
         imab_overwrite([htmlDir '/INV1_' outputSuffix '.png'],ov1.oneIm);
         
-        fprintf(fid,['INV1 image before correction:<br>\n']);
-        fprintf(fid,['<img src="INV1.png"><br><br>\n']);
-        fprintf(fid,['INV1 image after correction:<br>\n']);
-        fprintf(fid,['<img src="INV1_' outputSuffix '.png"><br><br>\n']);
+        fprintf(fidHTML,['INV1 image before correction:<br>\n']);
+        fprintf(fidHTML,['<img src="INV1.png"><br><br>\n']);
+        fprintf(fidHTML,['INV1 image after correction:<br>\n']);
+        fprintf(fidHTML,['<img src="INV1_' outputSuffix '.png"><br><br>\n']);
         
         
         testMagick = system('convert -version');
@@ -1134,15 +1241,15 @@ switch nS
         if testMagick==0 % can use ImageMagick to make animated GIFs...
             processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
             system(processString);
-            fprintf(fid,['INV1 image movie before/after correction:<br>\n']);
-            fprintf(fid,['<img src="mov_INV1.gif"><br><br>\n']);
+            fprintf(fidHTML,['INV1 image movie before/after correction:<br>\n']);
+            fprintf(fidHTML,['<img src="mov_INV1.gif"><br><br>\n']);
         else
             testMagickNew = system('magick -version'); % test for newer version of imageMagick (thanks to Sila Dokumaci!)
             if testMagickNew==0 
                 processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
                 system(processString);
-                fprintf(fid,['INV1 image movie before/after correction:<br>\n']);
-                fprintf(fid,['<img src="mov_INV1.gif"><br><br>\n']);
+                fprintf(fidHTML,['INV1 image movie before/after correction:<br>\n']);
+                fprintf(fidHTML,['<img src="mov_INV1.gif"><br><br>\n']);
         end
         
         end
@@ -1154,10 +1261,10 @@ switch nS
         ov1 = orthoview(mOut.all_ims_corrected(:,:,:,1),'drawIms',0);
         imab_overwrite([htmlDir '/INV1_' outputSuffix '.png'],ov1.oneIm);
         
-        fprintf(fid,['INV1 image before correction:<br>\n']);
-        fprintf(fid,['<img src="INV1.png"><br><br>\n']);
-        fprintf(fid,['INV1 image after correction:<br>\n']);
-        fprintf(fid,['<img src="INV1_' outputSuffix '.png"><br><br>\n']);
+        fprintf(fidHTML,['INV1 image before correction:<br>\n']);
+        fprintf(fidHTML,['<img src="INV1.png"><br><br>\n']);
+        fprintf(fidHTML,['INV1 image after correction:<br>\n']);
+        fprintf(fidHTML,['<img src="INV1_' outputSuffix '.png"><br><br>\n']);
         
         
         testMagick = system('convert -version');
@@ -1165,16 +1272,16 @@ switch nS
         if testMagick==0 % can use ImageMagick to make animated GIFs...
             processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
             system(processString);
-            fprintf(fid,['INV1 image movie before/after correction:<br>\n']);
-            fprintf(fid,['<img src="mov_INV1.gif"><br><br>\n']);
+            fprintf(fidHTML,['INV1 image movie before/after correction:<br>\n']);
+            fprintf(fidHTML,['<img src="mov_INV1.gif"><br><br>\n']);
             testMagickNew = -1; % create this variable in case it needs to exist for code to run
         else
             testMagickNew = system('magick -version');  % test for newer version of imageMagick (thanks to Sila Dokumaci!)
             if testMagickNew==0 
                 processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV1*.png ' htmlDir '/mov_INV1.gif'];
                 system(processString);
-                fprintf(fid,['INV1 image movie before/after correction:<br>\n']);
-                fprintf(fid,['<img src="mov_INV1.gif"><br><br>\n']);
+                fprintf(fidHTML,['INV1 image movie before/after correction:<br>\n']);
+                fprintf(fidHTML,['<img src="mov_INV1.gif"><br><br>\n']);
         end
         
         end
@@ -1188,10 +1295,10 @@ switch nS
         ov1 = orthoview(mOut.all_uniImage_corrected,'drawIms',0);
         imab_overwrite([htmlDir '/UNI_' outputSuffix '.png'],ov1.oneIm);
         
-        fprintf(fid,['INV2 image before correction:<br>\n']);
-        fprintf(fid,['<img src="INV2.png"><br><br>\n']);
-        fprintf(fid,['INV2 image after correction:<br>\n']);
-        fprintf(fid,['<img src="INV2_' outputSuffix '.png"><br><br>\n']);
+        fprintf(fidHTML,['INV2 image before correction:<br>\n']);
+        fprintf(fidHTML,['<img src="INV2.png"><br><br>\n']);
+        fprintf(fidHTML,['INV2 image after correction:<br>\n']);
+        fprintf(fidHTML,['<img src="INV2_' outputSuffix '.png"><br><br>\n']);
         
         
         if testMagick==0
@@ -1199,26 +1306,26 @@ switch nS
             system(processString);
             processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/UNI.png ' htmlDir '/UNI_' outputSuffix '.png ' htmlDir '/mov_UNI.gif'];
             system(processString);
-            fprintf(fid,['INV2 image movie before/after correction:<br>\n']);
-            fprintf(fid,['<img src="mov_INV2.gif"><br><br>\n']);
+            fprintf(fidHTML,['INV2 image movie before/after correction:<br>\n']);
+            fprintf(fidHTML,['<img src="mov_INV2.gif"><br><br>\n']);
             
         elseif testMagickNew==0
             processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2.png ' htmlDir '/INV2_' outputSuffix '.png ' htmlDir '/mov_INV2.gif'];
             system(processString);
             processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/UNI.png ' htmlDir '/UNI_' outputSuffix '.png ' htmlDir '/mov_UNI.gif'];
             system(processString);
-            fprintf(fid,['INV2 image movie before/after correction:<br>\n']);
-            fprintf(fid,['<img src="mov_INV2.gif"><br><br>\n']);
+            fprintf(fidHTML,['INV2 image movie before/after correction:<br>\n']);
+            fprintf(fidHTML,['<img src="mov_INV2.gif"><br><br>\n']);
         end
         
-        fprintf(fid,['UNI image before correction:<br>\n']);
-        fprintf(fid,['<img src="UNI.png"><br><br>\n']);
-        fprintf(fid,['UNI image after correction:<br>\n']);
-        fprintf(fid,['<img src="UNI_' outputSuffix '.png"><br><br>\n']);
+        fprintf(fidHTML,['UNI image before correction:<br>\n']);
+        fprintf(fidHTML,['<img src="UNI.png"><br><br>\n']);
+        fprintf(fidHTML,['UNI image after correction:<br>\n']);
+        fprintf(fidHTML,['<img src="UNI_' outputSuffix '.png"><br><br>\n']);
         
         if testMagick==0 || testMagickNew==0
-            fprintf(fid,['UNI image movie before/after correction:<br>\n']);
-            fprintf(fid,['<img src="mov_UNI.gif"><br><br>\n']);
+            fprintf(fidHTML,['UNI image movie before/after correction:<br>\n']);
+            fprintf(fidHTML,['<img src="mov_UNI.gif"><br><br>\n']);
         end
         
         % Do skull stripping with BET to be able to see the vessels within the brain more
@@ -1252,19 +1359,19 @@ switch nS
                 processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2_MIP.png ' htmlDir '/INV2_' outputSuffix '_MIP.png ' htmlDir '/mov_INV2_MIP.gif'];
                 system(processString);
                 
-                fprintf(fid,['INV2 MIP movie before/after correction:<br>\n']);
-                fprintf(fid,['<img src="mov_INV2_MIP.gif"><br><br>\n']);
+                fprintf(fidHTML,['INV2 MIP movie before/after correction:<br>\n']);
+                fprintf(fidHTML,['<img src="mov_INV2_MIP.gif"><br><br>\n']);
             elseif testMagickNew==0
                 processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/INV2_MIP.png ' htmlDir '/INV2_' outputSuffix '_MIP.png ' htmlDir '/mov_INV2_MIP.gif'];
                 system(processString);
                 
-                fprintf(fid,['INV2 MIP movie before/after correction:<br>\n']);
-                fprintf(fid,['<img src="mov_INV2_MIP.gif"><br><br>\n']);
+                fprintf(fidHTML,['INV2 MIP movie before/after correction:<br>\n']);
+                fprintf(fidHTML,['<img src="mov_INV2_MIP.gif"><br><br>\n']);
             else
-                fprintf(fid,['INV2 MIP before correction:<br>\n']);
-                fprintf(fid,['<img src="INV2_MIP.png"><br><br>\n']);
-                fprintf(fid,['INV2 MIP after correction:<br>\n']);
-                fprintf(fid,['<img src="INV2_' outputSuffix '_MIP.png"><br><br>\n']);
+                fprintf(fidHTML,['INV2 MIP before correction:<br>\n']);
+                fprintf(fidHTML,['<img src="INV2_MIP.png"><br><br>\n']);
+                fprintf(fidHTML,['INV2 MIP after correction:<br>\n']);
+                fprintf(fidHTML,['<img src="INV2_' outputSuffix '_MIP.png"><br><br>\n']);
             end
             
         end
@@ -1316,19 +1423,19 @@ switch nS
             processString = ['convert -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_' outputSuffix '.png ' htmlDir '/mov_zoom.gif'];
             system(processString);
             
-            fprintf(fid,['Sagittal zoom before/after correction:<br>\n']);
-            fprintf(fid,['<img src="mov_zoom.gif"><br><br>\n']);
+            fprintf(fidHTML,['Sagittal zoom before/after correction:<br>\n']);
+            fprintf(fidHTML,['<img src="mov_zoom.gif"><br><br>\n']);
         elseif testMagickNew==0
             processString = ['magick -dispose 2 -delay 50 -loop 0 ' htmlDir '/zoom.png ' htmlDir '/zoom_' outputSuffix '.png ' htmlDir '/mov_zoom.gif'];
             system(processString);
             
-            fprintf(fid,['Sagittal zoom before/after correction:<br>\n']);
-            fprintf(fid,['<img src="mov_zoom.gif"><br><br>\n']);
+            fprintf(fidHTML,['Sagittal zoom before/after correction:<br>\n']);
+            fprintf(fidHTML,['<img src="mov_zoom.gif"><br><br>\n']);
         else
-            fprintf(fid,['Sagittal zoom before correction:<br>\n']);
-            fprintf(fid,['<img src="zoom.png"><br><br>\n']);
-            fprintf(fid,['Sagittal after correction:<br>\n']);
-            fprintf(fid,['<img src="zoom_' outputSuffix '.png"><br><br>\n']);
+            fprintf(fidHTML,['Sagittal zoom before correction:<br>\n']);
+            fprintf(fidHTML,['<img src="zoom.png"><br><br>\n']);
+            fprintf(fidHTML,['Sagittal after correction:<br>\n']);
+            fprintf(fidHTML,['<img src="zoom_' outputSuffix '.png"><br><br>\n']);
         end
         
         
@@ -1351,28 +1458,26 @@ else
     totalTime_mins = round(totalTime*60);
 end
 
-fprintf(fid,['<h4>Total reconstruction time: ' num2str(totalTime_hrs) ' hours, ' num2str(totalTime_mins) ' mins</h4>\n']);
-fprintf(fid,['<strong>Calculate GRAPPA weights for FatNavs: </strong>' num2str(round(timingReport_FatNavs.calculateGRAPPAweights)) ' seconds.<br>\n']);
-fprintf(fid,['<strong>Reconstruct FatNavs: </strong>' num2str(nFatNavs) 'x ' num2str(round(mean(timingReport_FatNavs.eachFatNav))) ' seconds. Total time (possibly parallelized!): = ' num2str(round(timingReport_FatNavs.allFatNavs)) ' seconds. <br>\n']);
-fprintf(fid,['<strong>Align FatNavs using SPM: </strong>' num2str(round(timingReport_FatNavs.SPMalignment)) ' seconds.<br>\n']);
+fprintf(fidHTML,['<h4>Total reconstruction time: ' num2str(totalTime_hrs) ' hours, ' num2str(totalTime_mins) ' mins</h4>\n']);
+fprintf(fidHTML,['<strong>Calculate GRAPPA weights for FatNavs: </strong>' num2str(round(timingReport_FatNavs.calculateGRAPPAweights)) ' seconds.<br>\n']);
+fprintf(fidHTML,['<strong>Reconstruct FatNavs: </strong>' num2str(nFatNavs) 'x ' num2str(round(mean(timingReport_FatNavs.eachFatNav))) ' seconds. Total time (possibly parallelized!): = ' num2str(round(timingReport_FatNavs.allFatNavs)) ' seconds. <br>\n']);
+fprintf(fidHTML,['<strong>Align FatNavs using SPM: </strong>' num2str(round(timingReport_FatNavs.SPMalignment)) ' seconds.<br>\n']);
 if reconPars.bGRAPPAinRAM
-    fprintf(fid,'<em>GRAPPA recon of host performed in RAM (i.e. faster)...</em><br>\n');
+    fprintf(fidHTML,'<em>GRAPPA recon of host performed in RAM (i.e. faster)...</em><br>\n');
 else
-    fprintf(fid,'<em>GRAPPA recon of host stored as temporary files on hard drive (i.e. slower)...</em><br>\n');
+    fprintf(fidHTML,'<em>GRAPPA recon of host stored as temporary files on hard drive (i.e. slower)...</em><br>\n');
 end
 if useGRAPPAforHost
-    fprintf(fid,['<strong>Do 1D FFT for each ''slice'' in readout direction of host data:</strong> ' num2str(round(timingReport_hostRecon.FFTperSlice)) ' seconds.<br>\n']);
-    fprintf(fid,['<strong>Declare variables for GRAPPA recon:</strong> ' num2str(round(timingReport_hostRecon.declareVariables)) ' seconds.<br>\n']);
-    fprintf(fid,['<strong>GRAPPA recon:</strong> ' num2str(timingReport_hostRecon.GRAPPArecon/60,'%.1f') ' mins.<br>\n']);
+    fprintf(fidHTML,['<strong>Do 1D FFT for each ''slice'' in readout direction of host data:</strong> ' num2str(round(timingReport_hostRecon.FFTperSlice)) ' seconds.<br>\n']);
+    fprintf(fidHTML,['<strong>Declare variables for GRAPPA recon:</strong> ' num2str(round(timingReport_hostRecon.declareVariables)) ' seconds.<br>\n']);
+    fprintf(fidHTML,['<strong>GRAPPA recon:</strong> ' num2str(timingReport_hostRecon.GRAPPArecon/60,'%.1f') ' mins.<br>\n']);
 end
-fprintf(fid,['<strong>Application of retrospective motion-correction: </strong>' num2str(nc_keep) ' channels, ' num2str(nS) ' sets, each taking ' num2str(round(avgTimeApplyMocoPerVolume)) ' seconds (possibly parallelized) = ' num2str(timingReport_totalTimeApplyMoco/60,'%.1f') ' mins.<br>\n']);
-
-% include version number
-fprintf(fid,['<br><br><br><em>' char(datetime) '- created with reconstructSiemensMP2RAGEwithFatNavs.m, version: ' retroMocoBoxVersion '</em>\n']);
+fprintf(fidHTML,['<strong>Application of retrospective motion-correction: </strong>' num2str(nc_keep) ' channels, ' num2str(nS) ' sets, each taking ' num2str(round(avgTimeApplyMocoPerVolume)) ' seconds (possibly parallelized) = ' num2str(timingReport_totalTimeApplyMoco/60,'%.1f') ' mins.<br>\n']);
 
 
-fprintf(fid,'</body></html>\n');
-fclose(fid);
+
+fprintf(fidHTML,'</body></html>\n');
+fclose(fidHTML);
 
 
 %% Delete the temporary files (which could be rather large...!)
