@@ -65,12 +65,18 @@ end
 
 outDir = [reconPars.outRoot '/' reconPars.outFolderPrefix '_' MIDstr appendString];
 if ~exist(outDir,'dir')
-    mkdir(outDir)
+    [status, msg, msgID] = mkdir(outDir);
+    if status == 0
+        error(['Unable to create folder: ' outDir ' ---  Failed with error: ' msg]);
+    end
 end
 
 htmlDir = [outDir '/html'];
 if ~exist(htmlDir,'dir')
-    mkdir(htmlDir)
+    [status, msg, msgID] = mkdir(htmlDir);
+    if status == 0
+        error(['Unable to create folder: ' htmlDir ' ---  Failed with error: ' msg]);
+    end
 end
 
 if isempty(reconPars.tempRoot)
@@ -78,7 +84,10 @@ if isempty(reconPars.tempRoot)
 end
 tempDir = [reconPars.tempRoot '/temp_' MIDstr appendString];
 if ~exist(tempDir,'dir')
-    mkdir(tempDir)
+    [status, msg, msgID] = mkdir(tempDir);
+    if status == 0
+        error(['Unable to create folder: ' tempDir ' ---  Failed with error: ' msg]);
+    end
 end
 
 % intialize html index file
