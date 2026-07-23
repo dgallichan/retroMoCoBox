@@ -21,16 +21,12 @@ if [ $# -lt 1 ];then
 	echo "folders created - which can run into >200 GB of data usage for high-res"
 	echo "multi-echo data. Please make sure you have enough quota to handle this!"
 	echo ""
-	echo "IMPORTANT:"
-	echo "Before running you will need to make sure that you set"
-	echo "the RETROMOCOBOX_HOME environment variable and also ASPIRE_HOME"
-	echo "by manually editing this script and"
-	echo "specifying them below this text in the .sh file itself."
 	exit 1;
 fi
 
-export RETROMOCOBOX_HOME=/home/scedg10/retroMoCoBox
-export ASPIRE_HOME=/home/scedg10/matlab_cubric/ASPIRE
+export RETROMOCOBOX_HOME=/cubric/software/matlab.toolboxes/retroMoCoBox_v1.0.1
+export ASPIRE_HOME=/cubric/software/matlab.toolboxes/ASPIRE
+export SPM_HOME=/cubric/software/spm.versions/spm12
 
 inputfile=$1
 
@@ -43,7 +39,6 @@ else
 fi
 
 
-export SPM_HOME=/cubric/software/spm.versions/spm12
 
 # if 'cluster log path' folder doesn't exist already, create it:
 [ -d ${CLUSTER_LOG_PATH} ] || mkdir ${CLUSTER_LOG_PATH}

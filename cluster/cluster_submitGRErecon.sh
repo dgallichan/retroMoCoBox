@@ -25,8 +25,9 @@ if [ $# -lt 1 ];then
 	exit 1;
 fi
 
-export RETROMOCOBOX_HOME=/home/scedg10/retroMoCoBox
-export ASPIRE_HOME=/home/scedg10/matlab_cubric/ASPIRE
+export RETROMOCOBOX_HOME=/cubric/software/matlab.toolboxes/retroMoCoBox_v1.0.1
+export ASPIRE_HOME=/cubric/software/matlab.toolboxes/ASPIRE
+export SPM_HOME=/cubric/software/spm.versions/spm12
 
 inputfile=$1
 
@@ -39,7 +40,6 @@ else
 fi
 
 
-export SPM_HOME=/cubric/software/spm.versions/spm12
 
 # if 'cluster log path' folder doesn't exist already, create it:
 [ -d ${CLUSTER_LOG_PATH} ] || mkdir ${CLUSTER_LOG_PATH}

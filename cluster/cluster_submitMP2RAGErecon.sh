@@ -9,10 +9,6 @@ if [ $# -lt 1 ];then
 	echo "If you pass just one input file you will get the outputs in the current working folder."
 	echo ""
 	echo ""
-	echo "IMPORTANT:"
-	echo "Before running you will need to make sure that you set"
-	echo "the RETROMOCOBOX_HOME environment variable manually within this script itself!"
-	echo ""
 	exit 1;
 fi
 
@@ -26,8 +22,7 @@ else
     export CLUSTER_LOG_PATH=${outRoot}/clusterlogs
 fi
 
-export RETROMOCOBOX_HOME=/home/scedg10/retroMoCoBox
-
+export RETROMOCOBOX_HOME=/cubric/software/matlab.toolboxes/retroMoCoBox_v1.0.1
 export SPM_HOME=/cubric/software/spm.versions/spm12
 
 # if 'cluster log path' folder doesn't exist already, create it:
