@@ -61,6 +61,10 @@ export SPM_HOME=/cubric/software/spm.versions/spm12
 #
 # For 0.67mm data with 7 echoes (20GB raw data file), this takes ~4hrs to run on the cluster and requires 209 GB of additional disk 
 # space while running.
+#
+# Note that if you still have a sub-folder starting 'temp_' in the output folder then either the reconstruction has not yet finished
+# or there has been an error with the processing. Check if you still have jobs queued on the cluster, and check the 'clusterlogs' 
+# folder for error messages.
 
 
 inputfile=$1
