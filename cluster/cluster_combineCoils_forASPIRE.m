@@ -6,39 +6,11 @@ run([RETROMOCOBOX_PATH '/addRetroMoCoBoxToPath.m']);
 % run([MIRT_PATH '/setup.m']);
 addpath(SPM_PATH);
 
-% parfor doesn't like some stuff... have to make it clear that they are
-% variables by setting them equal to themselves...!
-tempGRAPPAreconFile = tempNameRoots.grappaRecon_1DFFT;
-swapDims_xyz = reconPars.swapDims_xyz;
-nc_keep = nc_keep;
-hrps = hrps;
-iS = iS;
-iC_keep = iC_keep;
-permutedims = permutedims;
-hxyz = hxyz;
-Hxyz = Hxyz;
-nEco = nEco;
-fitMats_mm_toApply = fitMats_mm_toApply;
-alignDim = alignDim;
-alignIndices = alignIndices;
-hostVoxDim_mm = hostVoxDim_mm;
-kspaceCentre_xyz = kspaceCentre_xyz;
-tempNameRoots = tempNameRoots;
-MIDstr = MIDstr;
-
 tempDir = fileparts(reconParsFile); % tempDir itself wasn't actually saved explicitly before...
 
 all_ims = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nEco,nc_keep,'single')); % assume this *will* fit in RAM - ends up at 38 GB for 336x336x192x7x32
 all_ims_corrected = complex(zeros(Hxyz(1),Hxyz(2),Hxyz(3),nEco,nc_keep,'single')); % two copies required if we want to keep uncorrected as well...!
 
-
-% for iC = 1:nc_keep
-%     
-%     thisCoil = load([tempNameRoots.finalImage '_' num2str(iC,'%.2d') '.mat']);
-%     
-%     all_ims(:,:,:,:,iC) = thisCoil.thiscoil_ims;
-%     all_ims_corrected(:,:,:,:,iC) = thisCoil.thiscoil_ims_corrected; 
-% end
 
 disp('Loading all echoes into RAM...')
 for iE = 1:nEco

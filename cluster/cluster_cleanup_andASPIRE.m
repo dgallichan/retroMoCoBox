@@ -35,6 +35,9 @@ else
     data.processing_option = 'slice_by_slice';
     
     % run ASPIRE
+    disp('******************************************')
+    disp('Running ASPIRE on original data (no MoCo):');
+
     tic;
     run(Aspire(data));
     aspireTime = secs2hms(toc);
@@ -48,6 +51,8 @@ else
     data2.write_dir = fullfile(tempDir,'ASPIRE_MoCo');
     
     % run ASPIRE
+    disp('****************************************')
+    disp('Running ASPIRE on motion-corrected data:');
     tic;
     run(Aspire(data2));
     aspireTime = secs2hms(toc);
@@ -116,8 +121,18 @@ fprintf(fidHTML,['<strong>Reconstruct FatNavs: </strong>' num2str(nFatNavs) 'x '
 fprintf(fidHTML,['<strong>Align FatNavs using SPM: </strong>' num2str(round(timingReport_FatNavs.SPMalignment)) ' seconds.<br>\n']);
 % fprintf(fidHTML,['<strong>Application of retrospective motion-correction: </strong>' num2str(round(timingReport_totalTimeApplyMoco/60)) ' minutes\n']); % <--- not passed through currently in cluster mode
 
+% include total temp folder size
+[status, cmdout] = system(sprintf('du -sh "%s"', tempDir));
+tempSize = strsplit(strtrim(cmdout));
+tempSize = tempSize{1};
+fprintf(fidHTML,['<br><strong>Temp Folder disk usage: </strong>' tempSize '.<br>\n']);
+
+
 % include version number
 fprintf(fidHTML,['<br><br><br><em>' char(datetime) '- created with reconstructSiemensGREwithFatNavs.m, version: ' reconPars.retroMocoBoxVersion '</em>\n']);
+
+
+
 
 
 fprintf(fidHTML,'</body></html>\n');
@@ -126,6 +141,8 @@ fclose(fidHTML);
 
 %% Delete the temporary files (which could be rather large...!)
  
+
+
 % clear temporary
 if ~reconPars.bKeepGRAPPArecon
     fclose('all'); % ASPIRE currently doesn't close files properly

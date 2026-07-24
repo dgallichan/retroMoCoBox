@@ -32,9 +32,9 @@ all_ims = complex(zeros(nc_keep,Hxyz(1),Hxyz(2),Hxyz(3),'single'));
 % parfor doesn't like some stuff... have to make it clear that they are
 % variables by setting them equal to themselves...!
 tempGRAPPAreconFile = tempNameRoots.grappaRecon_1DFFT;
-swapDims_xyz = reconPars.swapDims_xyz;
 nc_keep = nc_keep;
 hrps = hrps;
+Hrps = Hrps;
 iS = iS;
 iC_keep = iC_keep;
 permutedims = permutedims;
@@ -42,12 +42,15 @@ hxyz = hxyz;
 Hxyz = Hxyz;
 nEco = nEco;
 fitMats_mm_toApply = fitMats_mm_toApply;
-alignDim = alignDim;
+alignDim_rps = alignDim_rps;
 alignIndices = alignIndices;
 hostVoxDim_mm = hostVoxDim_mm;
-kspaceCentre_xyz = kspaceCentre_xyz;
+hostVoxDim_mm_rps = hostVoxDim_mm_rps;
+flipAxes_xyz = flipAxes_xyz;
+kspaceCentre_rps = kspaceCentre_rps;
 tempNameRoots = tempNameRoots;
 MIDstr = MIDstr;
+
 
 tempDir = fileparts(reconParsFile); % tempDir itself wasn't actually saved explicitly before...
 
@@ -72,35 +75,32 @@ parfor iC = 1:nc_keep
         thisData = squeeze(allGRAPPAdata(iC,:,:,:));
         
         thisData = fft1s(thisData,1); % put into full 3D k-space
-        
-        
+                     
+        % % apply the Moco:
+        % thisData_corrected = nufft_adj_single(thisData(:).*phaseTranslations(:),st);
+
+        % permute the orientations 
         thisData = permute(thisData,permutedims);
-        if swapDims_xyz(1)
-            thisData = thisData(end:-1:1,:,:,:);
-        end
-        if swapDims_xyz(2)
-            thisData = thisData(:,end:-1:1,:,:);
-        end
-        if swapDims_xyz(3)
-            thisData = thisData(:,:,end:-1:1,:);
-        end
-        
-        newData = thisData;
-        
+        % thisData_corrected = permute(thisData_corrected,permutedims);
+
         if any(hxyz~=Hxyz)
             thisData(Hxyz(1),Hxyz(2),Hxyz(3)) = 0; % extend to new size
-            thisData = circshift(thisData,double([Hxyz(1)-hxyz(1) Hxyz(2)-hxyz(2) Hxyz(3)-hxyz(3)].*(1-swapDims_xyz)));
+            thisData = circshift(thisData,double([Hxyz(1)-hxyz(1) Hxyz(2)-hxyz(2) Hxyz(3)-hxyz(3)]));
             % the 'double' in the above line appears necessary in certain
             % versions of Matlab, no idea why...
         end
         
         thisData = ifft3s(thisData)*prod(hxyz);
         
-%         thisData_corrected = applyRetroMC_nufft(newData,fitMats_mm_toApply,alignDim,alignIndices,11,hostVoxDim_mm,Hxyz,kspaceCentre_xyz);
-        % thisData_corrected = nufft_adj_single(newData(:).*phaseTranslations(:),st);        
+        % important to apply the flip after the FFT for full agreement
+        % between iFFT and NUFFT pipelines
+        thisData = flipAxes(thisData,reconPars.flipAxes_xyz);
+        % thisData_corrected = flipAxes(thisData_corrected,reconPars.flipAxes_xyz);
+        
         
         all_ims(iC,:,:,:) = reshape(thisData,[1 Hxyz.']);
         % all_ims_corrected(iC,:,:,:) = reshape(thisData_corrected,[1 Hxyz.']);
+        
 
 
 end

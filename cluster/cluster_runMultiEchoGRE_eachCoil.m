@@ -1,5 +1,7 @@
 function cluster_runMultiEchoGRE_eachCoil(reconParsFile,iC,bSaveAll)
 
+%%% NB - this file hasn't yet been updated for retroMocoBox v1.0 syntax...!
+
 if nargin < 3
     bSaveAll = 0;
 end

@@ -126,10 +126,13 @@ reconPars.coilCombineMethod = 'default';
 
 if B0_fieldStrength_Tesla < 4
     reconPars.FatNavRes_mm = 4;
+    reconPars.manualFatNavRes = 0; % this means it was automatically assigned
 elseif strcmp(sequenceType,'MPRAGE')
     reconPars.FatNavRes_mm = 2;
+    reconPars.manualFatNavRes = 0; % this means it was automatically assigned
 else
     reconPars.FatNavRes_mm = [];
+    reconPars.manualFatNavRes = -1; % this means it hasn't been assigned yet
 end
 %       'FatNavRes_mm' - the spatial resolution of the acquired FatNavs, 
 %                        specified in mm. The current implementation of the
@@ -227,3 +230,9 @@ reconPars.extraPositionOffsetSignFlips = [1 -1 1];
     % This is because I'm *still* having trouble getting FatNavs to align
     % with host sequence if the host sequence is rotated e.g. PA instead of AP
 
+reconPars.ASPIRE_HOME = [];
+    % ASPIRE is used for our multi-echo GRE recons, and so it can be useful
+    % to store the path for this
+
+reconPars.CLUSTER_LOG_PATH = [];
+    % Useful when calling recons on a cluster to keep track of log path

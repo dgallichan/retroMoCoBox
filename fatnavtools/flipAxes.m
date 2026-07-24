@@ -1,5 +1,9 @@
 function out = flipAxes(dataToFlip,flip_xyz) 
 
+if isempty(flip_xyz)
+    flip_xyz = [0 0 1]; % current best guess :)
+end
+
 out = dataToFlip;
 if flip_xyz(1)
     out = flip(out,1);
