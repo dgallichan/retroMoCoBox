@@ -648,35 +648,53 @@ if bUseNeckMasking
     template_mask   = [fatnavdir '/fatnavStandard_mask.nii,1'];    
     subj_fatnav     = [fatnavdir '/eachFatNav_' num2str(indexOfFirstNav,'%.3d') '.nii,1']; % Reference frame 1
     
-    % NOTE this uses 6-dof rigid-body, whereas full affine would make more
-    % sense, but in quick testing, rigid-body seems more robust and is
-    % probably good enough anyway for this purpose!
-    
-    % 1. Pass both files as a 2-frame series (Subject is reference Frame 1)
-    P_pair = char(subj_fatnav, template_fatnav);
-    
-    % 2. Set standard realignment flags (Least Squares)
-    realign_flags.quality = 0.9;
-    realign_flags.fwhm    = 5;
-    realign_flags.rtm     = 0; % Keep Frame 1 (Subject) as the strict target
-    realign_flags.interp  = 2;
-    realign_flags.wrap    = [0 0 0];
-    
-    % 3. Run realignment. This modifies the HEADER of template_fatnav to match subj_fatnav
-    spm_realign(P_pair, realign_flags);
-    
-    % Extract the newly calculated space from the realigned template image
-    M_new = spm_get_space(template_fatnav);
-    
-    % Apply that exact spatial matrix to your template mask
-    spm_get_space(template_mask, M_new);
-    
-    % Now reslice the mask into subject space using Nearest Neighbor (interp=0)
-    reslice_flags = struct('mask',0, 'mean',0, 'interp',0, 'which',1,'prefix','subj_');
-    spm_reslice(char(subj_fatnav, template_mask), reslice_flags);
+    %% Method using spm_realign:
+%     
+%     % NOTE this uses 6-dof rigid-body, whereas full affine would make more
+%     % sense, but in quick testing, rigid-body seems more robust and is
+%     % probably good enough anyway for this purpose!
+%     
+%     % 1. Pass both files as a 2-frame series (Subject is reference Frame 1)
+%     P_pair = char(subj_fatnav, template_fatnav);
+%     
+%     % 2. Set standard realignment flags (Least Squares)
+%     realign_flags.quality = 0.9;
+%     realign_flags.fwhm    = 3;
+%     realign_flags.rtm     = 0; % Keep Frame 1 (Subject) as the strict target
+%     realign_flags.interp  = 2;
+%     realign_flags.wrap    = [0 1 0];
+%     
+%     % 3. Run realignment. This modifies the HEADER of template_fatnav to match subj_fatnav
+%     spm_realign(P_pair, realign_flags);
+%     
+%     % Extract the newly calculated space from the realigned template image
+%     M_new = spm_get_space(template_fatnav);
+%     
+%     % Apply that exact spatial matrix to your template mask
+%     spm_get_space(template_mask, M_new);
+%     
+%     % Now reslice the mask into subject space using Nearest Neighbor (interp=0)
+%     reslice_flags = struct('mask',0, 'mean',0, 'interp',0, 'which',1,'prefix','subj_');
+%     spm_reslice(char(subj_fatnav, template_mask), reslice_flags);
+% 
+% %     spm_check_registration(char(subj_fatnav,template_fatnav));
+% %     spm_check_registration(char(subj_fatnav,template_mask));
 
-%     spm_check_registration(char(subj_fatnav,template_fatnav));
-%     spm_check_registration(char(subj_fatnav,template_mask));
+%% attempt using spm_coreg instead as having trouble sometimes with spm_realign for this task...
+
+    copyfile([fatnavdir '/fatnavStandard_mask.nii'],[fatnavdir '/subj_fatnavStandard_mask.nii']);
+
+    subj_mask  = [fatnavdir '/subj_fatnavStandard_mask.nii,1']; 
+
+    x = spm_coreg(subj_fatnav, template_fatnav);
+
+    % Convert parameters into an affine matrix
+    M  = spm_matrix(x);
+    
+    % Apply the SAME transform to the mask volume
+    MM = spm_get_space(subj_mask);
+    spm_get_space(subj_mask, inv(M) * MM);
+
     %%
    alignpars.PW = [fatnavdir '/subj_fatnavStandard_mask.nii'];
    
