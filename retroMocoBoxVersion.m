@@ -1,5 +1,8 @@
 function out = retroMocoBoxVersion
-out = '1.0.1dev';
+out = '1.0.2dev';
+% 1.0.2dev - Sep 26 - update the 'standard fatnav' to 2mm resolution,
+%                     larger FOV. Also changed registration to standard
+%                     from spm_realign to spm_coreg
 % 1.0.1dev - Update how the circshift is handled
 % 1.0.0dev - MAJOR OVERHAUL - 
 %          Highlights
