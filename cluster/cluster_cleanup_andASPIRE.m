@@ -59,16 +59,16 @@ else
     
     disp(['Whole calculation took: ' aspireTime]);
     disp(['Files written to: ' data2.write_dir]);
+
+
+    %% Copy ASPIRE output to be main GRE recon
+    
+    copyfile(fullfile(data.write_dir,'results','combined_mag.nii'),fullfile(outDir,'GRE_mag.nii'));
+    copyfile(fullfile(data.write_dir,'results','combined_phase.nii'),fullfile(outDir,'GRE_phs.nii'));
+    copyfile(fullfile(data2.write_dir,'results','combined_mag.nii'),fullfile(outDir,'GRE_MoCo_mag.nii'));
+    copyfile(fullfile(data2.write_dir,'results','combined_phase.nii'),fullfile(outDir,'GRE_MoCo_phs.nii'));
+    
 end
-
-%% Copy ASPIRE output to be main GRE recon
-
-copyfile(fullfile(data.write_dir,'results','combined_mag.nii'),fullfile(outDir,'GRE_mag.nii'));
-copyfile(fullfile(data.write_dir,'results','combined_phase.nii'),fullfile(outDir,'GRE_phs.nii'));
-copyfile(fullfile(data2.write_dir,'results','combined_mag.nii'),fullfile(outDir,'GRE_MoCo_mag.nii'));
-copyfile(fullfile(data2.write_dir,'results','combined_phase.nii'),fullfile(outDir,'GRE_MoCo_phs.nii'));
-
-
 %%
 
 fidHTML = fopen([htmlDir '/index.html'],'a');
