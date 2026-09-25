@@ -6,6 +6,11 @@
 
 Matlab toolbox for retrospective motion-correction of 3D MRI k-space data - as used for my work using 3D FatNavs to obtain the motion information. You can read more about FatNavs on [my research website](https://profiles.cardiff.ac.uk/staff/gallichand).
 
+> **Update July 2026** - now on version 1.0 - *Major updates*
+>
+> See retroMocoBoxVersion.m for full details, but main change is that motion correction is now performed in the coordinate frame of the acquisition, rather than 'scanner' xyz. This hopefully allows a wider range
+> of FOVs and orientations to be handled correctly automatically - and also puts the FatNav motion estimates into the same coordinate frame as would arise from any self-navigation methods.
+
 
 Used in:
 
