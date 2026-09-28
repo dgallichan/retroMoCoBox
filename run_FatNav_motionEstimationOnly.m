@@ -22,7 +22,7 @@ rotAndShift = getSiemensRotMatAndShift(twix_obj.hdr);
 MIDstr = getMIDstr(rawDataFile);
 fitResult = load([outRoot '/motion_parameters_spm_' MIDstr '.mat']);
     
-% conver the mpars into coordinate frame of host sequence
+% convert the mpars into coordinate frame of host sequence
 % (corresponds to default code from retroMoCoBox v1.0.2)
 this_fitMat = fitResult.MPos_cent.mats;
 
