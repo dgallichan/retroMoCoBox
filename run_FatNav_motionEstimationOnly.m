@@ -2,16 +2,22 @@
 % of the host sequence acquisition - useful for using alternative to
 % retroMoCoBox for the MoCo processing
 
+% These paths need to match your installation:
 run('~/retroMoCoBox/addRetroMoCoBoxToPath.m')
+addpath /cubric/software/spm.versions/spm12
 
+% And these paths need to match your data:
 rawDataFile = '/cubric/data/scedg10/exampleFatNavsRawData/meas_MID101_mp2rage_FatNav_1mm_smallMotion.dat';
 outRoot = '/home/scedg10/myscratch/retroMoCoBox_unitTests/tests/';
 
 
 %%
 
+% Process the .dat file (does not load into RAM)
 twix_obj = mapVBVD_fatnavs(rawDataFile,'removeOS',1);
 
+% Process the FatNavs (does reconstruction of all FatNavs and coregisters
+% them using SPM)
 processFatNavs_GRAPPA4x4(twix_obj, outRoot, 'bSwapHandedness',1);
 
 
