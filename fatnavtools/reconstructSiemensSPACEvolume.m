@@ -664,6 +664,10 @@ this_fitMat_mm = recentre_affmats(this_fitMat_mm,iCentre);
 %% Get GRAPPA kernel for host
 
 
+% testK = squeeze(twix_obj.image(240,1,:,:)); % use for debugging new
+% kernels!
+
+
 if bIsAccelerated    
     
     % % check if CAIPI
@@ -721,16 +725,12 @@ if bIsAccelerated
                 else
                     error('CAIPI acceleration combo not yet implemented....')
                 end
-                
+                               
             otherwise
                 error('CAIPI acceleration combo not yet implemented....')
-                % % create grapkernels for CAIPI 3x2:
-                
-                
-                
-                
+                % % create grapkernels for CAIPI 3x2:                                 
         end
-    else
+    else % Not CAIPI
         if Arps(2)==2 && Arps(3)==2
             grapKernel = zeros(7,7);
             grapKernel([1:2:7],[1:2:7]) = 1;
@@ -741,6 +741,14 @@ if bIsAccelerated
             grapKernel([1:2:5],[1:3:7]) = 1;
             grapKernel(2,[3 4 5]) = 0.5;
             grapKernel(3,[3 5]) = 0.5;
+        elseif Arps(2)==4 && Arps(3)==2
+            grapKernel = zeros(9,5);
+            grapKernel([1:4:9],[1:2:5]) = 1;
+            grapKernel(3,[2 3]) = 0.5;
+            grapKernel(4,[2 3]) = 0.5;              
+            grapKernel(5,[2]) = 0.5; 
+            grapKernel(6,[2 3]) = 0.5;
+
         else
             error('Acceleration combo not recognised')
         end
@@ -866,7 +874,7 @@ if isfield(twix_obj.hdr.MeasYaps.sKSpace,'ucEnableEllipticalScanning') && twix_o
     
     tFactor = 0.8;
     tFilt = tukey(hrps(3),tFactor,1-tFactor);
-    tFilt = tFilt(end/2:end);
+    tFilt = tFilt(round(end/2):end);
     
     krFilt = interp1(linspace(0,1,length(tFilt)),tFilt,kr);
     krFilt(isnan(krFilt)) = 0;
