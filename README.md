@@ -1,5 +1,10 @@
+### **Experiment with 2D motion directly in your browser:** [2D motion simulator](https://dgallichan.github.io/retroMoCoBox/motion-simulator.html)
+
+***
 
 ![alt text](https://github.com/dgallichan/retroMoCoBox/blob/master/images/retroMocoBox_logo_small.png?raw=true "Retro MocoBox Logo") 
+
+
 
 ## Retro-MoCo-Box
 
