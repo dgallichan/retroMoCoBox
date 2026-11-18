@@ -22,7 +22,8 @@ else
     export CLUSTER_LOG_PATH=${outRoot}/clusterlogs
 fi
 
-export RETROMOCOBOX_HOME=/cubric/software/matlab.toolboxes/retroMoCoBox_v1.0.1
+# set RETROMOCOBOX_HOME from the version in retroMocoBoxVersion.m
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/setRetroMoCoBoxHome.sh" || exit 1
 export SPM_HOME=/cubric/software/spm.versions/spm12
 
 # if 'cluster log path' folder doesn't exist already, create it:

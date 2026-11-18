@@ -26,7 +26,8 @@ if [ $# -lt 1 ];then
 	exit 1;
 fi
 
-export RETROMOCOBOX_HOME=/cubric/software/matlab.toolboxes/retroMoCoBox_v1.0.1
+# set RETROMOCOBOX_HOME from the version in retroMocoBoxVersion.m
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/setRetroMoCoBoxHome.sh" || exit 1
 # export RETROMOCOBOX_HOME=/home/scedg10/retroMoCoBox
 export ASPIRE_HOME=/cubric/software/matlab.toolboxes/ASPIRE
 export SPM_HOME=/cubric/software/spm.versions/spm12
