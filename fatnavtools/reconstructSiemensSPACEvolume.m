@@ -20,6 +20,9 @@ end
 if ~isfield(reconPars,'iRep')
     reconPars.iRep = 1;
 end
+if ~isfield(reconPars,'nSliceNeighbours') || isempty(reconPars.nSliceNeighbours)
+    reconPars.nSliceNeighbours = 2; % same default as performHostGRAPPArecon_RAMonly.m
+end
 if isfield(reconPars,'swapDims_xyz')
     disp("WARNING: swapDims_xyz is deprecated, use flipAxes_xyz instead - name has change as functionality has changed")
 end
@@ -344,6 +347,8 @@ if Arps(2)>1 || Arps(3) > 1
         fprintf(fidHTML,['Detected: CAIPI acceleration ' num2str(Arps(2)) 'x' num2str(Arps(3)) '<br>\n']);
 
     end
+    fprintf(['GRAPPA calibration nSliceNeighbours: ' num2str(reconPars.nSliceNeighbours) ', grappaLambda: ' num2str(reconPars.grappaLambda) '\n']);
+    fprintf(fidHTML,['GRAPPA calibration nSliceNeighbours: ' num2str(reconPars.nSliceNeighbours) ', grappaLambda: ' num2str(reconPars.grappaLambda) '<br>\n']);
     
 
 else
@@ -913,6 +918,9 @@ if bIsAccelerated
     
     %% Now do GRAPPA on each virtual 'slice' in SLC direction
 
+    nSliceNeighbours = reconPars.nSliceNeighbours; % local copies for parfor
+    grappaLambda = reconPars.grappaLambda;
+
 
     parfor iS = 1:hrps(1)
         
@@ -920,7 +928,29 @@ if bIsAccelerated
         thisData = permute(squeeze(allData(iS,:,:,:)),[2 3 1]);
         thisACS = permute(squeeze(ACSdata(iS,:,:,:)),[2 3 1]);
         
-        grapW = GrappaCalib3D_arb(thisACS,grapKernel,reconPars.grappaLambda);
+        if nSliceNeighbours > 0
+            % Pool the calibration equations from neighbouring virtual
+            % slices (in the readout direction) to improve conditioning of
+            % the GRAPPA weights - as in performHostGRAPPArecon_RAMonly.m
+            src = []; targ = [];
+            for this_iS = iS-nSliceNeighbours:iS+nSliceNeighbours
+                if this_iS >= 1 && this_iS <= hrps(1)
+                    thisNeighbourACS = permute(squeeze(ACSdata(this_iS,:,:,:)),[2 3 1]);
+                    [~, this_src, this_targ] = GrappaCalib3D_arb(thisNeighbourACS,grapKernel,0,0);
+                    src = [src; this_src];
+                    targ = [targ; this_targ];
+                end
+            end
+            % same solve as GrappaCalib3D_arb (lambda relative to norm of src)
+            if (grappaLambda)
+                lambdaApply = grappaLambda*norm(src(:));
+                grapW = pinv(src'*src + lambdaApply^2*eye(size(src,2))) * src' * targ;
+            else
+                grapW = pinv(src)*targ;
+            end
+        else
+            grapW = GrappaCalib3D_arb(thisACS,grapKernel,grappaLambda);
+        end
         
         [iFirst_phase, iFirst_slice] = getGRAPPAstartPositions(thisData(:,:,1),grapKernel);
         

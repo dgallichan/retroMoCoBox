@@ -215,6 +215,14 @@ reconPars.grappaLambda = 0;
 %    'grappaLambda' - the Tikhonov regularisation term for the host
 %                     sequence GRAPPA calibration. Default is none.
 
+reconPars.nSliceNeighbours = 2;
+%    'nSliceNeighbours' - number of neighbouring 'virtual' slices (on each
+%                         side, in the readout direction) whose ACS data are
+%                         pooled when calibrating the host GRAPPA weights.
+%                         Improves conditioning / regularises along readout.
+%                         Use 0 to calibrate each slice independently.
+%                         (Currently used by reconstructSiemensSPACEvolume.m)
+
 reconPars.bGetGRAPPA_SVD = 0;
 %    'bGetGRAPPA_SVD' - Useful mainly for debugging for GRAPPA to also return a 
 %                       single virtual coil image with signal almost everywhere
