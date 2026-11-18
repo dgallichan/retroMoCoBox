@@ -721,14 +721,26 @@ if bIsAccelerated
                     grapKernel([3 4],[3 4 5]) = 0.5;
                     grapKernel(2,[3 5]) = 0.5;
                     grapKernel = grapKernel';
-                    
+                elseif Arps(3)==4
+                    %% create grapkernel for CAIPI 3x4:
+                    grapKernel = zeros(7,7);
+                    grapKernel([1 5],1) = 1;
+                    grapKernel([2 6],4) = 1;
+                    grapKernel([3 7],7) = 1;
+                    grapKernel([3 4 5],[3 4 5]) = 0.5;
+                    grapKernel(2,[3 5]) = 0.5;
+                    grapKernel = grapKernel';
                 else
                     error('CAIPI acceleration combo not yet implemented....')
                 end
+            
+            %%%% DON'T FORGET: if you add more CAIPI combos here
+            %%% they also have to be handled further down inside the recon
+            %%% step!
                                
             otherwise
                 error('CAIPI acceleration combo not yet implemented....')
-                % % create grapkernels for CAIPI 3x2:                                 
+                                               
         end
     else % Not CAIPI
         if Arps(2)==2 && Arps(3)==2
@@ -908,7 +920,7 @@ if bIsAccelerated
         thisData = permute(squeeze(allData(iS,:,:,:)),[2 3 1]);
         thisACS = permute(squeeze(ACSdata(iS,:,:,:)),[2 3 1]);
         
-        grapW = GrappaCalib3D_arb(thisACS,grapKernel,1e-2);
+        grapW = GrappaCalib3D_arb(thisACS,grapKernel,reconPars.grappaLambda);
         
         [iFirst_phase, iFirst_slice] = getGRAPPAstartPositions(thisData(:,:,1),grapKernel);
         
@@ -936,6 +948,21 @@ if bIsAccelerated
                             [Arps(2)*3 Arps(3)],[iFirst_phase iFirst_slice;...
                             iFirst_phase+Arps(2) iFirst_slice+1; ...
                             iFirst_phase+2*Arps(2) iFirst_slice+2]);
+                    elseif Arps(3)==4
+                        % quad steps in phase direction and start four times
+                        
+                        % startpositions didn't work for this data, redo:
+                         [pp, ss] = find(thisData(:,:,1),1);
+                         iFirst_phase = mod(pp,4*Arps(2));
+                         iFirst_slice = mod(ss,Arps(3));
+                        
+                          grapRecon = GrappaReco3D_arb(thisData,grapKernel,grapW,...
+                            [4*Arps(2) Arps(3)],[iFirst_phase iFirst_slice;...
+                            iFirst_phase+Arps(2) iFirst_slice+1; ...
+                            iFirst_phase+2*Arps(2) iFirst_slice+2; ...
+                            iFirst_phase+3*Arps(2) iFirst_slice+3; ...
+                            ]);
+                        
                     end
             end
         else

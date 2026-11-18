@@ -698,8 +698,15 @@ if bUseNeckMasking
     %%
    alignpars.PW = [fatnavdir '/subj_fatnavStandard_mask.nii'];
    
+   % The standard mask is on its own grid (2mm), which differs from the
+   % FatNav grid when FatNavRes_mm ~= 2 (e.g. 4mm at 3T). SPM handles this
+   % for the PW weighting via the header, but the overlay PNG needs both on
+   % the same grid, so reslice a copy of the mask onto the subject FatNav.
+   spm_reslice(char(subj_fatnav, subj_mask), ...
+       struct('mask',0,'mean',0,'interp',1,'which',1,'prefix','r'));
+
    imgNav = rn(subj_fatnav(1:end-2));
-   imgMask= rn(alignpars.PW);
+   imgMask= rn([fatnavdir '/rsubj_fatnavStandard_mask.nii']);
    ovNav = orthoview(imgNav,'drawIms',0);
    ovMask = orthoview(imgMask,'drawIms',0);
    

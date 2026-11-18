@@ -578,7 +578,8 @@ if Arps(2) > 1
     useGRAPPAforHost = 1;
     if reconPars.bGRAPPAinRAM        
         [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_obj,...
-            struct('iAve',reconPars.iAve,'iRep',reconPars.iRep),2,svdCombinePars);
+            struct('iAve',reconPars.iAve,'iRep',reconPars.iRep),2,svdCombinePars,...
+            reconPars.grappaLambda);
         mOutGRAPPA.grappaRecon_1DFFT = grappaRecon_1DFFT; clear grappaRecon_1DFFT;
         timingReport_hostRecon = mOutGRAPPA.timingReport;
     else
@@ -586,7 +587,9 @@ if Arps(2) > 1
 %         performHostGRAPPArecon(twix_obj,tempDir); % the original low-RAM
 %         alternative code needs verifying as the output ends up corrupted
 %         (in at least some cases)
-        [timingReport_hostRecon, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,struct('iAve',reconPars.iAve,'iRep',reconPars.iRep),2,svdCombinePars);    
+        [timingReport_hostRecon, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,...
+            tempDir,struct('iAve',reconPars.iAve,'iRep',reconPars.iRep),2,svdCombinePars,...
+            reconPars.grappaLambda);    
     end
 else
     useGRAPPAforHost = 0;

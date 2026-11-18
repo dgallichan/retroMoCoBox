@@ -211,6 +211,10 @@ reconPars.bApplyFatNavNeckMasking = 1;
 %                       of image where FatNav can be expected to be assumed
 %                       rigid.
 
+reconPars.grappaLambda = 0;
+%    'grappaLambda' - the Tikhonov regularisation term for the host
+%                     sequence GRAPPA calibration. Default is none.
+
 reconPars.bGetGRAPPA_SVD = 0;
 %    'bGetGRAPPA_SVD' - Useful mainly for debugging for GRAPPA to also return a 
 %                       single virtual coil image with signal almost everywhere
