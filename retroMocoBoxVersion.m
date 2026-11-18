@@ -1,6 +1,6 @@
 function out = retroMocoBoxVersion
-out = '1.0.3dev';
-% 1.0.3dev - Nov 26 - updating GRAPPA handling
+out = '1.0.3';
+% 1.0.3 - Nov 26 - updating GRAPPA handling, drop 'dev' as its confusing...
 % 1.0.2dev - Sep 26 - update the 'standard fatnav' to 2mm resolution,
 %                     larger FOV. Also changed registration to standard
 %                     from spm_realign to spm_coreg
