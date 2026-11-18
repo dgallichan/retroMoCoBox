@@ -1,6 +1,6 @@
-function [timingReport, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,counterStruct, nSliceNeighbours, combinePars)
+function [timingReport, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,counterStruct, nSliceNeighbours, combinePars, lambda)
 %
-% function [timingReport, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,counterStruct, nSliceNeighbours, combinePars)
+% function [timingReport, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,tempDir,counterStruct, nSliceNeighbours, combinePars, lambda)
 %
 % Applies GRAPPA to the host data, which here is assumed to have acceleration in
 % the first phase-encoding direction only (as is the current limitation of
@@ -27,6 +27,10 @@ function [timingReport, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,
 %    temporary files to make sure nothing bad happens if you run this
 %    simultaneously on multiple averages or repetitions - probably best if
 %    they each have a separate 'tempDir'
+
+if nargin < 6
+    lambda = 0; % regularisation term for determination of GRAPPA weights
+end
 
 if nargin < 5
     combinePars = [];
@@ -301,15 +305,19 @@ parfor iS = 1:nread
                 thisACSdataFull = squeeze(ACSdata(iS,:,:,:,1,1,1,iEco,1,iSet));
                 thisACSdataFull = permute(thisACSdataFull,[2 3 1]);
                 
-                thisGrapW = pinv(src)*targ;
-                
+                if (lambda)
+                    lambdaApply = lambda*norm(src(:));
+                    thisGrapW  = pinv(src'*src + lambdaApply^2*eye(size(src,2))) * src' * targ;
+                else
+                    thisGrapW = pinv(src)*targ;
+                end                
             else
                 
                 thisACSdataFull = squeeze(ACSdata(iS,:,:,:,1,1,1,iEco,1,iSet));
                 thisACSdataFull = permute(thisACSdataFull,[2 3 1]); % this permute is necessary for my GRAPPA code, but may not be the fastest approach...
                 thisACSdata = thisACSdataFull([1:nACS1]-floor(nACS1/2)+floor(nACSmeas1/2),iPE2,:);
                 
-                thisGrapW = GrappaCalib3D_arb(thisACSdata,grapKernel,0,1);
+                thisGrapW = GrappaCalib3D_arb(thisACSdata,grapKernel,lambda,1);
             end
             
             thisGrapRecon = GrappaReco3D_arb(thisdata,grapKernel,thisGrapW,[Ax 1],[startX 1]);
