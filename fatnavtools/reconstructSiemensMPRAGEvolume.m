@@ -18,6 +18,9 @@ end
 if ~isfield(reconPars,'iRep')
     reconPars.iRep = 1;
 end
+if ~isfield(reconPars,'nSliceNeighbours') || isempty(reconPars.nSliceNeighbours)
+    reconPars.nSliceNeighbours = 2; 
+end
 if isfield(reconPars,'swapDims_xyz')
     disp("WARNING: swapDims_xyz is deprecated, use flipAxes_xyz instead - name has change as functionality has changed")
 end
@@ -578,7 +581,7 @@ if Arps(2) > 1
     useGRAPPAforHost = 1;
     if reconPars.bGRAPPAinRAM        
         [grappaRecon_1DFFT, mOutGRAPPA] = performHostGRAPPArecon_RAMonly(twix_obj,...
-            struct('iAve',reconPars.iAve,'iRep',reconPars.iRep),2,svdCombinePars,...
+            struct('iAve',reconPars.iAve,'iRep',reconPars.iRep),reconPars.nSliceNeighbours,svdCombinePars,...
             reconPars.grappaLambda);
         mOutGRAPPA.grappaRecon_1DFFT = grappaRecon_1DFFT; clear grappaRecon_1DFFT;
         timingReport_hostRecon = mOutGRAPPA.timingReport;
@@ -588,7 +591,7 @@ if Arps(2) > 1
 %         alternative code needs verifying as the output ends up corrupted
 %         (in at least some cases)
         [timingReport_hostRecon, tempNameRoots] = performHostGRAPPArecon_toDisk(twix_obj,...
-            tempDir,struct('iAve',reconPars.iAve,'iRep',reconPars.iRep),2,svdCombinePars,...
+            tempDir,struct('iAve',reconPars.iAve,'iRep',reconPars.iRep),reconPars.nSliceNeighbours,svdCombinePars,...
             reconPars.grappaLambda);    
     end
 else
@@ -1594,6 +1597,7 @@ if useGRAPPAforHost
     fprintf(fidHTML,['<strong>Do 1D FFT for each ''slice'' in readout direction of host data:</strong> ' num2str(round(timingReport_hostRecon.FFTperSlice)) ' seconds.<br>\n']);
     fprintf(fidHTML,['<strong>Declare variables for GRAPPA recon:</strong> ' num2str(round(timingReport_hostRecon.declareVariables)) ' seconds.<br>\n']);
     fprintf(fidHTML,['<strong>GRAPPA recon:</strong> ' num2str(timingReport_hostRecon.GRAPPArecon/60,'%.1f') ' mins.<br>\n']);
+    fprintf(fidHTML,['GRAPPA calibration nSliceNeighbours: ' num2str(reconPars.nSliceNeighbours) ', grappaLambda: ' num2str(reconPars.grappaLambda) '<br>\n']);
 end
 fprintf(fidHTML,['<strong>Application of retrospective motion-correction: </strong>' num2str(nc_keep) ' channels, ' num2str(nS) ' sets, each taking ' num2str(round(avgTimeApplyMocoPerVolume)) ' seconds (possibly parallelized) = ' num2str(timingReport_totalTimeApplyMoco/60,'%.1f') ' mins.<br>\n']);
 

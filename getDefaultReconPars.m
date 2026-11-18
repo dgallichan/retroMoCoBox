@@ -221,7 +221,6 @@ reconPars.nSliceNeighbours = 2;
 %                         pooled when calibrating the host GRAPPA weights.
 %                         Improves conditioning / regularises along readout.
 %                         Use 0 to calibrate each slice independently.
-%                         (Currently used by reconstructSiemensSPACEvolume.m)
 
 reconPars.bGetGRAPPA_SVD = 0;
 %    'bGetGRAPPA_SVD' - Useful mainly for debugging for GRAPPA to also return a 
